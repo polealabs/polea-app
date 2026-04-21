@@ -1,0 +1,84 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+
+function BookOpenIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+      <path d="M2 6.5A2.5 2.5 0 0 1 4.5 4H11v16H4.5A2.5 2.5 0 0 0 2 22z" />
+      <path d="M22 6.5A2.5 2.5 0 0 0 19.5 4H13v16h6.5A2.5 2.5 0 0 1 22 22z" />
+    </svg>
+  )
+}
+
+const navItems = [
+  { href: '/dashboard', icon: '⊞', label: 'Dashboard' },
+  { href: '/productos', icon: '◫', label: 'Productos' },
+  { href: '/entradas', icon: '↓', label: 'Entradas' },
+  { href: '/ventas', icon: '↗', label: 'Ventas' },
+  { href: '/clientes', icon: '◎', label: 'Clientes' },
+  { href: '/gastos', icon: '−', label: 'Gastos' },
+  { href: '/reportes', icon: '◈', label: 'Reportes' },
+  { href: '/proveedores', icon: '◈', label: 'Proveedores' },
+  { href: '/dashboard/docs', icon: <BookOpenIcon />, label: 'Documentación' },
+]
+
+export default function Sidebar() {
+  const pathname = usePathname()
+
+  return (
+    <aside className="w-60 min-h-screen bg-[#2D4A3E] flex flex-col fixed left-0 top-0 z-30">
+      {/* LOGO */}
+      <div className="px-7 py-8 border-b border-white/10">
+        <span className="font-serif text-[28px] font-bold text-cream tracking-tight block leading-none">
+          POLEA
+        </span>
+        <span className="text-[11px] text-white/40 uppercase tracking-widest mt-1 block">
+          Tu tienda, clara
+        </span>
+      </div>
+
+      {/* NAV */}
+      <nav className="flex-1 py-6">
+        <p className="text-[10px] uppercase tracking-[2px] text-white/30 px-7 mb-2">
+          Módulos
+        </p>
+        {navItems.map((item) => {
+          const active = pathname === item.href
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center gap-3 px-7 py-[11px] text-sm transition-all relative
+                ${
+                  active
+                    ? 'text-cream bg-white/10 font-medium'
+                    : 'text-white/60 hover:text-white/90 hover:bg-white/5'
+                }`}
+            >
+              {active && (
+                <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#E8845A] rounded-r-sm" />
+              )}
+              <span className="w-5 text-center text-base flex justify-center">{item.icon}</span>
+              {item.label}
+            </Link>
+          )
+        })}
+      </nav>
+
+      {/* BOTTOM */}
+      <div className="px-7 py-5 border-t border-white/10">
+        <div className="flex items-center gap-3">
+          <div className="w-[34px] h-[34px] rounded-full bg-[#C4622D] flex items-center justify-center font-serif text-sm text-white font-bold flex-shrink-0">
+            P
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] text-cream font-medium truncate">Mi tienda</p>
+            <p className="text-[11px] text-white/40">Plan gratuito</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+  )
+}
