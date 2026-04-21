@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/registro')
@@ -18,7 +18,6 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/preferencias') ||
     pathname.startsWith('/reportes')
 
-  // Leer cookie de sesión de Supabase
   const supabaseCookie = request.cookies.getAll().find(c =>
     c.name.startsWith('sb-') && c.name.endsWith('-auth-token')
   )
