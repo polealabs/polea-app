@@ -5,8 +5,39 @@ import Link from 'next/link'
 
 const WA_URL = 'https://wa.me/573014140381'
 
+const painPoints = [
+  {
+    icon: '📊',
+    titulo: 'No sé cuánto gané este mes',
+    texto:
+      'Entre comisiones de Wompi, descuentos y gastos, al final del mes no sabes si tu negocio fue rentable.',
+  },
+  {
+    icon: '📦',
+    titulo: 'Mi inventario siempre está desactualizado',
+    texto: 'Vendes por WhatsApp, Instagram y en físico — y nunca sabes exactamente cuánto te queda en stock.',
+  },
+  {
+    icon: '💸',
+    titulo: 'Llevo todo en Excel y ya no aguanto',
+    texto: 'Hojas de cálculo, cuadernos, notas de voz. Tu negocio ya creció más que eso.',
+  },
+  {
+    icon: '👥',
+    titulo: 'No sé cuáles son mis mejores clientes',
+    texto: 'Tienes clientes que compran todo el tiempo pero no sabes quiénes son ni cuándo fue su última compra.',
+  },
+  {
+    icon: '😤',
+    titulo: 'Cada fin de mes es un caos',
+    texto:
+      'Juntar ventas, gastos y facturas de todas partes para saber cómo te fue — un proceso que te roba horas.',
+  },
+]
+
 export default function Home() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [cardActiva, setCardActiva] = useState(0)
 
   return (
     <div className="min-h-screen bg-white">
@@ -120,14 +151,14 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-6 md:px-12 grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
           <div>
             <div className="inline-flex items-center gap-2 bg-white border border-[#EDE5DC] rounded-full px-4 py-1.5 text-xs text-[#4A3F35] font-medium mb-6">
-              🇨🇴 Hecho para negocios colombianos
+              Para emprendedores que quieren claridad financiera
             </div>
             <h1 className="font-serif text-[42px] md:text-[56px] font-medium text-[#1A1510] leading-[1.1] mb-5">
-              Tu negocio,
+              Vende más.
               <br />
-              sin el caos
+              Gana más.
               <br />
-              del <span className="text-[#C4622D] italic">Excel</span>
+              <span className="text-[#C4622D] italic">Sabe exactamente cuánto.</span>
             </h1>
             <p className="text-[#8A7D72] text-lg leading-relaxed mb-8">
               Registra ventas, controla tu inventario y conoce tu ganancia real. Diseñado para tiendas que
@@ -153,7 +184,7 @@ export default function Home() {
           </div>
 
           <div className="relative">
-            <div className="bg-[#1E3A2F] rounded-2xl p-4 shadow-2xl transform md:rotate-1">
+            <div className="bg-[#1E3A2F] rounded-2xl p-4 shadow-2xl">
               <div className="bg-[#FAF6F0] rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="font-serif text-sm font-medium text-[#1A1510]">Dashboard</span>
@@ -199,59 +230,123 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3. SOCIAL PROOF */}
-      <section className="bg-white py-12 text-center px-6">
-        <p className="text-xs uppercase tracking-wide text-[#8A7D72] mb-6">
-          FUNCIONA CON LAS PLATAFORMAS QUE YA USAS
-        </p>
-        <div className="flex flex-wrap justify-center gap-3">
-          {[
-            'WhatsApp',
-            'Instagram',
-            'Wompi',
-            'Bold',
-            'Nequi',
-            'Daviplata',
-            'Transferencia',
-          ].map((name) => (
-            <span
-              key={name}
-              className="bg-[#FAF6F0] border border-[#EDE5DC] rounded-full px-4 py-2 text-sm font-medium text-[#4A3F35]"
-            >
-              {name}
-            </span>
-          ))}
+      <section className="bg-white py-14 border-b border-[#EDE5DC]">
+        <div className="max-w-5xl mx-auto px-6">
+          <p className="text-center text-xs uppercase tracking-widest text-[#8A7D72] mb-10 font-medium">
+            Toma decisiones con información real
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[
+              {
+                icon: '⚡',
+                titulo: 'Configuración en minutos',
+                texto: 'Sin instalaciones ni cursos. Crea tu cuenta y empieza hoy.',
+              },
+              {
+                icon: '📊',
+                titulo: 'Estado de resultados automático',
+                texto: 'Tu P&L mes a mes sin necesidad de un contador.',
+              },
+              {
+                icon: '🔄',
+                titulo: 'Stock en tiempo real',
+                texto: 'Se actualiza solo con cada venta y cada entrada de mercancía.',
+              },
+              {
+                icon: '💳',
+                titulo: 'Comisiones automáticas',
+                texto: 'Wompi, Bold, Nequi — Polea calcula lo que te cobran y te muestra tu neto.',
+              },
+            ].map((item, i) => (
+              <div key={i} className="text-center">
+                <div className="text-3xl mb-3">{item.icon}</div>
+                <p className="text-sm font-semibold text-[#1E3A2F] mb-1">{item.titulo}</p>
+                <p className="text-xs text-[#8A7D72] leading-relaxed">{item.texto}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* 4. PROBLEMA */}
-      <section id="problema" className="bg-[#FAF6F0] py-20 max-w-5xl mx-auto px-6">
-        <h2 className="font-serif text-[36px] text-center text-[#1A1510] mb-4">¿Te suena familiar?</h2>
-        <p className="text-center text-[#8A7D72] mb-12">
-          Miles de negocios colombianos pasan por esto todos los días.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-2xl p-6 border border-[#EDE5DC] shadow-sm">
-            <div className="text-3xl">📊</div>
-            <h3 className="font-semibold text-[#1A1510] mt-3 mb-2">No sé cuánto gané este mes</h3>
-            <p className="text-sm text-[#8A7D72] leading-relaxed">
-              Entre comisiones de Wompi, descuentos y gastos, al final del mes no sabes si tu negocio fue
-              rentable.
-            </p>
+      <section id="problema" className="py-20" style={{ background: '#FAF6F0' }}>
+        <div className="max-w-6xl mx-auto px-6">
+          <h2 className="font-serif text-[36px] text-center text-[#1A1510] mb-3">¿Te suena familiar?</h2>
+          <p className="text-center text-[#8A7D72] mb-16">Si gestionas un negocio, seguro has pasado por esto.</p>
+
+          {/* Carrusel de cartas */}
+          <div className="relative flex items-center justify-center gap-4 overflow-hidden py-8">
+            {painPoints.map((p, i) => {
+              const total = painPoints.length
+              let diff = i - cardActiva
+              if (diff > total / 2) diff -= total
+              if (diff < -total / 2) diff += total
+
+              const isActive = diff === 0
+              const isNext = diff === 1 || (cardActiva === total - 1 && i === 0)
+              const isPrev = diff === -1 || (cardActiva === 0 && i === total - 1)
+              const isHidden = Math.abs(diff) > 1
+
+              if (isHidden) return null
+
+              return (
+                <div
+                  key={i}
+                  onClick={() => !isActive && setCardActiva(i)}
+                  className={`
+              bg-white rounded-2xl border border-[#EDE5DC] shadow-sm p-8 transition-all duration-500 flex-shrink-0
+              ${
+                isActive
+                  ? 'w-full max-w-lg z-20 opacity-100 scale-100 cursor-default'
+                  : 'w-full max-w-xs z-10 opacity-50 scale-95 cursor-pointer hover:opacity-70'
+              }
+              ${isPrev ? '-translate-x-4' : ''}
+              ${isNext ? 'translate-x-4' : ''}
+            `}
+                >
+                  <div className="text-5xl mb-5">{p.icon}</div>
+                  <h3
+                    className={`font-serif font-medium text-[#1A1510] mb-3 ${isActive ? 'text-[24px]' : 'text-[18px]'}`}
+                  >
+                    {p.titulo}
+                  </h3>
+                  {isActive && <p className="text-[#8A7D72] leading-relaxed">{p.texto}</p>}
+                </div>
+              )
+            })}
           </div>
-          <div className="bg-white rounded-2xl p-6 border border-[#EDE5DC] shadow-sm">
-            <div className="text-3xl">📦</div>
-            <h3 className="font-semibold text-[#1A1510] mt-3 mb-2">Mi inventario siempre está desactualizado</h3>
-            <p className="text-sm text-[#8A7D72] leading-relaxed">
-              Vendes por WhatsApp, Instagram y en físico — y nunca sabes exactamente cuánto te queda en stock.
-            </p>
-          </div>
-          <div className="bg-white rounded-2xl p-6 border border-[#EDE5DC] shadow-sm">
-            <div className="text-3xl">💸</div>
-            <h3 className="font-semibold text-[#1A1510] mt-3 mb-2">Llevo todo en Excel y ya no aguanto</h3>
-            <p className="text-sm text-[#8A7D72] leading-relaxed">
-              Hojas de cálculo, cuadernos, notas de voz. Tu negocio ya creció más que eso.
-            </p>
+
+          {/* Controles */}
+          <div className="flex items-center justify-center gap-6 mt-8">
+            <button
+              type="button"
+              onClick={() =>
+                setCardActiva((v) => (v - 1 + painPoints.length) % painPoints.length)
+              }
+              className="w-11 h-11 rounded-full border border-[#EDE5DC] bg-white flex items-center justify-center text-[#8A7D72] hover:bg-[#FAF6F0] transition text-xl shadow-sm"
+            >
+              ‹
+            </button>
+
+            <div className="flex gap-2">
+              {painPoints.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setCardActiva(i)}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    i === cardActiva ? 'bg-[#C4622D] w-8' : 'bg-[#EDE5DC] w-2 hover:bg-[#C4B8B0]'
+                  }`}
+                />
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setCardActiva((v) => (v + 1) % painPoints.length)}
+              className="w-11 h-11 rounded-full border border-[#EDE5DC] bg-white flex items-center justify-center text-[#8A7D72] hover:bg-[#FAF6F0] transition text-xl shadow-sm"
+            >
+              ›
+            </button>
           </div>
         </div>
       </section>
@@ -259,7 +354,7 @@ export default function Home() {
       {/* 5. FUNCIONALIDADES */}
       <section id="funcionalidades" className="bg-white py-20 max-w-6xl mx-auto px-6">
         <h2 className="font-serif text-[36px] text-center mb-2">Todo lo que necesitas</h2>
-        <p className="text-center text-[#8A7D72] mb-12">Sin funciones que nunca vas a usar.</p>
+        <p className="text-center text-[#8A7D72] mb-12">Poderoso para crecer, simple para empezar.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC]">
             <div className="text-3xl">↗</div>
@@ -359,8 +454,8 @@ export default function Home() {
 
       {/* 7. TIPOS DE NEGOCIO */}
       <section className="bg-[#FAF6F0] py-16 text-center px-6">
-        <h2 className="font-serif text-[32px] mb-3">Para cualquier negocio que venda</h2>
-        <p className="text-[#8A7D72] mb-8">Sin importar si vendes en físico, por redes o por WhatsApp.</p>
+        <h2 className="font-serif text-[32px] mb-3">Hecho para tu tipo de negocio</h2>
+        <p className="text-[#8A7D72] mb-8">Tu industria, tu ritmo, tu herramienta.</p>
         <div className="flex flex-wrap justify-center gap-2.5 max-w-3xl mx-auto">
           {[
             'Joyería',
