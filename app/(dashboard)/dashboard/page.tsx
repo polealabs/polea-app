@@ -6,7 +6,9 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
 import { DashboardHomeSkeleton } from '@/components/skeletons/DashboardHomeSkeleton'
-import type { Producto, VentaCabecera } from '@/lib/types'
+import type { Producto, VentaCabecera, Cliente } from '@/lib/types'
+import { crearVentaMulti } from '@/app/(dashboard)/ventas/actions'
+import { calcularNetoConDescuento } from '@/lib/utils'
 
 type VentaConDetalles = VentaCabecera & {
   cliente_nombre?: string
@@ -31,6 +33,14 @@ type VentaCabeceraRaw = VentaCabecera & {
 type VentaDia = {
   fecha: string
   total: number
+}
+
+type LineaVentaForm = {
+  producto_id: string
+  cantidad: number
+  precio_venta: number
+  precio_original: number
+  descuento: number
 }
 
 function formatCOP(n: number) {
@@ -124,12 +134,30 @@ export default function DashboardPage() {
   const [productosStockBajo, setProductosStockBajo] = useState<Producto[]>([])
   const [ultimasVentas, setUltimasVentas] = useState<VentaConDetalles[]>([])
   const [ventasSemana, setVentasSemana] = useState<VentaDia[]>([])
-  const [todosProductos, setTodosProductos] = useState<Producto[]>([])
   const [loading, setLoading] = useState(true)
   const [semanaOffset, setSemanaOffset] = useState(0)
   const [notificacionesActivas, setNotificacionesActivas] = useState<
     { tipo: string; mensaje: string; link: string }[]
   >([])
+
+  const [totalGastosMes, setTotalGastosMes] = useState(0)
+  const [canalTop, setCanalTop] = useState<[string, number] | null>(null)
+  const [clienteTop, setClienteTop] = useState<{ nombre: string; total: number } | null>(null)
+  const [productoTop, setProductoTop] = useState<{ nombre: string; cantidad: number } | null>(null)
+
+  const [showVentaModal, setShowVentaModal] = useState(false)
+  const [productosVenta, setProductosVenta] = useState<Producto[]>([])
+  const [clientesVenta, setClientesVenta] = useState<Cliente[]>([])
+  const [canal, setCanal] = useState('WhatsApp')
+  const [plataforma, setPlataforma] = useState('Efectivo')
+  const [fechaVenta, setFechaVenta] = useState(() => new Date().toISOString().split('T')[0])
+  const [clienteId, setClienteId] = useState('')
+  const [lineas, setLineas] = useState<LineaVentaForm[]>([
+    { producto_id: '', cantidad: 1, precio_venta: 0, precio_original: 0, descuento: 0 },
+  ])
+  const [submittingVenta, setSubmittingVenta] = useState(false)
+  const [errorVenta, setErrorVenta] = useState<string | null>(null)
+  const [, setShowClienteFormModal] = useState(false)
 
   useEffect(() => {
     if (!tiendaLoading && !tienda) {
@@ -156,7 +184,6 @@ export default function DashboardPage() {
       ventasHoyRes,
       ventasMesRes,
       todosProductosRes,
-      ventasRecientesRes,
       ultimasRes,
       ventasMesAntRes,
       clientesMesRes,
@@ -171,7 +198,6 @@ export default function DashboardPage() {
           .eq('tienda_id', tiendaId)
           .gte('fecha', `${mesActual}-01`),
         supabase.from('productos').select('*').eq('tienda_id', tiendaId),
-        supabase.from('ventas_cabecera').select('id').eq('tienda_id', tiendaId).gte('fecha', hace30),
         supabase
           .from('ventas_cabecera')
           .select(
@@ -206,23 +232,19 @@ export default function DashboardPage() {
     const totalMes = (ventasMesRes.data ?? []).reduce((s, v) => s + (v.total_neto ?? 0), 0)
 
     const listaProductos = todosProductosRes.data ?? []
-    setTodosProductos(listaProductos)
 
     const stockBajo = listaProductos.filter((p) => p.stock_actual <= p.stock_minimo)
     setProductosStockBajo(stockBajo)
 
-    const ventasRecientesIds = (ventasRecientesRes.data ?? []).map((v) => v.id)
-    const idsConMovimiento = new Set<string>()
-    if (ventasRecientesIds.length > 0) {
-      const { data: itemsRecientes } = await supabase
-        .from('venta_items')
-        .select('producto_id')
-        .eq('tienda_id', tiendaId)
-        .in('cabecera_id', ventasRecientesIds)
-      ;(itemsRecientes ?? []).forEach((item) => idsConMovimiento.add(item.producto_id))
-    }
-    const sinMovimiento = listaProductos.filter(
-      (p) => !idsConMovimiento.has(p.id) && p.stock_actual > 0
+    const { data: ventasRecientes } = await supabase
+      .from('venta_items')
+      .select('producto_id')
+      .eq('tienda_id', tienda.id)
+      .gte('created_at', hace30 + 'T00:00:00')
+
+    const idsConMovimiento = new Set((ventasRecientes ?? []).map((v) => v.producto_id))
+    const sinMovimiento = (listaProductos ?? []).filter(
+      (p) => p.stock_actual > 0 && !idsConMovimiento.has(p.id),
     )
 
     setVentasHoy(totalHoy)
@@ -239,6 +261,78 @@ export default function DashboardPage() {
       })),
     }))
     setUltimasVentas(ventasMapeadas)
+
+    const inicioMes = `${mesActual}-01`
+
+    const [
+      { data: gastosData },
+      { data: ventasCanal },
+      { data: ventasClienteMes },
+      { data: itemsMes },
+    ] = await Promise.all([
+      supabase.from('gastos').select('monto').eq('tienda_id', tienda.id).gte('fecha', inicioMes),
+      supabase.from('ventas_cabecera').select('canal').eq('tienda_id', tienda.id).gte('fecha', inicioMes),
+      supabase
+        .from('ventas_cabecera')
+        .select('cliente_id')
+        .eq('tienda_id', tienda.id)
+        .gte('fecha', inicioMes)
+        .not('cliente_id', 'is', null),
+      supabase
+        .from('venta_items')
+        .select('producto_id, cantidad, productos(nombre)')
+        .eq('tienda_id', tienda.id)
+        .gte('created_at', `${inicioMes}T00:00:00`),
+    ])
+
+    const totalGastos = (gastosData ?? []).reduce((s, g) => s + (g.monto ?? 0), 0)
+    setTotalGastosMes(totalGastos)
+
+    const conteoCanales = new Map<string, number>()
+    ;(ventasCanal ?? []).forEach((v) => {
+      conteoCanales.set(v.canal, (conteoCanales.get(v.canal) ?? 0) + 1)
+    })
+    const canalTopEntry =
+      conteoCanales.size > 0
+        ? ([...conteoCanales.entries()].sort((a, b) => b[1] - a[1])[0] as [string, number])
+        : null
+    setCanalTop(canalTopEntry)
+
+    const conteoClienteCompras = new Map<string, number>()
+    ;(ventasClienteMes ?? []).forEach((v) => {
+      if (!v.cliente_id) return
+      conteoClienteCompras.set(v.cliente_id, (conteoClienteCompras.get(v.cliente_id) ?? 0) + 1)
+    })
+    let clienteTopVal: { nombre: string; total: number } | null = null
+    if (conteoClienteCompras.size > 0) {
+      const [topClienteId, totalVentas] = [...conteoClienteCompras.entries()].sort((a, b) => b[1] - a[1])[0]
+      const nombreCli =
+        (clientesInfoRes.data ?? []).find((c) => c.id === topClienteId)?.nombre ?? '—'
+      clienteTopVal = { nombre: nombreCli, total: totalVentas }
+    }
+    setClienteTop(clienteTopVal)
+
+    const conteoProductosMes = new Map<string, { nombre: string; cantidad: number }>()
+    ;(itemsMes ?? []).forEach(
+      (item: {
+        producto_id: string
+        cantidad: number
+        productos?: { nombre?: string } | { nombre?: string }[] | null
+      }) => {
+        const prod = item.productos
+        const nombre = Array.isArray(prod) ? prod[0]?.nombre ?? '—' : prod?.nombre ?? '—'
+        const prev = conteoProductosMes.get(item.producto_id) ?? { nombre, cantidad: 0 }
+        conteoProductosMes.set(item.producto_id, {
+          nombre,
+          cantidad: prev.cantidad + item.cantidad,
+        })
+      },
+    )
+    const productoTopVal =
+      conteoProductosMes.size > 0
+        ? [...conteoProductosMes.values()].sort((a, b) => b.cantidad - a.cantidad)[0]
+        : null
+    setProductoTop(productoTopVal)
 
     const alertas: { tipo: string; mensaje: string; link: string }[] = []
 
@@ -299,6 +393,62 @@ export default function DashboardPage() {
     setLoading(false)
   }, [tienda])
 
+  function cerrarModal() {
+    setShowVentaModal(false)
+    setLineas([{ producto_id: '', cantidad: 1, precio_venta: 0, precio_original: 0, descuento: 0 }])
+    setCanal('WhatsApp')
+    setPlataforma('Efectivo')
+    setFechaVenta(new Date().toISOString().split('T')[0])
+    setClienteId('')
+    setErrorVenta(null)
+    setShowClienteFormModal(false)
+  }
+
+  async function handleGuardarVenta() {
+    if (!tienda) return
+    const lineasValidas = lineas.filter((l) => l.producto_id && l.cantidad > 0 && l.precio_venta >= 0)
+    if (lineasValidas.length === 0) {
+      setErrorVenta('Agrega al menos un producto')
+      return
+    }
+
+    setSubmittingVenta(true)
+    setErrorVenta(null)
+
+    const result = await crearVentaMulti({
+      cliente_id: clienteId || undefined,
+      canal,
+      plataforma_pago: plataforma,
+      fecha: fechaVenta,
+      lineas: lineasValidas.map((l) => ({
+        producto_id: l.producto_id,
+        cantidad: l.cantidad,
+        precio_venta: l.precio_venta,
+        descuento: l.descuento ?? 0,
+      })),
+    })
+
+    if (result?.error) {
+      setErrorVenta(result.error)
+    } else {
+      cerrarModal()
+      await loadDashboardData()
+    }
+    setSubmittingVenta(false)
+  }
+
+  useEffect(() => {
+    if (!showVentaModal || !tienda) return
+    const supabase = createClient()
+    void Promise.all([
+      supabase.from('productos').select('*').eq('tienda_id', tienda.id).gt('stock_actual', 0).order('nombre'),
+      supabase.from('clientes').select('*').eq('tienda_id', tienda.id).order('nombre'),
+    ]).then(([{ data: prods }, { data: cls }]) => {
+      setProductosVenta((prods ?? []) as Producto[])
+      setClientesVenta((cls ?? []) as Cliente[])
+    })
+  }, [showVentaModal, tienda])
+
   useEffect(() => {
     if (!tienda) return
     const timeoutId = window.setTimeout(() => {
@@ -349,7 +499,7 @@ export default function DashboardPage() {
   return (
     <div className="w-full p-4 md:p-6 xl:p-10">
       {/* HEADER */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-9">
+      <div className="mb-9">
         <div className="min-w-0">
           <h1 className="font-serif text-[32px] font-medium text-ink leading-tight">
             {getSaludo()},{' '}
@@ -365,25 +515,11 @@ export default function DashboardPage() {
             {tienda.ciudad ? ` · ${tienda.ciudad}` : ''}
           </p>
         </div>
-        <div className="flex gap-2.5 flex-wrap shrink-0">
-          <Link
-            href="/productos"
-            className="px-5 py-2.5 rounded-lg text-sm font-medium border border-border-warm bg-white text-ink-mid hover:border-ink-faint transition"
-          >
-            + Producto
-          </Link>
-          <Link
-            href="/ventas"
-            className="px-5 py-2.5 rounded-lg text-sm font-medium bg-terra text-white hover:bg-terra-light transition"
-          >
-            + Venta nueva
-          </Link>
-        </div>
       </div>
 
       {/* ALERTAS BANNER */}
       {notificacionesActivas.length > 0 && (
-        <div className="bg-[#2D4A3E] rounded-2xl p-5 flex items-center gap-4 mb-4 relative overflow-hidden">
+        <div className="bg-[#2D4A3E] rounded-2xl p-5 flex items-center gap-4 mb-4 relative">
           <div className="absolute right-[-20px] top-[-20px] w-[120px] h-[120px] rounded-full bg-terra/20 blur-2xl" />
           <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-lg flex-shrink-0">
             ✦
@@ -403,7 +539,8 @@ export default function DashboardPage() {
               <Link
                 key={i}
                 href={alerta.link}
-                className="text-xs text-[#E8845A] font-medium underline underline-offset-2 whitespace-nowrap text-right"
+                onClick={(e) => e.stopPropagation()}
+                className="relative z-10 text-xs text-[#E8845A] font-medium underline underline-offset-2 whitespace-nowrap text-right hover:text-white transition"
               >
                 Ver →
               </Link>
@@ -413,7 +550,7 @@ export default function DashboardPage() {
       )}
 
       {/* KPI CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div className="bg-white rounded-2xl border border-border-warm p-5 relative overflow-hidden shadow-sm">
           <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-terra" />
           <p className="text-xs text-ink-soft mb-2">Ventas hoy</p>
@@ -438,17 +575,6 @@ export default function DashboardPage() {
             }`}
           >
             {productosStockBajo.length}
-          </p>
-        </Link>
-        <Link
-          href="/ventas"
-          className="bg-terra rounded-2xl p-5 shadow-sm flex flex-col justify-between hover:bg-terra-light transition"
-        >
-          <p className="text-xs text-white/70">Acción rápida</p>
-          <p className="font-serif text-[20px] font-medium text-white leading-tight mt-2">
-            Registrar
-            <br />
-            venta
           </p>
         </Link>
       </div>
@@ -609,55 +735,336 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* INVENTARIO */}
-        <div className="bg-white rounded-2xl border border-border-warm shadow-sm overflow-hidden h-fit">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border-warm">
-            <p className="text-sm font-semibold text-ink">Inventario</p>
-            <Link href="/productos" className="text-xs text-terra font-medium hover:underline">
-              Ver todo →
-            </Link>
+        {/* Columna derecha: resumen y destacados */}
+        <div className="h-fit">
+          <div className="bg-white rounded-2xl border border-[#EDE5DC] shadow-sm p-5 mb-4">
+            <p className="text-xs font-semibold text-[#8A7D72] uppercase tracking-wide mb-4">Resumen del mes</p>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-[#8A7D72]">Ventas netas</span>
+                <span className="text-sm font-semibold text-[#1A1510]">{formatCOP(ventasMes)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-[#8A7D72]">Gastos</span>
+                <span className="text-sm font-semibold text-[#1A1510]">- {formatCOP(totalGastosMes)}</span>
+              </div>
+              <div className="pt-2 border-t border-[#EDE5DC] flex justify-between items-center">
+                <span className="text-sm font-semibold text-[#1A1510]">Utilidad estimada</span>
+                <span
+                  className={`text-sm font-bold ${
+                    ventasMes - totalGastosMes >= 0 ? 'text-[#3A7D5A]' : 'text-[#C44040]'
+                  }`}
+                >
+                  {formatCOP(ventasMes - totalGastosMes)}
+                </span>
+              </div>
+            </div>
           </div>
-          {todosProductos.length === 0 ? (
-            <div className="px-6 py-10 text-center">
-              <p className="text-sm text-ink-soft">Sin productos aún.</p>
+
+          <div className="bg-white rounded-2xl border border-[#EDE5DC] shadow-sm p-5 mb-4">
+            <p className="text-xs font-semibold text-[#8A7D72] uppercase tracking-wide mb-4">Destacados del mes</p>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-sm text-[#8A7D72] shrink-0">Canal top</span>
+                <span className="text-sm font-semibold text-[#1A1510] text-right">
+                  {canalTop ? `${canalTop[0]} (${canalTop[1]} ventas)` : '—'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-sm text-[#8A7D72] shrink-0">Cliente top</span>
+                <span className="text-sm font-semibold text-[#1A1510] truncate max-w-[140px] text-right">
+                  {clienteTop?.nombre ?? '—'}
+                </span>
+              </div>
             </div>
-          ) : (
-            <div className="divide-y divide-border-warm/60">
-              {todosProductos.slice(0, 6).map((p) => {
-                const agotado = p.stock_actual === 0
-                const bajo = !agotado && p.stock_actual <= p.stock_minimo
-                return (
-                  <div key={p.id} className="flex items-center gap-3 px-6 py-3.5">
-                    <div className="w-8 h-8 rounded-lg bg-cream flex items-center justify-center text-sm flex-shrink-0">
-                      📦
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-ink truncate">{p.nombre}</p>
-                      {p.sku && <p className="text-[11px] text-ink-soft">{p.sku}</p>}
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-semibold text-ink">{p.stock_actual} uds</p>
-                      {agotado ? (
-                        <span className="text-[10px] font-semibold text-red-alert bg-red-pale px-2 py-0.5 rounded-full">
-                          Agotado
-                        </span>
-                      ) : bajo ? (
-                        <span className="text-[10px] font-semibold text-gold bg-gold-pale px-2 py-0.5 rounded-full">
-                          Stock bajo
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-semibold text-green bg-green-pale px-2 py-0.5 rounded-full">
-                          OK
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+          </div>
+
+          <div className="bg-white rounded-2xl border border-[#EDE5DC] shadow-sm p-5">
+            <p className="text-xs font-semibold text-[#8A7D72] uppercase tracking-wide mb-3">⭐ Producto estrella</p>
+            {productoTop ? (
+              <div>
+                <p className="text-sm font-semibold text-[#1A1510]">{productoTop.nombre}</p>
+                <p className="text-xs text-[#8A7D72] mt-0.5">{productoTop.cantidad} unidades vendidas este mes</p>
+              </div>
+            ) : (
+              <p className="text-sm text-[#8A7D72]">Sin ventas registradas este mes</p>
+            )}
+          </div>
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setShowVentaModal(true)}
+        className="fixed bottom-6 right-6 z-40 bg-[#C4622D] hover:bg-[#E8845A] text-white font-semibold px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 transition"
+      >
+        <span className="text-lg">↗</span>
+        Nueva venta
+      </button>
+
+      {showVentaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#EDE5DC] sticky top-0 bg-white rounded-t-2xl">
+              <p className="text-base font-semibold text-[#1E3A2F]">Nueva venta</p>
+              <button type="button" onClick={cerrarModal} className="text-[#8A7D72] hover:text-[#1A1510] transition text-xl">
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-[#8A7D72] mb-1">Canal</label>
+                  <select
+                    value={canal}
+                    onChange={(e) => setCanal(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-[#EDE5DC] text-sm text-[#1A1510] focus:outline-none focus:ring-2 focus:ring-[#C4622D]/30"
+                  >
+                    <option>WhatsApp</option>
+                    <option>Instagram</option>
+                    <option>Web</option>
+                    <option>Presencial</option>
+                    <option>Tienda multimarca</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-[#8A7D72] mb-1">Plataforma</label>
+                  <select
+                    value={plataforma}
+                    onChange={(e) => setPlataforma(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-[#EDE5DC] text-sm text-[#1A1510] focus:outline-none focus:ring-2 focus:ring-[#C4622D]/30"
+                  >
+                    <option>Efectivo</option>
+                    <option>Transferencia</option>
+                    <option>Nequi</option>
+                    <option>Daviplata</option>
+                    <option>Wompi</option>
+                    <option>Bold</option>
+                    <option>Contraentrega</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-[#8A7D72] mb-1">Fecha</label>
+                  <input
+                    type="date"
+                    value={fechaVenta}
+                    onChange={(e) => setFechaVenta(e.target.value)}
+                    max={new Date().toISOString().split('T')[0]}
+                    className="w-full px-3 py-2 rounded-lg border border-[#EDE5DC] text-sm text-[#1A1510] focus:outline-none focus:ring-2 focus:ring-[#C4622D]/30"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[#8A7D72] mb-1">Cliente (opcional)</label>
+                <div className="flex gap-2">
+                  <select
+                    value={clienteId}
+                    onChange={(e) => setClienteId(e.target.value)}
+                    className="flex-1 px-3 py-2 rounded-lg border border-[#EDE5DC] text-sm text-[#1A1510] focus:outline-none focus:ring-2 focus:ring-[#C4622D]/30"
+                  >
+                    <option value="">Sin cliente</option>
+                    {clientesVenta.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-medium text-[#8A7D72] mb-2">Productos</p>
+                <div className="space-y-3">
+                  {lineas.map((linea, i) => {
+                    const { neto: netoLinea } = calcularNetoConDescuento(
+                      linea.precio_venta,
+                      linea.cantidad,
+                      linea.descuento,
+                      plataforma,
+                    )
+                    return (
+                      <div key={i} className="bg-[#FAF6F0] rounded-xl p-3 space-y-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <div className="sm:col-span-1">
+                            <label className="block text-xs text-[#8A7D72] mb-1">Producto</label>
+                            <select
+                              value={linea.producto_id}
+                              onChange={(e) => {
+                                const prod = productosVenta.find((p) => p.id === e.target.value)
+                                const nuevas = [...lineas]
+                                nuevas[i] = {
+                                  ...nuevas[i],
+                                  producto_id: e.target.value,
+                                  precio_venta: prod?.precio_venta ?? 0,
+                                  precio_original: prod?.precio_venta ?? 0,
+                                }
+                                setLineas(nuevas)
+                              }}
+                              className="w-full px-3 py-2 rounded-lg border border-[#EDE5DC] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#C4622D]/30"
+                            >
+                              <option value="">Selecciona</option>
+                              {productosVenta.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.nombre} — {p.stock_actual} uds
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-[#8A7D72] mb-1">Cantidad</label>
+                            <input
+                              type="number"
+                              min={1}
+                              value={linea.cantidad}
+                              onChange={(e) => {
+                                const n = [...lineas]
+                                n[i] = { ...n[i], cantidad: Number(e.target.value) }
+                                setLineas(n)
+                              }}
+                              className="w-full px-3 py-2 rounded-lg border border-[#EDE5DC] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#C4622D]/30"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-[#8A7D72] mb-1">Precio</label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={linea.precio_venta || ''}
+                              onChange={(e) => {
+                                const n = [...lineas]
+                                n[i] = { ...n[i], precio_venta: Number(e.target.value) }
+                                setLineas(n)
+                              }}
+                              className="w-full px-3 py-2 rounded-lg border border-[#EDE5DC] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#C4622D]/30"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs text-[#8A7D72]">Descuento %</label>
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={linea.descuento || ''}
+                              onChange={(e) => {
+                                const n = [...lineas]
+                                n[i] = {
+                                  ...n[i],
+                                  descuento: Math.min(100, Math.max(0, Number(e.target.value))),
+                                }
+                                setLineas(n)
+                              }}
+                              className="w-16 px-2 py-1 rounded-lg border border-[#EDE5DC] text-sm bg-white text-center focus:outline-none focus:ring-2 focus:ring-[#C4622D]/30"
+                            />
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-[#1E3A2F] font-semibold">
+                              Neto:{' '}
+                              {new Intl.NumberFormat('es-CO', {
+                                style: 'currency',
+                                currency: 'COP',
+                                minimumFractionDigits: 0,
+                              }).format(netoLinea)}
+                            </span>
+                            {lineas.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => setLineas(lineas.filter((_, j) => j !== i))}
+                                className="text-xs text-[#C44040] hover:underline"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setLineas([
+                      ...lineas,
+                      {
+                        producto_id: '',
+                        cantidad: 1,
+                        precio_venta: 0,
+                        precio_original: 0,
+                        descuento: 0,
+                      },
+                    ])
+                  }
+                  className="mt-2 text-xs text-[#C4622D] font-medium hover:underline"
+                >
+                  + Agregar producto
+                </button>
+              </div>
+
+              {lineas.some((l) => l.producto_id && l.precio_venta > 0) && (
+                <div className="bg-[#F9EDE5] rounded-xl p-4 space-y-1">
+                  {(() => {
+                    const totalNeto = lineas.reduce((s, l) => {
+                      const { neto } = calcularNetoConDescuento(l.precio_venta, l.cantidad, l.descuento, plataforma)
+                      return s + neto
+                    }, 0)
+                    const totalBruto = lineas.reduce((s, l) => s + l.precio_venta * l.cantidad, 0)
+                    return (
+                      <>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-[#8A7D72]">Total bruto</span>
+                          <span className="text-[#1A1510]">
+                            {new Intl.NumberFormat('es-CO', {
+                              style: 'currency',
+                              currency: 'COP',
+                              minimumFractionDigits: 0,
+                            }).format(totalBruto)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm font-bold">
+                          <span className="text-[#1E3A2F]">Total neto</span>
+                          <span className="text-[#1E3A2F]">
+                            {new Intl.NumberFormat('es-CO', {
+                              style: 'currency',
+                              currency: 'COP',
+                              minimumFractionDigits: 0,
+                            }).format(totalNeto)}
+                          </span>
+                        </div>
+                      </>
+                    )
+                  })()}
+                </div>
+              )}
+
+              {errorVenta && (
+                <p className="text-sm text-[#C44040] bg-[#FDEAEA] px-4 py-2.5 rounded-lg">{errorVenta}</p>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-[#EDE5DC] flex gap-3 justify-end sticky bottom-0 bg-white rounded-b-2xl">
+              <button
+                type="button"
+                onClick={cerrarModal}
+                className="text-sm text-[#8A7D72] hover:text-[#1A1510] px-4 py-2 rounded-lg border border-[#EDE5DC] transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleGuardarVenta()}
+                disabled={submittingVenta}
+                className="text-sm bg-[#C4622D] text-white font-semibold px-4 py-2 rounded-lg hover:bg-[#E8845A] transition disabled:opacity-50"
+              >
+                {submittingVenta ? 'Guardando...' : 'Guardar venta'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
