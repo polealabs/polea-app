@@ -122,7 +122,7 @@ export default function Header({ titulo }: Props) {
 
   return (
     <header className="h-14 bg-white border-b border-[#EDE5DC] flex items-center justify-between px-6 sticky top-0 z-20">
-      <h2 className="text-sm font-semibold text-[#1A1510]">{titulo}</h2>
+      <h2 className="text-sm font-semibold text-[#1A1510] pl-12 lg:pl-0">{titulo}</h2>
 
       <div className="flex items-center gap-1">
         <Link
@@ -130,7 +130,7 @@ export default function Header({ titulo }: Props) {
           className="w-8 h-8 rounded-lg flex items-center justify-center text-[#8A7D72] hover:bg-[#FAF6F0] hover:text-[#1A1510] transition"
           title="Ayuda y documentación"
         >
-          <span className="text-base font-bold">?</span>
+          <span className="text-base">📄</span>
         </Link>
 
         <div ref={notifRef} className="relative">
@@ -270,7 +270,7 @@ export default function Header({ titulo }: Props) {
                   onClick={() => setShowPerfil(false)}
                   className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#4A3F35] hover:bg-[#FAF6F0] transition"
                 >
-                  <span>?</span> Ayuda
+                  <span>📄</span> Ayuda y documentación
                 </Link>
               </div>
               <div className="border-t border-[#EDE5DC] py-1">

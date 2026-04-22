@@ -347,10 +347,10 @@ export default function DashboardPage() {
   if (!tienda) return null
 
   return (
-    <div className="w-full p-6 md:p-8 xl:p-10">
+    <div className="w-full p-4 md:p-6 xl:p-10">
       {/* HEADER */}
-      <div className="flex items-start justify-between mb-9">
-        <div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-9">
+        <div className="min-w-0">
           <h1 className="font-serif text-[32px] font-medium text-ink leading-tight">
             {getSaludo()},{' '}
             <span className="italic text-terra">{tienda.nombre}</span>
@@ -365,7 +365,7 @@ export default function DashboardPage() {
             {tienda.ciudad ? ` · ${tienda.ciudad}` : ''}
           </p>
         </div>
-        <div className="flex gap-2.5">
+        <div className="flex gap-2.5 flex-wrap shrink-0">
           <Link
             href="/productos"
             className="px-5 py-2.5 rounded-lg text-sm font-medium border border-border-warm bg-white text-ink-mid hover:border-ink-faint transition"
@@ -560,7 +560,8 @@ export default function DashboardPage() {
                 </Link>
               </div>
             ) : (
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[600px]">
                 <thead>
                   <tr className="bg-cream border-b border-border-warm">
                     <th className="text-left px-6 py-3 text-[11px] font-semibold text-ink-soft uppercase tracking-wide">
@@ -603,6 +604,7 @@ export default function DashboardPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         </div>

@@ -72,7 +72,7 @@ export default function PerfilPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-4 md:p-6 max-w-5xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[#1E3A2F]">Configuración de tienda</h1>
         <p className="text-sm text-[#1A1510]/50 mt-0.5">Administra los datos visibles de tu negocio.</p>

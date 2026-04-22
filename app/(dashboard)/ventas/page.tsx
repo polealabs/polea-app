@@ -358,7 +358,7 @@ export default function VentasPage() {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto bg-cream">
+    <div className="p-4 md:p-6 max-w-6xl mx-auto bg-cream">
       <ConfirmModal
         open={confirmDelete !== null}
         title="Eliminar venta"
@@ -752,7 +752,8 @@ export default function VentasPage() {
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-[#EDE5DC] shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
             <thead>
               <tr className="border-b border-[#EDE5DC] bg-[#FAF6F0]">
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">Fecha</th>
@@ -795,6 +796,7 @@ export default function VentasPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
       <Toast toasts={toasts} onRemove={removeToast} />

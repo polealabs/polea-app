@@ -93,7 +93,7 @@ export default function ReportesPage() {
 
   if (!datos) {
     return (
-      <div className="p-6 max-w-6xl mx-auto">
+      <div className="p-4 md:p-6 max-w-6xl mx-auto">
         <p className="text-sm text-[#8A7D72]">No se pudieron cargar los datos del reporte.</p>
       </div>
     )
@@ -102,7 +102,7 @@ export default function ReportesPage() {
   const sinActividad = datos.ventasNetas === 0 && datos.totalGastos === 0
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-4 md:p-6 max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <h1 className="text-2xl font-bold text-[#1E3A2F]">Reportes</h1>
         <div className="flex items-center gap-2">

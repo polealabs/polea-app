@@ -293,7 +293,7 @@ export default function ProductosPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-4 md:p-6 max-w-5xl mx-auto">
       <ConfirmModal
         open={confirmDelete !== null}
         title="Eliminar producto"
@@ -512,8 +512,9 @@ export default function ProductosPage() {
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-[#1A1510]/8 shadow-sm overflow-hidden overflow-x-auto">
-          <table className="w-full text-sm min-w-[720px]">
+        <div className="bg-white rounded-2xl border border-[#1A1510]/8 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
             <thead>
               <tr className="border-b border-[#1A1510]/8 bg-[#FAF6F0]">
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
@@ -597,6 +598,7 @@ export default function ProductosPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
       <Toast toasts={toasts} onRemove={removeToast} />

@@ -119,7 +119,7 @@ export default function PreferenciasPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-[#1E3A2F]">Preferencias</h1>
         <p className="text-sm text-[#8A7D72] mt-1">Configura las alertas inteligentes que quieres recibir.</p>
