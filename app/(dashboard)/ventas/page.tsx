@@ -106,7 +106,7 @@ function canalBadgeClass(canal: VentaCabecera['canal']) {
 }
 
 export default function VentasPage() {
-  const { tienda, loading: tiendaLoading } = useTienda()
+  const { tienda, loading: tiendaLoading, canEdit } = useTienda()
   const [productos, setProductos] = useState<Producto[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [ventas, setVentas] = useState<VentaConDetalles[]>([])
@@ -381,22 +381,24 @@ export default function VentasPage() {
             onChange={(e) => setMesActual(e.target.value)}
             className={inputClass}
           />
-          <button
-            onClick={() => {
-              setShowForm(true)
-              setError(null)
-              setShowClienteForm(false)
-            }}
-            className="bg-[#C4622D] hover:bg-[#E8845A] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
-            disabled={productos.length === 0 || !hayProductoConStock}
-            title={
-              productos.length > 0 && !hayProductoConStock
-                ? 'No hay productos con stock disponible'
-                : undefined
-            }
-          >
-            + Nueva venta
-          </button>
+          {canEdit && (
+            <button
+              onClick={() => {
+                setShowForm(true)
+                setError(null)
+                setShowClienteForm(false)
+              }}
+              className="bg-[#C4622D] hover:bg-[#E8845A] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+              disabled={productos.length === 0 || !hayProductoConStock}
+              title={
+                productos.length > 0 && !hayProductoConStock
+                  ? 'No hay productos con stock disponible'
+                  : undefined
+              }
+            >
+              + Nueva venta
+            </button>
+          )}
         </div>
       </div>
 
@@ -481,7 +483,7 @@ export default function VentasPage() {
         </p>
       )}
 
-      {showForm && (
+      {canEdit && showForm && (
         <div className="bg-white rounded-2xl border border-[#EDE5DC] p-6 mb-6 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
@@ -610,8 +612,11 @@ export default function VentasPage() {
                         min={1}
                         max={maxLinea != null && maxLinea > 0 ? maxLinea : undefined}
                         className={`${inputClass} ${stockMsg ? 'border-amber-500/80 focus:ring-amber-500/30' : ''}`}
-                        value={l.cantidad}
-                        onChange={(e) => actualizarLinea(i, 'cantidad', Number(e.target.value))}
+                        value={l.cantidad === 0 ? '' : l.cantidad}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          actualizarLinea(i, 'cantidad', val === '' ? 0 : Number(val))
+                        }}
                         aria-invalid={stockMsg ? true : undefined}
                       />
                       {stockMsg && <p className="text-xs text-amber-800 mt-1.5 leading-snug">{stockMsg}</p>}
@@ -622,8 +627,11 @@ export default function VentasPage() {
                         type="number"
                         min={0}
                         className={inputClass}
-                        value={l.precio_venta}
-                        onChange={(e) => actualizarLinea(i, 'precio_venta', Number(e.target.value))}
+                        value={l.precio_venta === 0 ? '' : l.precio_venta}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          actualizarLinea(i, 'precio_venta', val === '' ? 0 : Number(val))
+                        }}
                       />
                       {l.precio_venta < l.precio_original && (
                         <p className="text-xs text-[#C4622D] mt-1">

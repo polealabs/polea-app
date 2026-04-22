@@ -10,6 +10,28 @@ export interface Tienda {
   created_at: string
 }
 
+export type Rol = 'owner' | 'admin' | 'vendedor' | 'readonly'
+
+export interface Miembro {
+  id: string
+  tienda_id: string
+  user_id: string
+  rol: Rol
+  invitado_por?: string
+  created_at: string
+}
+
+export interface Invitacion {
+  id: string
+  tienda_id: string
+  email: string
+  rol: Rol
+  token: string
+  aceptada: boolean
+  expires_at: string
+  created_at: string
+}
+
 export interface Producto {
   id: string
   tienda_id: string

@@ -45,7 +45,7 @@ function Bombillo({ texto }: { texto: string }) {
 }
 
 export default function ReportesPage() {
-  const { tienda, loading: tiendaLoading } = useTienda()
+  const { tienda, loading: tiendaLoading, canViewFinanzas } = useTienda()
   const [mes, setMes] = useState(() => new Date().toISOString().slice(0, 7))
   const [datos, setDatos] = useState<DatosReporte | null>(null)
   const [loading, setLoading] = useState(true)
@@ -89,6 +89,14 @@ export default function ReportesPage() {
 
   if (tiendaLoading || loading) {
     return <ModuleTableSkeleton maxWidthClass="max-w-6xl" rows={10} />
+  }
+
+  if (!canViewFinanzas) {
+    return (
+      <div className="p-6 text-center py-20">
+        <p className="text-[#8A7D72] text-sm">No tienes permisos para ver esta sección.</p>
+      </div>
+    )
   }
 
   if (!datos) {

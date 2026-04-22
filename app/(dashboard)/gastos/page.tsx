@@ -64,7 +64,7 @@ function categoriaBadgeClass(categoria: Gasto['categoria']) {
 }
 
 export default function GastosPage() {
-  const { tienda, loading: tiendaLoading } = useTienda()
+  const { tienda, loading: tiendaLoading, canViewFinanzas } = useTienda()
   const [gastos, setGastos] = useState<Gasto[]>([])
   const [proveedores, setProveedores] = useState<Proveedor[]>([])
   const [loading, setLoading] = useState(true)
@@ -173,6 +173,14 @@ export default function GastosPage() {
 
   if (tiendaLoading || loading) {
     return <ModuleTableSkeleton maxWidthClass="max-w-6xl" rows={8} />
+  }
+
+  if (!canViewFinanzas) {
+    return (
+      <div className="p-6 text-center py-20">
+        <p className="text-[#8A7D72] text-sm">No tienes permisos para ver esta sección.</p>
+      </div>
+    )
   }
 
   return (

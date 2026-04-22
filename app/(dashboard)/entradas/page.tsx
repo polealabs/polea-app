@@ -80,7 +80,7 @@ function nuevaLinea(): LineaForm {
 }
 
 export default function EntradasPage() {
-  const { tienda, loading: tiendaLoading } = useTienda()
+  const { tienda, loading: tiendaLoading, canEdit } = useTienda()
   const [productos, setProductos] = useState<Producto[]>([])
   const [proveedores, setProveedores] = useState<Proveedor[]>([])
   const [entradas, setEntradas] = useState<EntradaConProducto[]>([])
@@ -258,34 +258,38 @@ export default function EntradasPage() {
             onChange={(e) => setMesActual(e.target.value)}
             className={inputClass}
           />
-          <button
-            onClick={() => {
-              setShowForm(true)
-              setError(null)
-              setShowProveedorForm(false)
-              setProveedorIdSeleccionado('')
-              setLineas([nuevaLinea()])
-            }}
-            className="bg-[#C4622D] hover:bg-[#E8845A] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
-            disabled={productos.length === 0}
-          >
-            + Nueva entrada
-          </button>
+          {canEdit && (
+            <button
+              onClick={() => {
+                setShowForm(true)
+                setError(null)
+                setShowProveedorForm(false)
+                setProveedorIdSeleccionado('')
+                setLineas([nuevaLinea()])
+              }}
+              className="bg-[#C4622D] hover:bg-[#E8845A] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+              disabled={productos.length === 0}
+            >
+              + Nueva entrada
+            </button>
+          )}
         </div>
       </div>
 
-      <ImportCSV
-        onDescargarPlantilla={descargarPlantillaEntradas}
-        onProcesar={async (filas) => {
-          const res = await importarEntradas(filas)
-          if (res.exitosos > 0) {
-            showToast(`${res.exitosos} entrada${res.exitosos > 1 ? 's' : ''} importada${res.exitosos > 1 ? 's' : ''}`)
-          }
-          if (res.exitosos > 0 && tienda) await fetchData(tienda.id, mesActual)
-          return res
-        }}
-        descripcion="El nombre del producto debe coincidir exactamente. Fechas aceptadas: DD/MM/YYYY o YYYY-MM-DD"
-      />
+      {canEdit && (
+        <ImportCSV
+          onDescargarPlantilla={descargarPlantillaEntradas}
+          onProcesar={async (filas) => {
+            const res = await importarEntradas(filas)
+            if (res.exitosos > 0) {
+              showToast(`${res.exitosos} entrada${res.exitosos > 1 ? 's' : ''} importada${res.exitosos > 1 ? 's' : ''}`)
+            }
+            if (res.exitosos > 0 && tienda) await fetchData(tienda.id, mesActual)
+            return res
+          }}
+          descripcion="El nombre del producto debe coincidir exactamente. Fechas aceptadas: DD/MM/YYYY o YYYY-MM-DD"
+        />
+      )}
 
       <div className="bg-[#FAF6F0] rounded-2xl border border-[#EDE5DC] p-5 mb-6">
         <p className="text-xs uppercase tracking-wide text-[#8A7D72] mb-1">Total entradas del mes</p>
@@ -311,7 +315,7 @@ export default function EntradasPage() {
         </div>
       )}
 
-      {showForm && productos.length > 0 && (
+      {canEdit && showForm && productos.length > 0 && (
         <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-6 mb-6 shadow-sm">
           <h2 className="text-base font-semibold text-[#1E3A2F] mb-4">Nueva entrada de stock</h2>
           <div className="mb-4">

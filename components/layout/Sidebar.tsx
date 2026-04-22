@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTienda } from '@/lib/hooks/useTienda'
 
 const navItems = [
   { href: '/dashboard', icon: '⊞', label: 'Dashboard' },
@@ -16,7 +17,11 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const { canViewFinanzas, isOwner } = useTienda()
   const [open, setOpen] = useState(false)
+  const visibleNavItems = navItems.filter(
+    (item) => canViewFinanzas || (item.href !== '/gastos' && item.href !== '/reportes'),
+  )
 
   // Cerrar sidebar al cambiar de ruta en mobile (diferido para evitar setState síncrono en el efecto)
   useEffect(() => {
@@ -85,7 +90,7 @@ export default function Sidebar() {
           <p className="text-[10px] uppercase tracking-[2px] text-white/30 px-7 mb-2">
             Módulos
           </p>
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const active = pathname === item.href
             return (
               <Link
@@ -105,6 +110,23 @@ export default function Sidebar() {
               </Link>
             )
           })}
+          {isOwner && (
+            <Link
+              href="/equipo"
+              className={`flex items-center gap-3 px-7 py-[11px] text-sm transition-all relative
+                ${
+                  pathname === '/equipo'
+                    ? 'text-cream bg-white/10 font-medium'
+                    : 'text-white/60 hover:text-white/90 hover:bg-white/5'
+                }`}
+            >
+              {pathname === '/equipo' && (
+                <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#E8845A] rounded-r-sm" />
+              )}
+              <span className="w-5 text-center text-base">👥</span>
+              Equipo
+            </Link>
+          )}
         </nav>
 
         {/* BOTTOM */}

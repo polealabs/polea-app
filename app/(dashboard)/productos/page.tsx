@@ -88,7 +88,7 @@ function tipoBadgeClass(tipo: Producto['tipo']) {
 }
 
 export default function ProductosPage() {
-  const { tienda, loading: tiendaLoading } = useTienda()
+  const { tienda, loading: tiendaLoading, canEdit, canDelete } = useTienda()
   const searchParams = useSearchParams()
   const [productos, setProductos] = useState<Producto[]>([])
   const [loading, setLoading] = useState(true)
@@ -294,45 +294,51 @@ export default function ProductosPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto">
-      <ConfirmModal
-        open={confirmDelete !== null}
-        title="Eliminar producto"
-        message="¿Eliminar este producto? Esta acción no se puede deshacer."
-        confirmLabel="Eliminar"
-        danger
-        onConfirm={confirmarEliminar}
-        onCancel={() => setConfirmDelete(null)}
-      />
+      {canDelete && (
+        <ConfirmModal
+          open={confirmDelete !== null}
+          title="Eliminar producto"
+          message="¿Eliminar este producto? Esta acción no se puede deshacer."
+          confirmLabel="Eliminar"
+          danger
+          onConfirm={confirmarEliminar}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
 
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[#1E3A2F]">Productos</h1>
           <p className="text-sm text-[#1A1510]/50 mt-0.5">{productos.length} productos registrados</p>
         </div>
-        <button
-          onClick={() => {
-            setShowForm(true)
-            setEditando(null)
-            setError(null)
-          }}
-          className="bg-[#C4622D] hover:bg-[#E8845A] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
-        >
-          + Nuevo producto
-        </button>
+        {canEdit && (
+          <button
+            onClick={() => {
+              setShowForm(true)
+              setEditando(null)
+              setError(null)
+            }}
+            className="bg-[#C4622D] hover:bg-[#E8845A] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+          >
+            + Nuevo producto
+          </button>
+        )}
       </div>
 
-      <ImportCSV
-        onDescargarPlantilla={descargarPlantillaProductos}
-        onProcesar={async (filas) => {
-          const res = await importarProductos(filas)
-          if (res.exitosos > 0) {
-            showToast(`${res.exitosos} producto${res.exitosos > 1 ? 's' : ''} importado${res.exitosos > 1 ? 's' : ''}`)
-          }
-          if (res.exitosos > 0 && tienda) await fetchProductos(tienda.id)
-          return res
-        }}
-        descripcion="Tipos válidos: Producto terminado, Materia prima, Empaque, Material POP. Si omites tipo se asigna 'Producto terminado'."
-      />
+      {canEdit && (
+        <ImportCSV
+          onDescargarPlantilla={descargarPlantillaProductos}
+          onProcesar={async (filas) => {
+            const res = await importarProductos(filas)
+            if (res.exitosos > 0) {
+              showToast(`${res.exitosos} producto${res.exitosos > 1 ? 's' : ''} importado${res.exitosos > 1 ? 's' : ''}`)
+            }
+            if (res.exitosos > 0 && tienda) await fetchProductos(tienda.id)
+            return res
+          }}
+          descripcion="Tipos válidos: Producto terminado, Materia prima, Empaque, Material POP. Si omites tipo se asigna 'Producto terminado'."
+        />
+      )}
 
       <div className="flex flex-wrap gap-2 mb-4">
         {chips.map((chip) => (
@@ -370,7 +376,7 @@ export default function ProductosPage() {
         )}
       </div>
 
-      {(showForm || editando) && (
+      {canEdit && (showForm || editando) && (
         <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-6 mb-6 shadow-sm">
           <h2 className="text-base font-semibold text-[#1E3A2F] mb-4">
             {editando ? 'Editar producto' : 'Nuevo producto'}
@@ -497,7 +503,7 @@ export default function ProductosPage() {
       ) : productosFiltrados.length === 0 ? (
         <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-12 text-center shadow-sm">
           <p className="text-[#1A1510]/40 text-sm">Aún no tienes productos.</p>
-          {productos.length === 0 ? (
+          {canEdit && productos.length === 0 ? (
             <button
               onClick={() => {
                 setShowForm(true)
@@ -576,22 +582,26 @@ export default function ProductosPage() {
                   <td className="px-5 py-4">{stockEstadoBadge(p)}</td>
                   <td className="px-5 py-4 text-right">
                     <div className="flex gap-3 justify-end">
-                      <button
-                        onClick={() => {
-                          setEditando(p)
-                          setShowForm(false)
-                          setError(null)
-                        }}
-                        className="text-xs text-[#C4622D] hover:underline font-medium"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => setConfirmDelete(p.id)}
-                        className="text-xs text-[#1A1510]/40 hover:text-red-500 transition"
-                      >
-                        Eliminar
-                      </button>
+                      {canEdit && (
+                        <button
+                          onClick={() => {
+                            setEditando(p)
+                            setShowForm(false)
+                            setError(null)
+                          }}
+                          className="text-xs text-[#C4622D] hover:underline font-medium"
+                        >
+                          Editar
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => setConfirmDelete(p.id)}
+                          className="text-xs text-[#1A1510]/40 hover:text-red-500 transition"
+                        >
+                          Eliminar
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

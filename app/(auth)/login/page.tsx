@@ -15,6 +15,15 @@ export default function LoginPage() {
     if (result?.error) {
       setError(result.error)
       setLoading(false)
+      return
+    }
+
+    const params = new URLSearchParams(window.location.search)
+    const redirect = params.get('redirect')
+    if (redirect) {
+      window.location.href = redirect
+    } else {
+      window.location.href = '/dashboard'
     }
   }
 

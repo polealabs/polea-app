@@ -15,7 +15,7 @@ export async function login(formData: FormData) {
     return { error: error.message }
   }
 
-  redirect('/dashboard')
+  return { ok: true }
 }
 
 export async function registro(formData: FormData) {

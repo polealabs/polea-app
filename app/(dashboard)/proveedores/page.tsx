@@ -28,7 +28,7 @@ function descargarPlantillaProveedores() {
 }
 
 export default function ProveedoresPage() {
-  const { tienda, loading: tiendaLoading } = useTienda()
+  const { tienda, loading: tiendaLoading, canDelete } = useTienda()
   const [proveedores, setProveedores] = useState<Proveedor[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -368,12 +368,14 @@ export default function ProveedoresPage() {
                       >
                         Editar
                       </button>
-                      <button
-                        onClick={() => setConfirmDelete(p.id)}
-                        className="text-xs text-[#1A1510]/40 hover:text-red-500 transition"
-                      >
-                        Eliminar
-                      </button>
+                      {canDelete && (
+                        <button
+                          onClick={() => setConfirmDelete(p.id)}
+                          className="text-xs text-[#1A1510]/40 hover:text-red-500 transition"
+                        >
+                          Eliminar
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

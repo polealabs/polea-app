@@ -917,10 +917,11 @@ export default function DashboardPage() {
                             <input
                               type="number"
                               min={1}
-                              value={linea.cantidad}
+                              value={linea.cantidad === 0 ? '' : linea.cantidad}
                               onChange={(e) => {
+                                const val = e.target.value
                                 const n = [...lineas]
-                                n[i] = { ...n[i], cantidad: Number(e.target.value) }
+                                n[i] = { ...n[i], cantidad: val === '' ? 0 : Number(val) }
                                 setLineas(n)
                               }}
                               className="w-full px-3 py-2 rounded-lg border border-[#EDE5DC] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#C4622D]/30"
@@ -931,10 +932,11 @@ export default function DashboardPage() {
                             <input
                               type="number"
                               min={0}
-                              value={linea.precio_venta || ''}
+                              value={linea.precio_venta === 0 ? '' : linea.precio_venta}
                               onChange={(e) => {
+                                const val = e.target.value
                                 const n = [...lineas]
-                                n[i] = { ...n[i], precio_venta: Number(e.target.value) }
+                                n[i] = { ...n[i], precio_venta: val === '' ? 0 : Number(val) }
                                 setLineas(n)
                               }}
                               className="w-full px-3 py-2 rounded-lg border border-[#EDE5DC] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#C4622D]/30"

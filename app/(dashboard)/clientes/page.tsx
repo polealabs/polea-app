@@ -37,7 +37,7 @@ function descargarPlantillaClientes() {
 }
 
 export default function ClientesPage() {
-  const { tienda, loading: tiendaLoading } = useTienda()
+  const { tienda, loading: tiendaLoading, canEdit } = useTienda()
   const searchParams = useSearchParams()
   const [clientes, setClientes] = useState<ClienteConCompras[]>([])
   const [loading, setLoading] = useState(true)
@@ -239,16 +239,18 @@ export default function ClientesPage() {
               />
             )}
           </div>
-          <button
-            onClick={() => {
-              setShowForm(true)
-              setEditando(null)
-              setError(null)
-            }}
-            className="bg-[#C4622D] hover:bg-[#E8845A] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
-          >
-            + Nuevo cliente
-          </button>
+          {canEdit && (
+            <button
+              onClick={() => {
+                setShowForm(true)
+                setEditando(null)
+                setError(null)
+              }}
+              className="bg-[#C4622D] hover:bg-[#E8845A] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+            >
+              + Nuevo cliente
+            </button>
+          )}
         </div>
       </div>
 
@@ -290,7 +292,7 @@ export default function ClientesPage() {
         />
       </div>
 
-      {(showForm || editando) && (
+      {canEdit && (showForm || editando) && (
         <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-6 mb-6 shadow-sm">
           <h2 className="text-base font-semibold text-[#1E3A2F] mb-4">
             {editando ? 'Editar cliente' : 'Nuevo cliente'}
@@ -370,7 +372,7 @@ export default function ClientesPage() {
               ? 'Aún no tienes clientes registrados.'
               : 'No se encontraron clientes para esa búsqueda.'}
           </p>
-          {clientes.length === 0 && (
+          {canEdit && clientes.length === 0 && (
             <button
               onClick={() => setShowForm(true)}
               className="mt-3 text-sm text-[#C4622D] font-medium hover:underline"
@@ -432,22 +434,26 @@ export default function ClientesPage() {
                   </td>
                   <td className="px-5 py-4 text-right">
                     <div className="flex gap-3 justify-end">
-                      <button
-                        onClick={() => {
-                          setEditando(cliente)
-                          setShowForm(false)
-                          setError(null)
-                        }}
-                        className="text-xs text-[#C4622D] hover:underline font-medium"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => handleEliminar(cliente.id)}
-                        className="text-xs text-[#1A1510]/40 hover:text-red-500 transition"
-                      >
-                        Eliminar
-                      </button>
+                      {canEdit && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setEditando(cliente)
+                              setShowForm(false)
+                              setError(null)
+                            }}
+                            className="text-xs text-[#C4622D] hover:underline font-medium"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => handleEliminar(cliente.id)}
+                            className="text-xs text-[#1A1510]/40 hover:text-red-500 transition"
+                          >
+                            Eliminar
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>

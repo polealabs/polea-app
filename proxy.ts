@@ -12,6 +12,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/clientes') ||
     pathname.startsWith('/gastos') ||
     pathname.startsWith('/proveedores') ||
+    pathname.startsWith('/equipo') ||
     pathname.startsWith('/onboarding') ||
     pathname.startsWith('/perfil') ||
     pathname.startsWith('/ayuda') ||
