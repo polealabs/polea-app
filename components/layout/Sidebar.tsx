@@ -59,7 +59,8 @@ export default function Sidebar() {
         id="sidebar-toggle"
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="fixed top-3 left-3 z-40 lg:hidden w-9 h-9 rounded-lg bg-[#2D4A3E] flex items-center justify-center text-white shadow-lg"
+        className="fixed top-3 left-3 z-40 lg:hidden w-9 h-9 rounded-lg flex items-center justify-center text-white shadow-lg"
+        style={{ background: 'var(--color-primary-light)' }}
         aria-label="Abrir menú"
       >
         <span className="text-lg">{open ? '✕' : '☰'}</span>
@@ -69,11 +70,12 @@ export default function Sidebar() {
       <aside
         id="sidebar"
         className={`
-          fixed left-0 top-0 h-full w-60 bg-[#2D4A3E] flex flex-col z-30
+          fixed left-0 top-0 h-full w-60 flex flex-col z-30
           transition-transform duration-300 ease-in-out
           ${open ? 'translate-x-0' : '-translate-x-full'}
           lg:translate-x-0
         `}
+        style={{ background: 'var(--color-primary)' }}
       >
         {/* LOGO */}
         <div className="px-7 py-8 border-b border-white/10">
@@ -103,7 +105,7 @@ export default function Sidebar() {
                   }`}
               >
                 {active && (
-                  <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#E8845A] rounded-r-sm" />
+                  <span className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r-sm" style={{ background: 'var(--color-accent)' }} />
                 )}
                 <span className="w-5 text-center text-base">{item.icon}</span>
                 {item.label}
@@ -121,7 +123,7 @@ export default function Sidebar() {
                 }`}
             >
               {pathname === '/equipo' && (
-                <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#E8845A] rounded-r-sm" />
+                <span className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r-sm" style={{ background: 'var(--color-accent)' }} />
               )}
               <span className="w-5 text-center text-base">👥</span>
               Equipo
@@ -132,7 +134,10 @@ export default function Sidebar() {
         {/* BOTTOM */}
         <div className="px-7 py-5 border-t border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-[34px] h-[34px] rounded-full bg-[#C4622D] flex items-center justify-center font-serif text-sm text-white font-bold flex-shrink-0">
+            <div
+              className="w-[34px] h-[34px] rounded-full flex items-center justify-center font-serif text-sm text-white font-bold flex-shrink-0"
+              style={{ background: 'var(--color-accent)' }}
+            >
               P
             </div>
             <div className="flex-1 min-w-0">

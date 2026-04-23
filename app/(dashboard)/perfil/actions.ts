@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { TEMAS } from '@/lib/temas'
 
 export async function actualizarTienda(formData: FormData) {
   const supabase = await createClient()
@@ -17,12 +18,16 @@ export async function actualizarTienda(formData: FormData) {
     .single()
   if (!tienda) return { error: 'Tienda no encontrada' }
 
+  const temaRecibido = (formData.get('tema') as string) || 'bosque'
+  const temasValidos = new Set(TEMAS.map((t) => t.id))
+
   const updates: Record<string, string> = {
     nombre: (formData.get('nombre') as string)?.trim(),
     ciudad: (formData.get('ciudad') as string)?.trim() || '',
     whatsapp: (formData.get('whatsapp') as string)?.trim() || '',
     categoria: (formData.get('categoria') as string)?.trim() || '',
     moneda: (formData.get('moneda') as string)?.trim() || 'COP',
+    tema: temasValidos.has(temaRecibido) ? temaRecibido : 'bosque',
   }
 
   if (!updates.nombre) return { error: 'El nombre de la tienda es obligatorio' }

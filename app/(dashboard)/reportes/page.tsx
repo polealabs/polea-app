@@ -112,7 +112,7 @@ export default function ReportesPage() {
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-[#1E3A2F]">Reportes</h1>
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>Reportes</h1>
         <div className="flex items-center gap-2">
           <input type="month" value={mes} onChange={(e) => setMes(e.target.value)} className="px-3 py-2 rounded-lg border border-[#EDE5DC] text-sm bg-white" />
           <button

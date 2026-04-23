@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, Fraunces } from "next/font/google";
 import "./globals.css";
+import { TemaProvider } from "@/lib/context/TemaContext";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -29,7 +30,7 @@ export default function RootLayout({
       <body
         className={`${dmSans.variable} ${fraunces.variable} min-h-full bg-cream text-ink flex flex-col font-sans`}
       >
-        {children}
+        <TemaProvider>{children}</TemaProvider>
       </body>
     </html>
   );

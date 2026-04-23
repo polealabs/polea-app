@@ -293,7 +293,7 @@ export default function ProductosPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-5xl mx-auto">
+    <div className="p-4 md:p-6 max-w-5xl mx-auto" style={{ background: 'var(--color-background)' }}>
       {canDelete && (
         <ConfirmModal
           open={confirmDelete !== null}
@@ -308,7 +308,7 @@ export default function ProductosPage() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#1E3A2F]">Productos</h1>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>Productos</h1>
           <p className="text-sm text-[#1A1510]/50 mt-0.5">{productos.length} productos registrados</p>
         </div>
         {canEdit && (
@@ -318,7 +318,7 @@ export default function ProductosPage() {
               setEditando(null)
               setError(null)
             }}
-            className="bg-[#C4622D] hover:bg-[#E8845A] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+            className="btn-primary text-sm font-semibold px-4 py-2 rounded-lg"
           >
             + Nuevo producto
           </button>
@@ -377,7 +377,7 @@ export default function ProductosPage() {
       </div>
 
       {canEdit && (showForm || editando) && (
-        <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-6 mb-6 shadow-sm">
+        <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-6 mb-6 shadow-sm" style={{ background: 'var(--color-surface)' }}>
           <h2 className="text-base font-semibold text-[#1E3A2F] mb-4">
             {editando ? 'Editar producto' : 'Nuevo producto'}
           </h2>
@@ -469,7 +469,7 @@ export default function ProductosPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="bg-[#C4622D] hover:bg-[#E8845A] text-white text-sm font-semibold px-4 py-2 rounded-lg transition disabled:opacity-50"
+                className="btn-primary text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
               >
                 {submitting ? 'Guardando...' : 'Guardar'}
               </button>
@@ -479,7 +479,7 @@ export default function ProductosPage() {
       )}
 
       {filtroActivoReal !== 'todos' && productosFiltrados.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#EDE5DC] p-12 text-center shadow-sm">
+        <div className="bg-white rounded-2xl border border-[#EDE5DC] p-12 text-center shadow-sm" style={{ background: 'var(--color-surface)' }}>
           <p className="text-[#8A7D72] text-sm">No hay productos en esta categoría.</p>
           <button
             onClick={() => {
@@ -492,7 +492,7 @@ export default function ProductosPage() {
           </button>
         </div>
       ) : busqueda.trim() !== '' && productosFiltrados.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#EDE5DC] p-12 text-center shadow-sm">
+        <div className="bg-white rounded-2xl border border-[#EDE5DC] p-12 text-center shadow-sm" style={{ background: 'var(--color-surface)' }}>
           <p className="text-[#8A7D72] text-sm">
             No se encontraron productos para &quot;{busqueda}&quot;
           </p>
@@ -501,7 +501,7 @@ export default function ProductosPage() {
           </button>
         </div>
       ) : productosFiltrados.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-12 text-center shadow-sm">
+        <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-12 text-center shadow-sm" style={{ background: 'var(--color-surface)' }}>
           <p className="text-[#1A1510]/40 text-sm">Aún no tienes productos.</p>
           {canEdit && productos.length === 0 ? (
             <button
@@ -518,11 +518,11 @@ export default function ProductosPage() {
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-[#1A1510]/8 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#1A1510]/8 shadow-sm overflow-hidden" style={{ background: 'var(--color-surface)' }}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[600px]">
             <thead>
-              <tr className="border-b border-[#1A1510]/8 bg-[#FAF6F0]">
+              <tr className="border-b border-[#1A1510]/8 bg-[#FAF6F0]" style={{ background: 'var(--color-background)' }}>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                   Producto
                 </th>

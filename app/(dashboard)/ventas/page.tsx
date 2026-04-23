@@ -358,7 +358,7 @@ export default function VentasPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto bg-cream">
+    <div className="p-4 md:p-6 max-w-6xl mx-auto" style={{ background: 'var(--color-background)' }}>
       <ConfirmModal
         open={confirmDelete !== null}
         title="Eliminar venta"
@@ -371,7 +371,7 @@ export default function VentasPage() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#1E3A2F]">Ventas</h1>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>Ventas</h1>
           <p className="text-sm text-[#1A1510]/50 mt-0.5">Últimas {ventas.length} ventas registradas</p>
         </div>
         <div className="flex items-center gap-3">
@@ -388,7 +388,7 @@ export default function VentasPage() {
                 setError(null)
                 setShowClienteForm(false)
               }}
-              className="bg-[#C4622D] hover:bg-[#E8845A] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+              className="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-lg"
               disabled={productos.length === 0 || !hayProductoConStock}
               title={
                 productos.length > 0 && !hayProductoConStock
@@ -416,19 +416,28 @@ export default function VentasPage() {
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-[#EDE5DC] p-4 shadow-sm">
-          <p className="text-xs text-[#8A7D72] mb-1">Ventas del mes</p>
-          <p className="text-xl font-serif font-medium text-[#1E3A2F]">
+        <div
+          className="bg-white rounded-2xl border border-[#EDE5DC] p-4 shadow-sm"
+          style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+        >
+          <p className="text-xs mb-1" style={{ color: 'var(--color-text-soft)' }}>Ventas del mes</p>
+          <p className="text-xl font-serif font-medium" style={{ color: 'var(--color-primary)' }}>
             {formatCOP(ventasFiltradas.reduce((s, v) => s + v.total_neto, 0))}
           </p>
         </div>
-        <div className="bg-white rounded-2xl border border-[#EDE5DC] p-4 shadow-sm">
-          <p className="text-xs text-[#8A7D72] mb-1">Transacciones</p>
-          <p className="text-xl font-serif font-medium text-[#1E3A2F]">{ventasFiltradas.length}</p>
+        <div
+          className="bg-white rounded-2xl border border-[#EDE5DC] p-4 shadow-sm"
+          style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+        >
+          <p className="text-xs mb-1" style={{ color: 'var(--color-text-soft)' }}>Transacciones</p>
+          <p className="text-xl font-serif font-medium" style={{ color: 'var(--color-primary)' }}>{ventasFiltradas.length}</p>
         </div>
-        <div className="bg-white rounded-2xl border border-[#EDE5DC] p-4 shadow-sm">
-          <p className="text-xs text-[#8A7D72] mb-1">Ticket promedio</p>
-          <p className="text-xl font-serif font-medium text-[#1E3A2F]">
+        <div
+          className="bg-white rounded-2xl border border-[#EDE5DC] p-4 shadow-sm"
+          style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+        >
+          <p className="text-xs mb-1" style={{ color: 'var(--color-text-soft)' }}>Ticket promedio</p>
+          <p className="text-xl font-serif font-medium" style={{ color: 'var(--color-primary)' }}>
             {ventasFiltradas.length > 0
               ? formatCOP(ventasFiltradas.reduce((s, v) => s + v.total_neto, 0) / ventasFiltradas.length)
               : '$0'}
@@ -733,7 +742,7 @@ export default function VentasPage() {
               onClick={() => void handleSubmit()}
               disabled={submitting || hayConflictoStock}
               title={hayConflictoStock ? 'Corrige las cantidades según el stock disponible' : undefined}
-              className="bg-[#C4622D] hover:bg-[#E8845A] text-white text-sm font-semibold px-4 py-2 rounded-lg transition disabled:opacity-50"
+              className="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
             >
               {submitting ? 'Guardando...' : 'Guardar'}
             </button>
@@ -763,7 +772,7 @@ export default function VentasPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[600px]">
             <thead>
-              <tr className="border-b border-[#EDE5DC] bg-[#FAF6F0]">
+              <tr className="border-b border-[#EDE5DC] bg-[#FAF6F0]" style={{ background: 'var(--color-background)' }}>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">Fecha</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">Cliente</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">Canal</th>

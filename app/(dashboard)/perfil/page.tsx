@@ -1,25 +1,35 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useTienda } from '@/lib/hooks/useTienda'
 import { INDUSTRIAS } from '@/lib/industrias'
 import { actualizarTienda } from './actions'
 import Toast from '@/components/ui/Toast'
 import { useToast } from '@/lib/hooks/useToast'
 import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
+import { TEMAS } from '@/lib/temas'
+import { useTema } from '@/lib/context/TemaContext'
 
 const inputClass =
-  'w-full px-3 py-2 rounded-lg border border-[#1A1510]/20 bg-white text-[#1A1510] placeholder:text-[#1A1510]/40 focus:outline-none focus:ring-2 focus:ring-[#C4622D]/40 focus:border-[#C4622D] transition text-sm'
-const labelClass = 'block text-xs font-medium text-[#1A1510]/60 mb-1'
+  'w-full px-3 py-2 rounded-lg border border-[var(--color-text)]/20 bg-white text-[var(--color-text)] placeholder:text-[var(--color-text)]/40 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/40 focus:border-[var(--color-accent)] transition text-sm'
+const labelClass = 'block text-xs font-medium text-[var(--color-text)]/60 mb-1'
 
 export default function PerfilPage() {
   const { tienda, loading } = useTienda()
+  const { setTemaId } = useTema()
   const { toasts, showToast, removeToast } = useToast()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [temaSeleccionado, setTemaSeleccionado] = useState(tienda?.tema ?? 'bosque')
+
+  useEffect(() => {
+    if (!tienda?.tema) return
+    const id = window.setTimeout(() => setTemaSeleccionado(tienda.tema ?? 'bosque'), 0)
+    return () => window.clearTimeout(id)
+  }, [tienda?.tema])
 
   function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -55,6 +65,7 @@ export default function PerfilPage() {
 
     const formData = new FormData(formEl)
     formData.set('nombre', nombreVal)
+    formData.set('tema', temaSeleccionado)
     if (logoFile) formData.set('logo', logoFile)
 
     const res = await actualizarTienda(formData)
@@ -74,20 +85,20 @@ export default function PerfilPage() {
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#1E3A2F]">Configuración de tienda</h1>
-        <p className="text-sm text-[#1A1510]/50 mt-0.5">Administra los datos visibles de tu negocio.</p>
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>Configuración de tienda</h1>
+        <p className="text-sm text-[var(--color-text)]/50 mt-0.5">Administra los datos visibles de tu negocio.</p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-6 shadow-sm">
+      <div className="bg-white rounded-2xl border border-[var(--color-text)]/8 p-6 shadow-sm">
         <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="sm:col-span-2">
             <label className={labelClass}>Logo</label>
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-xl overflow-hidden bg-[#FAF6F0] border border-[#EDE5DC] flex items-center justify-center">
+              <div className="w-16 h-16 rounded-xl overflow-hidden bg-[var(--color-background)] border border-[var(--color-border)] flex items-center justify-center">
                 {logoPreview ?? tienda?.logo_url ? (
                   <img src={logoPreview ?? tienda?.logo_url} alt="Logo tienda" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-lg font-bold text-[#C4622D]">
+                  <span className="text-lg font-bold text-[var(--color-accent)]">
                     {(tienda?.nombre || 'P').charAt(0).toUpperCase()}
                   </span>
                 )}
@@ -99,9 +110,9 @@ export default function PerfilPage() {
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   onChange={handleLogoChange}
-                  className="block w-full text-sm text-[#4A3F35] file:mr-3 file:px-3 file:py-1.5 file:text-xs file:rounded-lg file:border-0 file:bg-[#FAF6F0] file:text-[#4A3F35] hover:file:bg-[#F9EDE5]"
+                  className="block w-full text-sm text-[#4A3F35] file:mr-3 file:px-3 file:py-1.5 file:text-xs file:rounded-lg file:border-0 file:bg-[var(--color-background)] file:text-[#4A3F35] hover:file:bg-[#F9EDE5]"
                 />
-                <p className="text-xs text-[#8A7D72] mt-1">
+                <p className="text-xs text-[var(--color-text-soft)] mt-1">
                   Formatos: JPG, PNG o WebP · Máx 2MB · Recomendado: 400×400px
                 </p>
               </div>
@@ -141,17 +152,49 @@ export default function PerfilPage() {
               ))}
             </select>
           </div>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-semibold mb-3" style={{ color: 'var(--color-primary)' }}>Tema de color</label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+              {TEMAS.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => {
+                    setTemaSeleccionado(t.id)
+                    setTemaId(t.id)
+                  }}
+                  className={`relative rounded-xl border-2 p-3 text-left transition cursor-pointer
+          ${
+            temaSeleccionado === t.id
+              ? 'border-[var(--color-accent)] shadow-md'
+              : 'border-[var(--color-border)] hover:border-[var(--color-text-faint)]'
+          }`}
+                >
+                  <div className="flex gap-1 mb-2">
+                    <div className="w-6 h-6 rounded-md flex-shrink-0" style={{ background: t.colores.primary }} />
+                    <div className="w-6 h-6 rounded-md flex-shrink-0" style={{ background: t.colores.accent }} />
+                    <div className="w-6 h-6 rounded-md flex-shrink-0" style={{ background: t.colores.background }} />
+                  </div>
+                  <p className="text-xs font-semibold text-[var(--color-text)]">{t.nombre}</p>
+                  <p className="text-[10px] text-[var(--color-text-soft)] mt-0.5">{t.descripcion}</p>
+                  {temaSeleccionado === t.id && (
+                    <span className="absolute top-2 right-2 text-[var(--color-accent)] text-sm">✓</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {error && <p className="sm:col-span-2 text-sm text-red-600 bg-red-50 px-4 py-2.5 rounded-lg">{error}</p>}
           {logoPreview && (
-            <p className="sm:col-span-2 text-xs text-[#8A7D72]">El nuevo logo se guardará al enviar el formulario.</p>
+            <p className="sm:col-span-2 text-xs text-[var(--color-text-soft)]">El nuevo logo se guardará al enviar el formulario.</p>
           )}
 
           <div className="sm:col-span-2 flex justify-end">
             <button
               type="submit"
               disabled={submitting}
-              className="bg-[#C4622D] hover:bg-[#E8845A] text-white text-sm font-semibold px-4 py-2 rounded-lg transition disabled:opacity-50"
+              className="btn-primary text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
             >
               {submitting ? 'Guardando...' : 'Guardar cambios'}
             </button>

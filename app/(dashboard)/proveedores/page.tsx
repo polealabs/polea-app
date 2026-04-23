@@ -153,7 +153,7 @@ export default function ProveedoresPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto">
+    <div className="p-4 md:p-6 max-w-6xl mx-auto" style={{ background: 'var(--color-background)' }}>
       <ConfirmModal
         open={confirmDelete !== null}
         title="Eliminar proveedor"
@@ -166,12 +166,12 @@ export default function ProveedoresPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#1E3A2F]">Proveedores</h1>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>Proveedores</h1>
           <p className="text-sm text-[#1A1510]/50 mt-0.5">{proveedores.length} proveedores registrados</p>
         </div>
         <button
           onClick={abrirNuevoProveedor}
-          className="bg-[#C4622D] hover:bg-[#E8845A] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+          className="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-lg"
         >
           + Nuevo proveedor
         </button>
@@ -201,7 +201,7 @@ export default function ProveedoresPage() {
       </div>
 
       {(showForm || editando) && (
-        <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-6 mb-6 shadow-sm">
+        <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-6 mb-6 shadow-sm" style={{ background: 'var(--color-surface)' }}>
           <h2 className="text-base font-semibold text-[#1E3A2F] mb-4">
             {editando ? 'Editar proveedor' : 'Nuevo proveedor'}
           </h2>
@@ -284,7 +284,7 @@ export default function ProveedoresPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="bg-[#C4622D] hover:bg-[#E8845A] text-white text-sm font-semibold px-4 py-2 rounded-lg transition disabled:opacity-50"
+                className="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
               >
                 {submitting ? 'Guardando...' : 'Guardar'}
               </button>
@@ -294,7 +294,7 @@ export default function ProveedoresPage() {
       )}
 
       {proveedoresFiltrados.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-12 text-center shadow-sm">
+        <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-12 text-center shadow-sm" style={{ background: 'var(--color-surface)' }}>
           <p className="text-[#1A1510]/40 text-sm">
             {proveedores.length === 0
               ? 'Aún no tienes proveedores registrados.'
@@ -312,11 +312,11 @@ export default function ProveedoresPage() {
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-[#1A1510]/8 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#1A1510]/8 shadow-sm overflow-hidden" style={{ background: 'var(--color-surface)' }}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[600px]">
             <thead>
-              <tr className="border-b border-[#1A1510]/8 bg-[#FAF6F0]">
+              <tr className="border-b border-[#1A1510]/8 bg-[#FAF6F0]" style={{ background: 'var(--color-background)' }}>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                   Nombre
                 </th>

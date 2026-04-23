@@ -204,7 +204,7 @@ export default function EquipoPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[#1E3A2F]">Equipo</h1>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>Equipo</h1>
           <p className="text-sm text-[#8A7D72] mt-1">Invita colaboradores y administra sus roles.</p>
         </div>
         <button

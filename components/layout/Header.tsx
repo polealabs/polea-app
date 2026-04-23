@@ -121,7 +121,10 @@ export default function Header({ titulo }: Props) {
   }
 
   return (
-    <header className="h-14 bg-white border-b border-[#EDE5DC] flex items-center justify-between px-6 sticky top-0 z-20">
+    <header
+      className="h-14 border-b flex items-center justify-between px-6 sticky top-0 z-20"
+      style={{ background: 'var(--color-surface)', borderBottomColor: 'var(--color-border)' }}
+    >
       <h2 className="text-sm font-semibold text-[#1A1510] pl-12 lg:pl-0">{titulo}</h2>
 
       <div className="flex items-center gap-1">

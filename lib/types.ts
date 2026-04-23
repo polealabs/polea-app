@@ -7,6 +7,7 @@ export interface Tienda {
   categoria?: string
   whatsapp?: string
   moneda?: string
+  tema?: string
   created_at: string
 }
 

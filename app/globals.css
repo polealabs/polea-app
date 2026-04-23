@@ -4,6 +4,20 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --color-primary: #1e3a2f;
+  --color-primary-light: #2d4a3e;
+  --color-accent: #c4622d;
+  --color-accent-hover: #e8845a;
+  --color-accent-pale: #f9ede5;
+  --color-background: #faf6f0;
+  --color-surface: #ffffff;
+  --color-border: #ede5dc;
+  --color-text: #1a1510;
+  --color-text-soft: #8a7d72;
+  --color-text-faint: #c4b8b0;
+  --color-greeting-text: var(--color-text);
+  --color-surface-text: var(--color-text);
+  --color-card-bg: var(--color-surface);
 }
 
 @theme inline {
@@ -15,4 +29,30 @@
 
 body {
   font-family: var(--font-dm-sans), sans-serif;
+}
+
+.btn-primary {
+  background: var(--color-accent);
+  color: white;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover {
+  background: var(--color-accent-hover);
+}
+
+.bg-accent {
+  background: var(--color-accent);
+}
+
+.bg-primary {
+  background: var(--color-primary);
+}
+
+.border-accent {
+  border-color: var(--color-accent);
+}
+
+.text-accent {
+  color: var(--color-accent);
 }

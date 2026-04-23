@@ -30,11 +30,6 @@ type VentaCabeceraRaw = VentaCabecera & {
   }[]
 }
 
-type VentaDia = {
-  fecha: string
-  total: number
-}
-
 type LineaVentaForm = {
   producto_id: string
   cantidad: number
@@ -133,9 +128,13 @@ export default function DashboardPage() {
   const [ventasMes, setVentasMes] = useState(0)
   const [productosStockBajo, setProductosStockBajo] = useState<Producto[]>([])
   const [ultimasVentas, setUltimasVentas] = useState<VentaConDetalles[]>([])
-  const [ventasSemana, setVentasSemana] = useState<VentaDia[]>([])
   const [loading, setLoading] = useState(true)
   const [semanaOffset, setSemanaOffset] = useState(0)
+  const [periodoGrafico, setPeriodoGrafico] = useState<'semana' | 'mes' | 'anio'>('semana')
+  const [anioSeleccionado, setAnioSeleccionado] = useState(new Date().getFullYear())
+  const [mesSeleccionado, setMesSeleccionado] = useState(new Date().getMonth())
+  const [datosGrafico, setDatosGrafico] = useState<{ label: string; total: number }[]>([])
+  const [aniosDisponibles, setAniosDisponibles] = useState<number[]>([new Date().getFullYear()])
   const [notificacionesActivas, setNotificacionesActivas] = useState<
     { tipo: string; mensaje: string; link: string }[]
   >([])
@@ -227,6 +226,23 @@ export default function DashboardPage() {
           .not('cliente_id', 'is', null),
         supabase.from('clientes').select('id, nombre').eq('tienda_id', tiendaId),
       ])
+
+    const { data: primeraVenta } = await supabase
+      .from('ventas_cabecera')
+      .select('fecha')
+      .eq('tienda_id', tienda.id)
+      .order('fecha', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    const anioMasAntiguo = primeraVenta
+      ? new Date(primeraVenta.fecha).getFullYear()
+      : new Date().getFullYear()
+
+    const anioActual = new Date().getFullYear()
+    const years: number[] = []
+    for (let y = anioMasAntiguo; y <= anioActual; y++) years.push(y)
+    setAniosDisponibles(years)
 
     const totalHoy = (ventasHoyRes.data ?? []).reduce((s, v) => s + (v.total_neto ?? 0), 0)
     const totalMes = (ventasMesRes.data ?? []).reduce((s, v) => s + (v.total_neto ?? 0), 0)
@@ -468,27 +484,78 @@ export default function DashboardPage() {
     }
   }, [tienda, pathname, loadDashboardData])
 
-  useEffect(() => {
+  const cargarDatosGrafico = useCallback(async () => {
     if (!tienda) return
-    const { desde, hasta, dias } = getRangoSemana(semanaOffset)
     const supabase = createClient()
+    setDatosGrafico([])
 
-    supabase
-      .from('ventas_cabecera')
-      .select('fecha, total_neto')
-      .eq('tienda_id', tienda.id)
-      .gte('fecha', desde)
-      .lte('fecha', hasta)
-      .then(({ data }) => {
-        const ventasPorDia = dias.map((fecha) => ({
-          fecha,
-          total: (data ?? [])
-            .filter((v) => v.fecha === fecha)
-            .reduce((s, v) => s + (v.total_neto ?? 0), 0),
-        }))
-        setVentasSemana(ventasPorDia)
-      })
-  }, [tienda, semanaOffset])
+    if (periodoGrafico === 'semana') {
+      const { desde, hasta, dias } = getRangoSemana(semanaOffset)
+      const { data } = await supabase
+        .from('ventas_cabecera')
+        .select('fecha, total_neto')
+        .eq('tienda_id', tienda.id)
+        .gte('fecha', desde)
+        .lte('fecha', hasta)
+
+      const resultado = dias.map((fecha) => ({
+        label: getDiaLabel(fecha),
+        total: (data ?? []).filter((v) => v.fecha === fecha).reduce((s, v) => s + (v.total_neto ?? 0), 0),
+      }))
+      setDatosGrafico(resultado)
+    } else if (periodoGrafico === 'mes') {
+      const ultimoDia = new Date(anioSeleccionado, mesSeleccionado + 1, 0)
+      const inicioStr = `${anioSeleccionado}-${String(mesSeleccionado + 1).padStart(2, '0')}-01`
+      const finStr = `${anioSeleccionado}-${String(mesSeleccionado + 1).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`
+
+      const { data } = await supabase
+        .from('ventas_cabecera')
+        .select('fecha, total_neto')
+        .eq('tienda_id', tienda.id)
+        .gte('fecha', inicioStr)
+        .lte('fecha', finStr)
+
+      const semanas: { label: string; total: number }[] = []
+      let diaActual = 1
+      let numSemana = 1
+      while (diaActual <= ultimoDia.getDate()) {
+        const finSemana = Math.min(diaActual + 6, ultimoDia.getDate())
+        const total = (data ?? [])
+          .filter((v) => {
+            const dia = new Date(v.fecha + 'T12:00:00').getDate()
+            return dia >= diaActual && dia <= finSemana
+          })
+          .reduce((s, v) => s + (v.total_neto ?? 0), 0)
+        semanas.push({ label: `Sem ${numSemana}`, total })
+        diaActual += 7
+        numSemana++
+      }
+      setDatosGrafico(semanas)
+    } else {
+      const { data } = await supabase
+        .from('ventas_cabecera')
+        .select('fecha, total_neto')
+        .eq('tienda_id', tienda.id)
+        .gte('fecha', `${anioSeleccionado}-01-01`)
+        .lte('fecha', `${anioSeleccionado}-12-31`)
+
+      const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+      const resultado = meses.map((label, i) => ({
+        label,
+        total: (data ?? [])
+          .filter((v) => new Date(v.fecha + 'T12:00:00').getMonth() === i)
+          .reduce((s, v) => s + (v.total_neto ?? 0), 0),
+      }))
+      setDatosGrafico(resultado)
+    }
+  }, [tienda, periodoGrafico, semanaOffset, anioSeleccionado, mesSeleccionado])
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      void cargarDatosGrafico()
+    }, 0)
+    return () => window.clearTimeout(id)
+  }, [tienda, periodoGrafico, semanaOffset, anioSeleccionado, mesSeleccionado, cargarDatosGrafico])
 
   if (tiendaLoading || loading) {
     return <DashboardHomeSkeleton />
@@ -501,9 +568,9 @@ export default function DashboardPage() {
       {/* HEADER */}
       <div className="mb-9">
         <div className="min-w-0">
-          <h1 className="font-serif text-[32px] font-medium text-ink leading-tight">
+          <h1 className="font-serif text-[32px] font-medium leading-tight" style={{ color: 'var(--color-greeting-text)' }}>
             {getSaludo()},{' '}
-            <span className="italic text-terra">{tienda.nombre}</span>
+            <span className="italic" style={{ color: 'var(--color-accent)' }}>{tienda.nombre}</span>
           </h1>
           <p className="text-sm text-ink-soft mt-1">
             {new Date().toLocaleDateString('es-CO', {
@@ -519,7 +586,7 @@ export default function DashboardPage() {
 
       {/* ALERTAS BANNER */}
       {notificacionesActivas.length > 0 && (
-        <div className="bg-[#2D4A3E] rounded-2xl p-5 flex items-center gap-4 mb-4 relative">
+        <div className="rounded-2xl p-5 flex items-center gap-4 mb-4 relative" style={{ background: 'var(--color-primary)' }}>
           <div className="absolute right-[-20px] top-[-20px] w-[120px] h-[120px] rounded-full bg-terra/20 blur-2xl" />
           <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-lg flex-shrink-0">
             ✦
@@ -551,13 +618,19 @@ export default function DashboardPage() {
 
       {/* KPI CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div className="bg-white rounded-2xl border border-border-warm p-5 relative overflow-hidden shadow-sm">
+        <div
+          className="bg-white rounded-2xl border border-border-warm p-5 relative overflow-hidden shadow-sm"
+          style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}
+        >
           <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-terra" />
           <p className="text-xs text-ink-soft mb-2">Ventas hoy</p>
           <p className="font-serif text-[26px] font-medium text-ink leading-none">{formatCOP(ventasHoy)}</p>
         </div>
-        <div className="bg-white rounded-2xl border border-border-warm p-5 relative overflow-hidden shadow-sm">
-          <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#2D4A3E]" />
+        <div
+          className="bg-white rounded-2xl border border-border-warm p-5 relative overflow-hidden shadow-sm"
+          style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}
+        >
+          <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-[var(--color-primary)]" />
           <p className="text-xs text-ink-soft mb-2">Este mes (neto)</p>
           <p className="font-serif text-[26px] font-medium text-ink leading-none">{formatCOP(ventasMes)}</p>
         </div>
@@ -566,6 +639,7 @@ export default function DashboardPage() {
           className={`rounded-2xl border p-5 relative overflow-hidden shadow-sm block transition ${
             productosStockBajo.length > 0 ? 'bg-red-pale border-red-alert/20' : 'bg-white border-border-warm'
           }`}
+          style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}
         >
           <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-red-alert" />
           <p className="text-xs text-ink-soft mb-2">Alertas stock</p>
@@ -582,86 +656,141 @@ export default function DashboardPage() {
       {/* DOS COLUMNAS */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
         <div className="flex flex-col gap-6">
-          {/* GRÁFICO */}
-          <div className="bg-white rounded-2xl border border-border-warm p-6 shadow-sm">
-            {(() => {
-              const { desde, hasta } = getRangoSemana(semanaOffset)
-              const labelRango =
-                semanaOffset === 0 ? 'Esta semana' : `${formatFecha(desde)} – ${formatFecha(hasta)}`
-              return (
-                <div className="flex items-start justify-between mb-5">
-                  <div>
-                    <p className="text-sm font-semibold text-ink">Ventas esta semana</p>
-                    <p className="text-xs text-ink-soft mt-0.5">{labelRango}</p>
-                    <p className="font-serif text-[22px] font-medium text-ink mt-0.5">
-                      {formatCOP(ventasSemana.reduce((s, d) => s + d.total, 0))}
-                    </p>
-                  </div>
+          {/* GRÁFICO DE VENTAS */}
+          <div className="bg-white rounded-2xl border border-[#EDE5DC] p-6 shadow-sm"
+            style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+            
+            {/* Header del gráfico */}
+            <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
+              <div>
+                <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
+                  {periodoGrafico === 'semana' ? 'Ventas esta semana' : periodoGrafico === 'mes' ? 'Ventas este mes' : 'Ventas este año'}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-soft)' }}>
+                  {periodoGrafico === 'semana' && (semanaOffset === 0 ? 'Esta semana' : 'Semana anterior')}
+                  {periodoGrafico === 'mes' && `${['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][mesSeleccionado]} ${anioSeleccionado}`}
+                  {periodoGrafico === 'anio' && `Año ${anioSeleccionado}`}
+                </p>
+                <p className="font-serif text-[22px] font-medium mt-0.5" style={{ color: 'var(--color-text)' }}>
+                  {formatCOP(datosGrafico.reduce((s, d) => s + d.total, 0))}
+                </p>
+              </div>
+
+              {/* Controles */}
+              <div className="flex items-center gap-2 flex-wrap">
+                
+                {/* Selector de período */}
+                <div className="flex rounded-lg border overflow-hidden" style={{ borderColor: 'var(--color-border)' }}>
+                  {(['semana', 'mes', 'anio'] as const).map(p => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => { setPeriodoGrafico(p); setSemanaOffset(0) }}
+                      className="px-3 py-1.5 text-xs font-medium transition"
+                      style={{
+                        background: periodoGrafico === p ? 'var(--color-primary)' : 'var(--color-surface)',
+                        color: periodoGrafico === p ? '#fff' : 'var(--color-text-soft)',
+                      }}
+                    >
+                      {p === 'semana' ? 'Semana' : p === 'mes' ? 'Mes' : 'Año'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Selector de año (en modo mes y año) */}
+                {(periodoGrafico === 'mes' || periodoGrafico === 'anio') && (
+                  <select
+                    value={anioSeleccionado}
+                    onChange={e => setAnioSeleccionado(Number(e.target.value))}
+                    className="text-xs px-2 py-1.5 rounded-lg border"
+                    style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text)' }}
+                  >
+                    {aniosDisponibles.map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                )}
+
+                {/* Selector de mes (solo en modo mes) */}
+                {periodoGrafico === 'mes' && (
+                  <select
+                    value={mesSeleccionado}
+                    onChange={e => setMesSeleccionado(Number(e.target.value))}
+                    className="text-xs px-2 py-1.5 rounded-lg border"
+                    style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text)' }}
+                  >
+                    {['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'].map((m, i) => (
+                      <option key={i} value={i}>{m}</option>
+                    ))}
+                  </select>
+                )}
+
+                {/* Navegación semanas (solo en modo semana) */}
+                {periodoGrafico === 'semana' && (
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => setSemanaOffset((o) => Math.max(getMinOffset(), o - 1))}
+                      type="button"
+                      onClick={() => setSemanaOffset(o => Math.max(getMinOffset(), o - 1))}
                       disabled={semanaOffset <= getMinOffset()}
-                      className="w-7 h-7 rounded-lg border border-[#EDE5DC] flex items-center justify-center text-[#8A7D72] hover:bg-[#FAF6F0] disabled:opacity-30 disabled:cursor-not-allowed transition text-sm"
-                      title="Semana anterior"
-                    >
-                      ‹
-                    </button>
+                      className="w-7 h-7 rounded-lg border flex items-center justify-center text-sm transition disabled:opacity-30"
+                      style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-soft)', background: 'var(--color-surface)' }}
+                    >‹</button>
                     {semanaOffset < 0 && (
                       <button
+                        type="button"
                         onClick={() => setSemanaOffset(0)}
-                        className="text-xs text-[#C4622D] font-medium hover:underline px-1"
-                        title="Volver a semana actual"
-                      >
-                        Hoy
-                      </button>
+                        className="text-xs font-medium px-1"
+                        style={{ color: 'var(--color-accent)' }}
+                      >Hoy</button>
                     )}
                     <button
-                      onClick={() => setSemanaOffset((o) => Math.min(0, o + 1))}
+                      type="button"
+                      onClick={() => setSemanaOffset(o => Math.min(0, o + 1))}
                       disabled={semanaOffset >= 0}
-                      className="w-7 h-7 rounded-lg border border-[#EDE5DC] flex items-center justify-center text-[#8A7D72] hover:bg-[#FAF6F0] disabled:opacity-30 disabled:cursor-not-allowed transition text-sm"
-                      title="Semana siguiente"
-                    >
-                      ›
-                    </button>
+                      className="w-7 h-7 rounded-lg border flex items-center justify-center text-sm transition disabled:opacity-30"
+                      style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-soft)', background: 'var(--color-surface)' }}
+                    >›</button>
                   </div>
-                </div>
-              )
-            })()}
-            <div className="flex items-stretch gap-2 min-h-[104px]">
+                )}
+              </div>
+            </div>
+
+            {/* BARRAS */}
+            <div className="flex items-end mt-4" style={{ height: '100px', gap: '8px' }}>
               {(() => {
-                const max = Math.max(...ventasSemana.map((d) => d.total), 1)
-                const maxBarPx = 72
-                return ventasSemana.map((d, i) => {
-                  const isHoy = semanaOffset === 0 && i === ventasSemana.length - 1
-                  const barPx =
-                    d.total > 0 ? Math.max((d.total / max) * maxBarPx, 6) : 4
+                const max = Math.max(...datosGrafico.map(d => d.total), 1)
+                return datosGrafico.map((d, i) => {
+                  const isHoy = periodoGrafico === 'semana' && semanaOffset === 0 && i === datosGrafico.length - 1
+                  const heightPx = d.total > 0 ? Math.max(Math.round((d.total / max) * 100), 6) : 2
                   return (
-                    <div
-                      key={d.fecha}
-                      className="flex-1 flex flex-col items-center gap-1 justify-end min-w-0"
-                    >
+                    <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1" style={{ height: '100px' }}>
                       {d.total > 0 && (
-                        <span
-                          className={`text-[9px] font-semibold mb-1 leading-none ${
-                            isHoy ? 'text-[#C4622D]' : 'text-[#8A7D72]'
-                          }`}
-                        >
-                          {new Intl.NumberFormat('es-CO', {
-                            notation: 'compact',
-                            compactDisplay: 'short',
-                            maximumFractionDigits: 1,
-                          }).format(d.total)}
+                        <span style={{
+                          fontSize: '9px',
+                          fontWeight: 600,
+                          lineHeight: 1,
+                          color: isHoy ? 'var(--color-accent)' : 'var(--color-text-soft)',
+                        }}>
+                          {new Intl.NumberFormat('es-CO', { notation: 'compact', compactDisplay: 'short', maximumFractionDigits: 1 }).format(d.total)}
                         </span>
                       )}
                       <div
-                        className={`w-full max-w-[40px] mx-auto rounded-t-md transition-all ${isHoy ? 'bg-terra' : 'bg-border-warm'}`}
-                        style={{ height: barPx }}
+                        style={{
+                          width: '100%',
+                          height: `${heightPx}px`,
+                          background: isHoy ? 'var(--color-accent)' : 'var(--color-primary)',
+                          opacity: isHoy ? 1 : 0.4,
+                          borderRadius: '4px 4px 0 0',
+                          transition: 'height 0.3s ease',
+                        }}
                         title={formatCOP(d.total)}
                       />
-                      <span
-                        className={`text-[10px] ${isHoy ? 'text-terra font-semibold' : 'text-ink-soft'}`}
-                      >
-                        {getDiaLabel(d.fecha)}
+                      <span style={{
+                        fontSize: '10px',
+                        color: isHoy ? 'var(--color-accent)' : 'var(--color-text-soft)',
+                        fontWeight: isHoy ? 600 : 400,
+                      }}>
+                        {d.label}
                       </span>
                     </div>
                   )
@@ -737,19 +866,22 @@ export default function DashboardPage() {
 
         {/* Columna derecha: resumen y destacados */}
         <div className="h-fit">
-          <div className="bg-white rounded-2xl border border-[#EDE5DC] shadow-sm p-5 mb-4">
-            <p className="text-xs font-semibold text-[#8A7D72] uppercase tracking-wide mb-4">Resumen del mes</p>
+          <div
+            className="bg-white rounded-2xl border border-[var(--color-border)] shadow-sm p-5 mb-4"
+            style={{ background: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
+          >
+            <p className="text-xs font-semibold text-[var(--color-text-soft)] uppercase tracking-wide mb-4">Resumen del mes</p>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-[#8A7D72]">Ventas netas</span>
-                <span className="text-sm font-semibold text-[#1A1510]">{formatCOP(ventasMes)}</span>
+                <span className="text-sm text-[var(--color-text-soft)]">Ventas netas</span>
+                <span className="text-sm font-semibold text-[var(--color-text)]">{formatCOP(ventasMes)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-[#8A7D72]">Gastos</span>
-                <span className="text-sm font-semibold text-[#1A1510]">- {formatCOP(totalGastosMes)}</span>
+                <span className="text-sm text-[var(--color-text-soft)]">Gastos</span>
+                <span className="text-sm font-semibold text-[var(--color-text)]">- {formatCOP(totalGastosMes)}</span>
               </div>
-              <div className="pt-2 border-t border-[#EDE5DC] flex justify-between items-center">
-                <span className="text-sm font-semibold text-[#1A1510]">Utilidad estimada</span>
+              <div className="pt-2 border-t border-[var(--color-border)] flex justify-between items-center">
+                <span className="text-sm font-semibold text-[var(--color-text)]">Utilidad estimada</span>
                 <span
                   className={`text-sm font-bold ${
                     ventasMes - totalGastosMes >= 0 ? 'text-[#3A7D5A]' : 'text-[#C44040]'
@@ -761,33 +893,39 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-[#EDE5DC] shadow-sm p-5 mb-4">
-            <p className="text-xs font-semibold text-[#8A7D72] uppercase tracking-wide mb-4">Destacados del mes</p>
+          <div
+            className="bg-white rounded-2xl border border-[var(--color-border)] shadow-sm p-5 mb-4"
+            style={{ background: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
+          >
+            <p className="text-xs font-semibold text-[var(--color-text-soft)] uppercase tracking-wide mb-4">Destacados del mes</p>
             <div className="space-y-3">
               <div className="flex justify-between items-center gap-2">
-                <span className="text-sm text-[#8A7D72] shrink-0">Canal top</span>
-                <span className="text-sm font-semibold text-[#1A1510] text-right">
+                <span className="text-sm text-[var(--color-text-soft)] shrink-0">Canal top</span>
+                <span className="text-sm font-semibold text-[var(--color-text)] text-right">
                   {canalTop ? `${canalTop[0]} (${canalTop[1]} ventas)` : '—'}
                 </span>
               </div>
               <div className="flex justify-between items-center gap-2">
-                <span className="text-sm text-[#8A7D72] shrink-0">Cliente top</span>
-                <span className="text-sm font-semibold text-[#1A1510] truncate max-w-[140px] text-right">
+                <span className="text-sm text-[var(--color-text-soft)] shrink-0">Cliente top</span>
+                <span className="text-sm font-semibold text-[var(--color-text)] truncate max-w-[140px] text-right">
                   {clienteTop?.nombre ?? '—'}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-[#EDE5DC] shadow-sm p-5">
-            <p className="text-xs font-semibold text-[#8A7D72] uppercase tracking-wide mb-3">⭐ Producto estrella</p>
+          <div
+            className="bg-white rounded-2xl border border-[var(--color-border)] shadow-sm p-5"
+            style={{ background: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
+          >
+            <p className="text-xs font-semibold text-[var(--color-text-soft)] uppercase tracking-wide mb-3">⭐ Producto estrella</p>
             {productoTop ? (
               <div>
-                <p className="text-sm font-semibold text-[#1A1510]">{productoTop.nombre}</p>
-                <p className="text-xs text-[#8A7D72] mt-0.5">{productoTop.cantidad} unidades vendidas este mes</p>
+                <p className="text-sm font-semibold text-[var(--color-text)]">{productoTop.nombre}</p>
+                <p className="text-xs text-[var(--color-text-soft)] mt-0.5">{productoTop.cantidad} unidades vendidas este mes</p>
               </div>
             ) : (
-              <p className="text-sm text-[#8A7D72]">Sin ventas registradas este mes</p>
+              <p className="text-sm text-[var(--color-text-soft)]">Sin ventas registradas este mes</p>
             )}
           </div>
         </div>
@@ -796,7 +934,7 @@ export default function DashboardPage() {
       <button
         type="button"
         onClick={() => setShowVentaModal(true)}
-        className="fixed bottom-6 right-6 z-40 bg-[#C4622D] hover:bg-[#E8845A] text-white font-semibold px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 transition"
+        className="fixed bottom-6 right-6 z-40 btn-primary text-white font-semibold px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2"
       >
         <span className="text-lg">↗</span>
         Nueva venta
@@ -805,9 +943,9 @@ export default function DashboardPage() {
       {showVentaModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#EDE5DC] sticky top-0 bg-white rounded-t-2xl">
-              <p className="text-base font-semibold text-[#1E3A2F]">Nueva venta</p>
-              <button type="button" onClick={cerrarModal} className="text-[#8A7D72] hover:text-[#1A1510] transition text-xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)] sticky top-0 bg-white rounded-t-2xl">
+              <p className="text-base font-semibold text-[var(--color-primary)]">Nueva venta</p>
+              <button type="button" onClick={cerrarModal} className="text-[var(--color-text-soft)] hover:text-[var(--color-text)] transition text-xl">
                 ✕
               </button>
             </div>
@@ -815,11 +953,11 @@ export default function DashboardPage() {
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-[#8A7D72] mb-1">Canal</label>
+                  <label className="block text-xs font-medium text-[var(--color-text-soft)] mb-1">Canal</label>
                   <select
                     value={canal}
                     onChange={(e) => setCanal(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-[#EDE5DC] text-sm text-[#1A1510] focus:outline-none focus:ring-2 focus:ring-[#C4622D]/30"
+                    className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
                   >
                     <option>WhatsApp</option>
                     <option>Instagram</option>
@@ -829,11 +967,11 @@ export default function DashboardPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[#8A7D72] mb-1">Plataforma</label>
+                  <label className="block text-xs font-medium text-[var(--color-text-soft)] mb-1">Plataforma</label>
                   <select
                     value={plataforma}
                     onChange={(e) => setPlataforma(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-[#EDE5DC] text-sm text-[#1A1510] focus:outline-none focus:ring-2 focus:ring-[#C4622D]/30"
+                    className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
                   >
                     <option>Efectivo</option>
                     <option>Transferencia</option>
@@ -845,24 +983,24 @@ export default function DashboardPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[#8A7D72] mb-1">Fecha</label>
+                  <label className="block text-xs font-medium text-[var(--color-text-soft)] mb-1">Fecha</label>
                   <input
                     type="date"
                     value={fechaVenta}
                     onChange={(e) => setFechaVenta(e.target.value)}
                     max={new Date().toISOString().split('T')[0]}
-                    className="w-full px-3 py-2 rounded-lg border border-[#EDE5DC] text-sm text-[#1A1510] focus:outline-none focus:ring-2 focus:ring-[#C4622D]/30"
+                    className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#8A7D72] mb-1">Cliente (opcional)</label>
+                <label className="block text-xs font-medium text-[var(--color-text-soft)] mb-1">Cliente (opcional)</label>
                 <div className="flex gap-2">
                   <select
                     value={clienteId}
                     onChange={(e) => setClienteId(e.target.value)}
-                    className="flex-1 px-3 py-2 rounded-lg border border-[#EDE5DC] text-sm text-[#1A1510] focus:outline-none focus:ring-2 focus:ring-[#C4622D]/30"
+                    className="flex-1 px-3 py-2 rounded-lg border border-[var(--color-border)] text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
                   >
                     <option value="">Sin cliente</option>
                     {clientesVenta.map((c) => (
@@ -875,7 +1013,7 @@ export default function DashboardPage() {
               </div>
 
               <div>
-                <p className="text-xs font-medium text-[#8A7D72] mb-2">Productos</p>
+                <p className="text-xs font-medium text-[var(--color-text-soft)] mb-2">Productos</p>
                 <div className="space-y-3">
                   {lineas.map((linea, i) => {
                     const { neto: netoLinea } = calcularNetoConDescuento(
@@ -885,10 +1023,10 @@ export default function DashboardPage() {
                       plataforma,
                     )
                     return (
-                      <div key={i} className="bg-[#FAF6F0] rounded-xl p-3 space-y-2">
+                      <div key={i} className="bg-[var(--color-background)] rounded-xl p-3 space-y-2">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           <div className="sm:col-span-1">
-                            <label className="block text-xs text-[#8A7D72] mb-1">Producto</label>
+                            <label className="block text-xs text-[var(--color-text-soft)] mb-1">Producto</label>
                             <select
                               value={linea.producto_id}
                               onChange={(e) => {
@@ -902,7 +1040,7 @@ export default function DashboardPage() {
                                 }
                                 setLineas(nuevas)
                               }}
-                              className="w-full px-3 py-2 rounded-lg border border-[#EDE5DC] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#C4622D]/30"
+                              className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
                             >
                               <option value="">Selecciona</option>
                               {productosVenta.map((p) => (
@@ -913,7 +1051,7 @@ export default function DashboardPage() {
                             </select>
                           </div>
                           <div>
-                            <label className="block text-xs text-[#8A7D72] mb-1">Cantidad</label>
+                            <label className="block text-xs text-[var(--color-text-soft)] mb-1">Cantidad</label>
                             <input
                               type="number"
                               min={1}
@@ -924,11 +1062,11 @@ export default function DashboardPage() {
                                 n[i] = { ...n[i], cantidad: val === '' ? 0 : Number(val) }
                                 setLineas(n)
                               }}
-                              className="w-full px-3 py-2 rounded-lg border border-[#EDE5DC] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#C4622D]/30"
+                              className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
                             />
                           </div>
                           <div>
-                            <label className="block text-xs text-[#8A7D72] mb-1">Precio</label>
+                            <label className="block text-xs text-[var(--color-text-soft)] mb-1">Precio</label>
                             <input
                               type="number"
                               min={0}
@@ -939,13 +1077,13 @@ export default function DashboardPage() {
                                 n[i] = { ...n[i], precio_venta: val === '' ? 0 : Number(val) }
                                 setLineas(n)
                               }}
-                              className="w-full px-3 py-2 rounded-lg border border-[#EDE5DC] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#C4622D]/30"
+                              className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
                             />
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <label className="text-xs text-[#8A7D72]">Descuento %</label>
+                            <label className="text-xs text-[var(--color-text-soft)]">Descuento %</label>
                             <input
                               type="number"
                               min={0}
@@ -959,11 +1097,11 @@ export default function DashboardPage() {
                                 }
                                 setLineas(n)
                               }}
-                              className="w-16 px-2 py-1 rounded-lg border border-[#EDE5DC] text-sm bg-white text-center focus:outline-none focus:ring-2 focus:ring-[#C4622D]/30"
+                              className="w-16 px-2 py-1 rounded-lg border border-[var(--color-border)] text-sm bg-white text-center focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
                             />
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="text-xs text-[#1E3A2F] font-semibold">
+                            <span className="text-xs text-[var(--color-primary)] font-semibold">
                               Neto:{' '}
                               {new Intl.NumberFormat('es-CO', {
                                 style: 'currency',
@@ -1000,7 +1138,7 @@ export default function DashboardPage() {
                       },
                     ])
                   }
-                  className="mt-2 text-xs text-[#C4622D] font-medium hover:underline"
+                  className="mt-2 text-xs text-[var(--color-accent)] font-medium hover:underline"
                 >
                   + Agregar producto
                 </button>
@@ -1017,8 +1155,8 @@ export default function DashboardPage() {
                     return (
                       <>
                         <div className="flex justify-between text-sm">
-                          <span className="text-[#8A7D72]">Total bruto</span>
-                          <span className="text-[#1A1510]">
+                          <span className="text-[var(--color-text-soft)]">Total bruto</span>
+                          <span className="text-[var(--color-text)]">
                             {new Intl.NumberFormat('es-CO', {
                               style: 'currency',
                               currency: 'COP',
@@ -1027,8 +1165,8 @@ export default function DashboardPage() {
                           </span>
                         </div>
                         <div className="flex justify-between text-sm font-bold">
-                          <span className="text-[#1E3A2F]">Total neto</span>
-                          <span className="text-[#1E3A2F]">
+                          <span className="text-[var(--color-primary)]">Total neto</span>
+                          <span className="text-[var(--color-primary)]">
                             {new Intl.NumberFormat('es-CO', {
                               style: 'currency',
                               currency: 'COP',
@@ -1047,11 +1185,11 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="px-6 py-4 border-t border-[#EDE5DC] flex gap-3 justify-end sticky bottom-0 bg-white rounded-b-2xl">
+            <div className="px-6 py-4 border-t border-[var(--color-border)] flex gap-3 justify-end sticky bottom-0 bg-white rounded-b-2xl">
               <button
                 type="button"
                 onClick={cerrarModal}
-                className="text-sm text-[#8A7D72] hover:text-[#1A1510] px-4 py-2 rounded-lg border border-[#EDE5DC] transition"
+                className="text-sm text-[var(--color-text-soft)] hover:text-[var(--color-text)] px-4 py-2 rounded-lg border border-[var(--color-border)] transition"
               >
                 Cancelar
               </button>
@@ -1059,7 +1197,7 @@ export default function DashboardPage() {
                 type="button"
                 onClick={() => void handleGuardarVenta()}
                 disabled={submittingVenta}
-                className="text-sm bg-[#C4622D] text-white font-semibold px-4 py-2 rounded-lg hover:bg-[#E8845A] transition disabled:opacity-50"
+                className="text-sm btn-primary text-white font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
               >
                 {submittingVenta ? 'Guardando...' : 'Guardar venta'}
               </button>

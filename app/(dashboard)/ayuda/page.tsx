@@ -29,7 +29,7 @@ export default function AyudaPage() {
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#1E3A2F]">Centro de ayuda</h1>
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>Centro de ayuda</h1>
       </div>
 
       <section className="bg-white rounded-2xl border border-[#EDE5DC] p-6">

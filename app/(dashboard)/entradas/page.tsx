@@ -235,7 +235,7 @@ export default function EntradasPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-5xl mx-auto">
+    <div className="p-4 md:p-6 max-w-5xl mx-auto" style={{ background: 'var(--color-background)' }}>
       <ConfirmModal
         open={confirmDeleteId !== null}
         title="Eliminar entrada"
@@ -248,7 +248,7 @@ export default function EntradasPage() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#1E3A2F]">Entradas</h1>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>Entradas</h1>
           <p className="text-sm text-[#1A1510]/50 mt-0.5">Últimas {entradas.length} entradas registradas</p>
         </div>
         <div className="flex items-center gap-3">
@@ -267,7 +267,7 @@ export default function EntradasPage() {
                 setProveedorIdSeleccionado('')
                 setLineas([nuevaLinea()])
               }}
-              className="bg-[#C4622D] hover:bg-[#E8845A] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+              className="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-lg"
               disabled={productos.length === 0}
             >
               + Nueva entrada
@@ -291,12 +291,15 @@ export default function EntradasPage() {
         />
       )}
 
-      <div className="bg-[#FAF6F0] rounded-2xl border border-[#EDE5DC] p-5 mb-6">
-        <p className="text-xs uppercase tracking-wide text-[#8A7D72] mb-1">Total entradas del mes</p>
-        <p className="text-2xl font-serif font-medium text-[#1E3A2F]">
+      <div
+        className="bg-[#FAF6F0] rounded-2xl border border-[#EDE5DC] p-5 mb-6"
+        style={{ background: 'var(--color-background)', borderColor: 'var(--color-border)' }}
+      >
+        <p className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-soft)' }}>Total entradas del mes</p>
+        <p className="text-2xl font-serif font-medium" style={{ color: 'var(--color-primary)' }}>
           {formatCOP(entradas.reduce((s, e) => s + e.cantidad * e.costo_unitario, 0))}
         </p>
-        <p className="text-xs text-[#8A7D72] mt-1">
+        <p className="text-xs mt-1" style={{ color: 'var(--color-text-soft)' }}>
           {entradas.length} entrada{entradas.length !== 1 ? 's' : ''} registrada{entradas.length !== 1 ? 's' : ''}
         </p>
       </div>
@@ -310,13 +313,13 @@ export default function EntradasPage() {
       />
 
       {productos.length === 0 && (
-        <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-12 text-center shadow-sm mb-6">
+        <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-12 text-center shadow-sm mb-6" style={{ background: 'var(--color-surface)' }}>
           <p className="text-[#1A1510]/40 text-sm">Necesitas crear al menos un producto antes de registrar entradas.</p>
         </div>
       )}
 
       {canEdit && showForm && productos.length > 0 && (
-        <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-6 mb-6 shadow-sm">
+        <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-6 mb-6 shadow-sm" style={{ background: 'var(--color-surface)' }}>
           <h2 className="text-base font-semibold text-[#1E3A2F] mb-4">Nueva entrada de stock</h2>
           <div className="mb-4">
             <label className={labelClass}>Fecha (todas las líneas)</label>
@@ -449,7 +452,7 @@ export default function EntradasPage() {
               type="button"
               onClick={() => void handleGuardar()}
               disabled={submitting}
-              className="bg-[#C4622D] hover:bg-[#E8845A] text-white text-sm font-semibold px-4 py-2 rounded-lg transition disabled:opacity-50"
+              className="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
             >
               {submitting ? 'Guardando...' : 'Guardar'}
             </button>
@@ -458,7 +461,7 @@ export default function EntradasPage() {
       )}
 
       {entradas.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-12 text-center shadow-sm">
+        <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-12 text-center shadow-sm" style={{ background: 'var(--color-surface)' }}>
           <p className="text-[#1A1510]/40 text-sm">Aún no tienes entradas registradas.</p>
           {productos.length > 0 && (
             <button
@@ -475,18 +478,18 @@ export default function EntradasPage() {
           )}
         </div>
       ) : entradasFiltradas.length === 0 && busqueda.trim() !== '' ? (
-        <div className="bg-white rounded-2xl border border-[#EDE5DC] p-12 text-center shadow-sm">
+        <div className="bg-white rounded-2xl border border-[#EDE5DC] p-12 text-center shadow-sm" style={{ background: 'var(--color-surface)' }}>
           <p className="text-[#8A7D72] text-sm">No se encontraron entradas para &quot;{busqueda}&quot;</p>
           <button onClick={() => setBusqueda('')} className="mt-2 text-sm text-[#C4622D] font-medium hover:underline">
             Limpiar búsqueda
           </button>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-[#1A1510]/8 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#1A1510]/8 shadow-sm overflow-hidden" style={{ background: 'var(--color-surface)' }}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[600px]">
             <thead>
-              <tr className="border-b border-[#1A1510]/8 bg-[#FAF6F0]">
+              <tr className="border-b border-[#1A1510]/8 bg-[#FAF6F0]" style={{ background: 'var(--color-background)' }}>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                   Fecha
                 </th>
