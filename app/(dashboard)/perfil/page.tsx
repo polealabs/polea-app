@@ -152,6 +152,49 @@ export default function PerfilPage() {
               ))}
             </select>
           </div>
+          <div className="sm:col-span-2 mt-1">
+            <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-primary)' }}>
+              Información legal y de contacto
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>NIT o Cédula</label>
+                <input name="nit" defaultValue={tienda?.nit ?? ''} placeholder="900123456-1" className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Nombre del representante</label>
+                <input
+                  name="representante"
+                  defaultValue={tienda?.representante ?? ''}
+                  placeholder="Valentina Sánchez"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Teléfono</label>
+                <input name="telefono" defaultValue={tienda?.telefono ?? ''} placeholder="3017433083" className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Email de contacto</label>
+                <input
+                  type="email"
+                  name="email"
+                  defaultValue={tienda?.email ?? ''}
+                  placeholder="contacto@minegocio.com"
+                  className={inputClass}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={labelClass}>Dirección</label>
+                <input
+                  name="direccion"
+                  defaultValue={tienda?.direccion ?? ''}
+                  placeholder="Calle 10 # 5-23, Cali"
+                  className={inputClass}
+                />
+              </div>
+            </div>
+          </div>
           <div className="sm:col-span-2">
             <label className="block text-sm font-semibold mb-3" style={{ color: 'var(--color-primary)' }}>Tema de color</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">

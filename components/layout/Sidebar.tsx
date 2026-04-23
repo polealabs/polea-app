@@ -10,6 +10,7 @@ const navItems = [
   { href: '/entradas', icon: '↓', label: 'Entradas' },
   { href: '/ventas', icon: '↗', label: 'Ventas' },
   { href: '/clientes', icon: '◎', label: 'Clientes' },
+  { href: '/documentos', icon: '📄', label: 'Documentos' },
   { href: '/gastos', icon: '−', label: 'Gastos' },
   { href: '/proveedores', icon: '◈', label: 'Proveedores' },
   { href: '/reportes', icon: '◈', label: 'Reportes' },

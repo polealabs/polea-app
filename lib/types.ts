@@ -3,6 +3,11 @@ export interface Tienda {
   owner_id: string
   nombre: string
   ciudad?: string
+  nit?: string
+  representante?: string
+  telefono?: string
+  email?: string
+  direccion?: string
   logo_url?: string
   categoria?: string
   whatsapp?: string
@@ -135,5 +140,43 @@ export interface Proveedor {
   telefono?: string
   nit?: string
   ciudad?: string
+  created_at: string
+}
+
+export type TipoDocumento = 'cotizacion' | 'cuenta_cobro'
+export type EstadoDocumento = 'borrador' | 'enviado' | 'aceptado' | 'rechazado' | 'pagado'
+
+export interface ItemDocumento {
+  descripcion: string
+  cantidad: number
+  precio_unitario: number
+  subtotal: number
+}
+
+export interface Documento {
+  id: string
+  tienda_id: string
+  tipo: TipoDocumento
+  numero: string
+  cliente_id?: string
+  destinatario_nombre: string
+  destinatario_nit?: string
+  destinatario_email?: string
+  destinatario_telefono?: string
+  destinatario_ciudad?: string
+  concepto?: string
+  items: ItemDocumento[]
+  subtotal: number
+  descuento: number
+  total: number
+  banco?: string
+  tipo_cuenta?: string
+  numero_cuenta?: string
+  titular_cuenta?: string
+  cedula_titular?: string
+  fecha: string
+  fecha_vencimiento?: string
+  estado: EstadoDocumento
+  notas?: string
   created_at: string
 }
