@@ -95,3 +95,10 @@ export const TEMAS: Tema[] = [
 export function getTema(id: string): Tema {
   return TEMAS.find((t) => t.id === id) ?? TEMAS[0]
 }
+
+export type TamanoLetra = 'normal' | 'grande'
+
+export const TAMANOS_LETRA: { id: TamanoLetra; nombre: string; descripcion: string; valor: string }[] = [
+  { id: 'normal', nombre: 'Normal', descripcion: 'Tamaño estándar', valor: '15px' },
+  { id: 'grande', nombre: 'Grande', descripcion: 'Para mejor legibilidad', valor: '18px' },
+]

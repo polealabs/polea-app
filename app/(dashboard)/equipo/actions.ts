@@ -150,6 +150,7 @@ export async function aceptarInvitacion(token: string) {
       user_id: user.id,
       rol: inv.rol,
       invitado_por: inv.invitado_por,
+      email: user.email ?? null,
     })
 
     if (errMiembro) return { error: errMiembro.message }

@@ -59,6 +59,7 @@ function destinoTipo(tipo: Notificacion['tipo']) {
 export default function Header({ titulo }: Props) {
   const { tienda } = useTienda()
   const router = useRouter()
+  const [nombreUsuario, setNombreUsuario] = useState<string | null>(null)
   const [showPerfil, setShowPerfil] = useState(false)
   const [showNotif, setShowNotif] = useState(false)
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
@@ -79,6 +80,23 @@ export default function Header({ titulo }: Props) {
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  useEffect(() => {
+    async function cargarPerfil() {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase
+        .from('perfiles')
+        .select('nombre')
+        .eq('id', user.id)
+        .maybeSingle()
+      setNombreUsuario(data?.nombre ?? user.email?.split('@')[0] ?? 'Usuario')
+    }
+    void cargarPerfil()
   }, [])
 
   const cargarNotificaciones = useCallback(async () => {
@@ -231,7 +249,7 @@ export default function Header({ titulo }: Props) {
               )}
             </div>
             <span className="text-xs font-medium text-[#1A1510] max-w-[120px] truncate hidden sm:block">
-              {tienda?.nombre ?? 'Mi tienda'}
+              {nombreUsuario ?? tienda?.nombre ?? 'Usuario'}
             </span>
           </button>
 
@@ -247,7 +265,7 @@ export default function Header({ titulo }: Props) {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[#1A1510] truncate">{tienda?.nombre}</p>
+                    <p className="text-sm font-semibold text-[#1A1510] truncate">Polea</p>
                     <p className="text-xs text-[#8A7D72] truncate">{tienda?.categoria ?? 'Sin categoría'}</p>
                     {tienda?.ciudad && <p className="text-xs text-[#8A7D72]">{tienda.ciudad}</p>}
                   </div>

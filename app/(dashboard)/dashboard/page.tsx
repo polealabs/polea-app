@@ -126,6 +126,7 @@ export default function DashboardPage() {
 
   const [ventasHoy, setVentasHoy] = useState(0)
   const [ventasMes, setVentasMes] = useState(0)
+  const [nombreUsuario, setNombreUsuario] = useState<string | null>(null)
   const [productosStockBajo, setProductosStockBajo] = useState<Producto[]>([])
   const [ultimasVentas, setUltimasVentas] = useState<VentaConDetalles[]>([])
   const [loading, setLoading] = useState(true)
@@ -163,6 +164,27 @@ export default function DashboardPage() {
       router.replace('/onboarding')
     }
   }, [tienda, tiendaLoading, router])
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      void (async () => {
+        const supabase = createClient()
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        if (user) {
+          const { data: perfil } = await supabase
+            .from('perfiles')
+            .select('nombre')
+            .eq('id', user.id)
+            .maybeSingle()
+          if (perfil?.nombre) setNombreUsuario(perfil.nombre)
+          else setNombreUsuario(user.email?.split('@')[0] ?? null)
+        }
+      })()
+    }, 0)
+    return () => window.clearTimeout(id)
+  }, [])
 
   const loadDashboardData = useCallback(async () => {
     if (!tienda) return
@@ -570,7 +592,9 @@ export default function DashboardPage() {
         <div className="min-w-0">
           <h1 className="font-serif text-[32px] font-medium leading-tight" style={{ color: 'var(--color-greeting-text)' }}>
             {getSaludo()},{' '}
-            <span className="italic" style={{ color: 'var(--color-accent)' }}>{tienda.nombre}</span>
+            <span className="italic" style={{ color: 'var(--color-accent)' }}>
+              {nombreUsuario || tienda?.nombre}
+            </span>
           </h1>
           <p className="text-sm text-ink-soft mt-1">
             {new Date().toLocaleDateString('es-CO', {
@@ -766,7 +790,7 @@ export default function DashboardPage() {
                     <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1" style={{ height: '100px' }}>
                       {d.total > 0 && (
                         <span style={{
-                          fontSize: '9px',
+                          fontSize: '0.6rem',
                           fontWeight: 600,
                           lineHeight: 1,
                           color: isHoy ? 'var(--color-accent)' : 'var(--color-text-soft)',
@@ -786,7 +810,7 @@ export default function DashboardPage() {
                         title={formatCOP(d.total)}
                       />
                       <span style={{
-                        fontSize: '10px',
+                        fontSize: '0.65rem',
                         color: isHoy ? 'var(--color-accent)' : 'var(--color-text-soft)',
                         fontWeight: isHoy ? 600 : 400,
                       }}>

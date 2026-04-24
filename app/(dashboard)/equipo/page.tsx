@@ -9,7 +9,10 @@ import ConfirmModal from '@/components/ui/ConfirmModal'
 import { useToast } from '@/lib/hooks/useToast'
 import type { Miembro, Invitacion, Rol } from '@/lib/types'
 
-type MiembroConUsuario = Miembro & { email: string; nombre: string }
+type MiembroConPerfil = Miembro & {
+  email?: string
+  nombre?: string
+}
 
 function badgeRol(rol: Rol) {
   switch (rol) {
@@ -43,7 +46,7 @@ function labelRol(rol: Rol) {
 
 export default function EquipoPage() {
   const { tienda, loading: tiendaLoading, isOwner } = useTienda()
-  const [miembros, setMiembros] = useState<MiembroConUsuario[]>([])
+  const [miembros, setMiembros] = useState<MiembroConPerfil[]>([])
   const [invitaciones, setInvitaciones] = useState<Invitacion[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -66,7 +69,7 @@ export default function EquipoPage() {
     const [{ data: miembrosData }, { data: invitacionesData }, { data: userData }] = await Promise.all([
       supabase
         .from('miembros')
-        .select('*, user:user_id(email, raw_user_meta_data)')
+        .select('*, perfiles(nombre)')
         .eq('tienda_id', tienda.id)
         .order('created_at'),
       supabase
@@ -79,7 +82,17 @@ export default function EquipoPage() {
       supabase.auth.getUser(),
     ])
 
-    const ownerRow: MiembroConUsuario | null = userData?.user
+    let perfilData: { nombre?: string } | null = null
+    if (userData?.user) {
+      const { data } = await supabase
+        .from('perfiles')
+        .select('nombre')
+        .eq('id', userData.user.id)
+        .maybeSingle()
+      perfilData = data
+    }
+
+    const ownerRow: MiembroConPerfil | null = userData?.user
       ? {
           id: `owner-${userData.user.id}`,
           tienda_id: tienda.id,
@@ -87,24 +100,20 @@ export default function EquipoPage() {
           rol: 'owner',
           created_at: userData.user.created_at ?? new Date().toISOString(),
           email: userData.user.email ?? '—',
-          nombre:
-            (userData.user.user_metadata?.nombre as string | undefined) ??
-            (userData.user.user_metadata?.name as string | undefined) ??
-            userData.user.email ??
-            'Dueño',
+          nombre: perfilData?.nombre ?? userData.user.email ?? 'Dueño',
         }
       : null
 
-    const miembrosMapeados: MiembroConUsuario[] = ((miembrosData ?? []) as Array<
+    const miembrosMapeados: MiembroConPerfil[] = ((miembrosData ?? []) as Array<
       Miembro & {
-        user?: { email?: string; raw_user_meta_data?: { nombre?: string; name?: string } }[]
+        perfiles?: { nombre?: string } | { nombre?: string }[] | null
       }
     >).map((m) => {
-      const userDataMiembro = Array.isArray(m.user) ? m.user[0] : m.user
+      const perfil = Array.isArray(m.perfiles) ? m.perfiles[0] : m.perfiles
       return {
         ...m,
-        email: userDataMiembro?.email ?? '—',
-        nombre: userDataMiembro?.raw_user_meta_data?.nombre ?? userDataMiembro?.raw_user_meta_data?.name ?? userDataMiembro?.email ?? 'Usuario',
+        email: m.email ?? '—',
+        nombre: perfil?.nombre ?? undefined,
       }
     })
 
@@ -278,7 +287,8 @@ export default function EquipoPage() {
           <table className="w-full text-sm min-w-[700px]">
             <thead>
               <tr className="bg-[#FAF6F0] border-b border-[#EDE5DC]">
-                <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#8A7D72]">Usuario</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#8A7D72]">Miembro</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#8A7D72]">Correo</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#8A7D72]">Rol</th>
                 <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#8A7D72]">Acciones</th>
               </tr>
@@ -287,8 +297,17 @@ export default function EquipoPage() {
               {miembros.map((m) => (
                 <tr key={m.id} className="border-b border-[#EDE5DC]/70 last:border-b-0">
                   <td className="px-5 py-3.5">
-                    <p className="font-medium text-[#1A1510]">{m.nombre}</p>
-                    <p className="text-xs text-[#8A7D72]">{m.email}</p>
+                    <p className="font-medium text-sm" style={{ color: 'var(--color-text)' }}>
+                      {m.nombre || m.email || 'Sin nombre'}
+                    </p>
+                    {m.nombre && (
+                      <p className="text-xs" style={{ color: 'var(--color-text-soft)' }}>
+                        {m.email}
+                      </p>
+                    )}
+                  </td>
+                  <td className="px-5 py-3.5 text-[#1A1510]">
+                    {m.email || '—'}
                   </td>
                   <td className="px-5 py-3.5">
                     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${badgeRol(m.rol)}`}>
@@ -323,7 +342,7 @@ export default function EquipoPage() {
               ))}
               {miembrosNoOwner.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="px-5 py-8 text-center text-[#8A7D72] text-sm">
+                  <td colSpan={4} className="px-5 py-8 text-center text-[#8A7D72] text-sm">
                     No hay colaboradores todavía.
                   </td>
                 </tr>

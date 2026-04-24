@@ -29,6 +29,17 @@ export default function RegistroPage() {
           <form action={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-[#1A1510] mb-1.5">
+                Nombre completo
+              </label>
+              <input
+                name="nombre"
+                type="text"
+                placeholder="Tu nombre"
+                className="w-full px-4 py-2.5 rounded-lg border border-[#1A1510]/20 bg-white text-[#1A1510] placeholder:text-[#1A1510]/40 focus:outline-none focus:ring-2 focus:ring-[#C4622D]/40 focus:border-[#C4622D] transition"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#1A1510] mb-1.5">
                 Correo electrónico
               </label>
               <input

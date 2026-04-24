@@ -3,12 +3,13 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useTienda } from '@/lib/hooks/useTienda'
 import { INDUSTRIAS } from '@/lib/industrias'
-import { actualizarTienda } from './actions'
+import { actualizarPerfil, actualizarTienda } from './actions'
 import Toast from '@/components/ui/Toast'
 import { useToast } from '@/lib/hooks/useToast'
 import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
-import { TEMAS } from '@/lib/temas'
-import { useTema } from '@/lib/context/TemaContext'
+import { TAMANOS_LETRA, TEMAS, type TamanoLetra } from '@/lib/temas'
+import { useTamano, useTema } from '@/lib/context/TemaContext'
+import { createClient } from '@/lib/supabase/client'
 
 const inputClass =
   'w-full px-3 py-2 rounded-lg border border-[var(--color-text)]/20 bg-white text-[var(--color-text)] placeholder:text-[var(--color-text)]/40 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/40 focus:border-[var(--color-accent)] transition text-sm'
@@ -17,6 +18,7 @@ const labelClass = 'block text-xs font-medium text-[var(--color-text)]/60 mb-1'
 export default function PerfilPage() {
   const { tienda, loading } = useTienda()
   const { setTemaId } = useTema()
+  const { tamano, setTamano } = useTamano()
   const { toasts, showToast, removeToast } = useToast()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -24,12 +26,38 @@ export default function PerfilPage() {
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [temaSeleccionado, setTemaSeleccionado] = useState(tienda?.tema ?? 'bosque')
+  const [tamanoSeleccionado, setTamanoSeleccionado] = useState<TamanoLetra>(tamano)
+  const [nombreUsuario, setNombreUsuario] = useState('')
 
   useEffect(() => {
     if (!tienda?.tema) return
     const id = window.setTimeout(() => setTemaSeleccionado(tienda.tema ?? 'bosque'), 0)
     return () => window.clearTimeout(id)
   }, [tienda?.tema])
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setTamanoSeleccionado(tamano), 0)
+    return () => window.clearTimeout(id)
+  }, [tamano])
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      void (async () => {
+        const supabase = createClient()
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        if (!user) return
+        const { data } = await supabase
+          .from('perfiles')
+          .select('nombre')
+          .eq('id', user.id)
+          .maybeSingle()
+        setNombreUsuario(data?.nombre ?? '')
+      })()
+    }, 0)
+    return () => window.clearTimeout(id)
+  }, [])
 
   function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -66,12 +94,16 @@ export default function PerfilPage() {
     const formData = new FormData(formEl)
     formData.set('nombre', nombreVal)
     formData.set('tema', temaSeleccionado)
+    formData.set('tamano_letra', tamanoSeleccionado)
     if (logoFile) formData.set('logo', logoFile)
 
     const res = await actualizarTienda(formData)
-    if (res?.error) {
-      setError(res.error)
-      showToast(res.error, 'error')
+    const resPerfil = await actualizarPerfil(formData)
+
+    if (res?.error || resPerfil?.error) {
+      const msg = res?.error ?? resPerfil?.error ?? 'No se pudo guardar'
+      setError(msg)
+      showToast(msg, 'error')
     } else {
       showToast('Cambios guardados')
     }
@@ -120,6 +152,16 @@ export default function PerfilPage() {
             {logoError && <p className="text-xs text-red-600 mt-2">{logoError}</p>}
           </div>
 
+          <div>
+            <label className={labelClass}>Tu nombre</label>
+            <input
+              name="nombre_usuario"
+              value={nombreUsuario}
+              onChange={(e) => setNombreUsuario(e.target.value)}
+              placeholder="Valentina Sánchez"
+              className={inputClass}
+            />
+          </div>
           <div>
             <label className={labelClass}>Nombre de tienda *</label>
             <input name="nombre" defaultValue={tienda?.nombre ?? ''} className={inputClass} required />
@@ -223,6 +265,47 @@ export default function PerfilPage() {
                   {temaSeleccionado === t.id && (
                     <span className="absolute top-2 right-2 text-[var(--color-accent)] text-sm">✓</span>
                   )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-semibold mb-3" style={{ color: 'var(--color-primary)' }}>
+              Tamaño de letra
+            </label>
+            <div className="flex gap-4 max-w-sm">
+              {TAMANOS_LETRA.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => {
+                    setTamanoSeleccionado(t.id)
+                    setTamano(t.id)
+                  }}
+                  className={`flex-1 rounded-xl border-2 p-4 text-left transition cursor-pointer`}
+                  style={{
+                    borderColor: tamanoSeleccionado === t.id ? 'var(--color-accent)' : 'var(--color-border)',
+                    background: tamanoSeleccionado === t.id ? 'var(--color-accent-pale)' : 'var(--color-surface)',
+                  }}
+                >
+                  <div className="mb-3 pb-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <p style={{ fontSize: t.valor, color: 'var(--color-text)', lineHeight: 1.4, fontWeight: 500 }}>
+                      Texto de ejemplo
+                    </p>
+                    <p style={{ fontSize: `calc(${t.valor} * 0.875)`, color: 'var(--color-text-soft)', lineHeight: 1.4 }}>
+                      Texto secundario
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text)' }}>{t.nombre}</p>
+                      <p style={{ fontSize: '0.72rem', color: 'var(--color-text-soft)', marginTop: '2px' }}>{t.descripcion}</p>
+                    </div>
+                    {tamanoSeleccionado === t.id && (
+                      <span style={{ fontSize: '0.8rem', color: 'var(--color-accent)', fontWeight: 600 }}>✓</span>
+                    )}
+                  </div>
                 </button>
               ))}
             </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
 const WA_URL = 'https://wa.me/573014140381'
@@ -38,68 +38,100 @@ const painPoints = [
 export default function Home() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [cardActiva, setCardActiva] = useState(0)
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible')
+          }
+        })
+      },
+      { threshold: 0.1 }
+    )
+    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el))
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20)
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   return (
     <div className="min-h-screen bg-white">
       {/* 1. NAVBAR */}
-      <header className="sticky top-0 z-50 bg-white shadow-sm border-b border-[#EDE5DC]">
-        <nav className="h-16 flex items-center justify-between px-6 md:px-12 max-w-[1600px] mx-auto">
-          <div>
-            <span className="font-serif text-2xl font-bold text-[#1E3A2F] tracking-tight">
-              POLEA
-            </span>
-            <span className="text-xs text-[#8A7D72] ml-2 hidden sm:inline">Tu tienda, clara</span>
-          </div>
+      <header>
+        <nav
+          className={`fixed top-0 left-0 right-0 z-50 h-16 transition-all duration-300 ${
+            scrolled
+              ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-[#EDE5DC]'
+              : 'bg-transparent'
+          }`}
+        >
+          <div className="w-full h-full flex items-center justify-between px-8 md:px-16">
+            <div className="flex flex-col">
+              <span className="font-serif text-3xl font-bold text-[#1E3A2F] tracking-tight leading-none">
+                POLEA
+              </span>
+              <span className="text-[10px] text-[#8A7D72] uppercase tracking-widest mt-0.5 hidden sm:block">
+                Tu tienda, clara
+              </span>
+            </div>
 
-          <div className="hidden md:flex items-center gap-8">
-            <Link
-              href="#funcionalidades"
-              className="text-sm text-[#4A3F35] hover:text-[#1E3A2F] transition font-medium"
-            >
-              Funcionalidades
-            </Link>
-            <Link
-              href="#precios"
-              className="text-sm text-[#4A3F35] hover:text-[#1E3A2F] transition font-medium"
-            >
-              Precios
-            </Link>
-            <a
-              href={WA_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-[#4A3F35] hover:text-[#1E3A2F] transition font-medium"
-            >
-              Contacto
-            </a>
-          </div>
+            <div className="hidden md:flex items-center gap-8">
+              <Link
+                href="#funcionalidades"
+                className="text-sm text-[#4A3F35] hover:text-[#1E3A2F] transition font-medium"
+              >
+                Funcionalidades
+              </Link>
+              <Link
+                href="#precios"
+                className="text-sm text-[#4A3F35] hover:text-[#1E3A2F] transition font-medium"
+              >
+                Precios
+              </Link>
+              <a
+                href={WA_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-[#4A3F35] hover:text-[#1E3A2F] transition font-medium"
+              >
+                Contacto
+              </a>
+            </div>
 
-          <div className="hidden md:flex items-center gap-3">
-            <Link
-              href="/login"
-              className="text-[#C4622D] border border-[#C4622D] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#F9EDE5] transition"
-            >
-              Iniciar sesión
-            </Link>
-            <Link
-              href="/registro"
-              className="bg-[#C4622D] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#E8845A] transition"
-            >
-              Prueba ya
-            </Link>
-          </div>
+            <div className="hidden md:flex items-center gap-3">
+              <Link
+                href="/login"
+                className="text-[#C4622D] border border-[#C4622D] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#F9EDE5] transition"
+              >
+                Iniciar sesión
+              </Link>
+              <Link
+                href="/registro"
+                className="bg-[#C4622D] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#E8845A] transition"
+              >
+                Prueba ya
+              </Link>
+            </div>
 
-          <button
-            type="button"
-            className="md:hidden p-2 rounded-lg border border-[#EDE5DC] text-[#1E3A2F]"
-            aria-expanded={mobileOpen}
-            aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'}
-            onClick={() => setMobileOpen((o) => !o)}
-          >
-            <span className="block w-5 h-0.5 bg-[#1E3A2F] mb-1" />
-            <span className="block w-5 h-0.5 bg-[#1E3A2F] mb-1" />
-            <span className="block w-5 h-0.5 bg-[#1E3A2F]" />
-          </button>
+            <button
+              type="button"
+              className="md:hidden p-2 rounded-lg border border-[#EDE5DC] text-[#1E3A2F]"
+              aria-expanded={mobileOpen}
+              aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'}
+              onClick={() => setMobileOpen((o) => !o)}
+            >
+              <span className="block w-5 h-0.5 bg-[#1E3A2F] mb-1" />
+              <span className="block w-5 h-0.5 bg-[#1E3A2F] mb-1" />
+              <span className="block w-5 h-0.5 bg-[#1E3A2F]" />
+            </button>
+          </div>
         </nav>
 
         {mobileOpen && (
@@ -147,27 +179,79 @@ export default function Home() {
       </header>
 
       {/* 2. HERO */}
-      <section className="bg-[#FAF6F0] py-20 md:py-28">
-        <div className="max-w-6xl mx-auto px-6 md:px-12 grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 bg-white border border-[#EDE5DC] rounded-full px-4 py-1.5 text-xs text-[#4A3F35] font-medium mb-6">
+      <section
+        className="min-h-screen flex items-center pt-16 relative overflow-hidden"
+        style={{ background: '#FAF6F0' }}
+      >
+        <div
+          className="absolute -left-32 top-1/4 w-96 h-96 rounded-full opacity-30"
+          style={{ background: 'radial-gradient(circle, #C4622D22 0%, transparent 70%)' }}
+        />
+        <div
+          className="absolute -right-20 top-10 w-72 h-72 rounded-full opacity-20"
+          style={{ background: 'radial-gradient(circle, #1E3A2F33 0%, transparent 70%)' }}
+        />
+        <div
+          className="absolute left-8 bottom-20 w-48 h-48 rounded-full opacity-20"
+          style={{ background: 'radial-gradient(circle, #D4A85333 0%, transparent 70%)' }}
+        />
+
+        <div className="absolute left-0 top-0 bottom-0 w-40 flex-col justify-center gap-5 pl-4 pr-2 opacity-25 pointer-events-none hidden lg:flex">
+          {['$6.1M', '+23%', '328', '$520K'].map((val, i) => (
+            <div
+              key={val}
+              className="flex items-center gap-2"
+              style={{ animation: `fadeInLeft 0.6s ease ${0.5 + i * 0.2}s both` }}
+            >
+              <div className="h-px flex-1" style={{ background: 'linear-gradient(to right, transparent, #C4622D44)' }} />
+              <span className="font-serif text-xs text-[#C4622D] whitespace-nowrap">{val}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="absolute right-0 top-0 bottom-0 w-40 flex-col justify-center gap-5 pr-4 pl-2 opacity-25 pointer-events-none hidden lg:flex">
+          {['WhatsApp', 'Instagram', 'Wompi', 'Bold'].map((val, i) => (
+            <div
+              key={val}
+              className="flex items-center gap-2"
+              style={{ animation: `fadeInRight 0.6s ease ${0.5 + i * 0.2}s both` }}
+            >
+              <span className="font-serif text-xs text-[#1E3A2F] whitespace-nowrap">{val}</span>
+              <div className="h-px flex-1" style={{ background: 'linear-gradient(to left, transparent, #1E3A2F44)' }} />
+            </div>
+          ))}
+        </div>
+
+        <div className="w-full max-w-5xl mx-auto px-8 grid grid-cols-1 md:grid-cols-2 gap-12 items-center py-28 relative z-10">
+          <div style={{ animation: 'fadeInLeft 0.8s ease forwards' }}>
+            <div
+              className="inline-flex items-center gap-2 bg-white border border-[#EDE5DC] rounded-full px-5 py-2 text-sm text-[#4A3F35] font-medium mb-6 shadow-sm"
+              style={{ animation: 'fadeInUp 0.5s ease forwards' }}
+            >
+              <span className="w-2 h-2 rounded-full bg-[#3A7D5A] animate-pulse-soft inline-block" />
               Para emprendedores que quieren claridad financiera
             </div>
-            <h1 className="font-serif text-[42px] md:text-[56px] font-medium text-[#1A1510] leading-[1.1] mb-5">
+
+            <h1 className="font-serif text-[52px] md:text-[72px] font-medium text-[#1A1510] leading-[1.05] mb-6">
               Vende más.
               <br />
               Gana más.
               <br />
-              <span className="text-[#C4622D] italic">Sabe exactamente cuánto.</span>
+              <span className="shimmer-text">Sabe exactamente cuánto.</span>
             </h1>
-            <p className="text-[#8A7D72] text-lg leading-relaxed mb-8">
+
+            <p
+              className="text-[#8A7D72] text-xl leading-relaxed mb-10"
+              style={{ animation: 'fadeInUp 0.8s ease 0.3s both' }}
+            >
               Registra ventas, controla tu inventario y conoce tu ganancia real. Diseñado para tiendas que
               venden por WhatsApp, Instagram y presencial.
             </p>
-            <div className="flex gap-3 flex-wrap">
+
+            <div className="flex gap-3 flex-wrap" style={{ animation: 'fadeInUp 0.8s ease 0.5s both' }}>
               <Link
                 href="/registro"
-                className="bg-[#C4622D] text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-[#E8845A] transition shadow-sm inline-flex items-center justify-center"
+                className="bg-[#C4622D] text-white px-8 py-4 rounded-xl text-base font-semibold hover:bg-[#E8845A] transition-all hover:shadow-lg hover:-translate-y-0.5 transform"
               >
                 Prueba ya
               </Link>
@@ -175,63 +259,103 @@ export default function Home() {
                 href={WA_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="border border-[#1E3A2F] text-[#1E3A2F] px-6 py-3 rounded-xl text-sm font-semibold hover:bg-[#1E3A2F] hover:text-white transition inline-flex items-center justify-center"
+                className="border border-[#1E3A2F] text-[#1E3A2F] px-8 py-4 rounded-xl text-base font-semibold hover:bg-[#1E3A2F] hover:text-white transition-all hover:shadow-lg hover:-translate-y-0.5 transform"
               >
                 Agenda tu demo
               </a>
             </div>
-            <p className="text-xs text-[#8A7D72] mt-3">Sin contratos · Cancela cuando quieras</p>
+
+            <div className="flex gap-8 mt-8" style={{ animation: 'fadeInUp 0.8s ease 0.7s both' }}>
+              {[
+                { valor: '+300', label: 'productos en inventario' },
+                { valor: '$7M+', label: 'en ventas registradas' },
+                { valor: '5', label: 'canales de venta' },
+              ].map((stat) => (
+                <div key={stat.label}>
+                  <p className="font-serif text-2xl font-medium text-[#1E3A2F]">{stat.valor}</p>
+                  <p className="text-xs text-[#8A7D72] mt-0.5">{stat.label}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="relative">
-            <div className="bg-[#1E3A2F] rounded-2xl p-4 shadow-2xl">
-              <div className="bg-[#FAF6F0] rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-serif text-sm font-medium text-[#1A1510]">Dashboard</span>
-                  <div className="w-7 h-7 rounded-full bg-[#C4622D] flex items-center justify-center text-white text-xs font-bold">
-                    P
+          <div className="relative" style={{ animation: 'fadeInRight 0.8s ease 0.2s both', overflow: 'visible' }}>
+            <div className="absolute inset-0 bg-[#C4622D]/10 rounded-3xl blur-3xl scale-110" />
+
+            <div className="relative animate-float">
+              <div className="bg-[#1E3A2F] rounded-2xl p-5 shadow-2xl">
+                <div className="bg-[#FAF6F0] rounded-xl p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-serif text-base font-medium text-[#1A1510]">Dashboard</span>
+                    <div className="w-8 h-8 rounded-full bg-[#C4622D] flex items-center justify-center text-white text-sm font-bold">
+                      P
+                    </div>
                   </div>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { label: 'Hoy', value: '$320K' },
-                    { label: 'Este mes', value: '$6.1M' },
-                    { label: 'Stock bajo', value: '3' },
-                  ].map((kpi) => (
-                    <div key={kpi.label} className="bg-white rounded-lg p-2 shadow-sm">
-                      <p className="text-[9px] text-[#8A7D72]">{kpi.label}</p>
-                      <p className="font-serif text-sm font-medium text-[#1A1510]">{kpi.value}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="bg-white rounded-lg p-2 shadow-sm">
-                  <p className="text-[9px] text-[#8A7D72] mb-1.5">Últimas ventas</p>
-                  {[
-                    { prod: 'Aretes luna', canal: 'WhatsApp', neto: '$81.5K' },
-                    { prod: 'Collar sol', canal: 'Instagram', neto: '$115K' },
-                    { prod: 'Anillo', canal: 'Presencial', neto: '$62K' },
-                  ].map((v, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between py-1 border-b border-[#FAF6F0] last:border-0"
-                    >
-                      <span className="text-[9px] text-[#1A1510] font-medium">{v.prod}</span>
-                      <span className="text-[8px] bg-[#E8F5EE] text-[#3A7D5A] px-1.5 py-0.5 rounded-full">
-                        {v.canal}
-                      </span>
-                      <span className="text-[9px] font-bold text-[#1E3A2F]">{v.neto}</span>
-                    </div>
-                  ))}
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { label: 'Hoy', value: '$520K', color: '#C4622D' },
+                      { label: 'Este mes', value: '$6.1M', color: '#1E3A2F' },
+                      { label: 'Stock bajo', value: '3', color: '#C44040' },
+                    ].map((kpi, i) => (
+                      <div
+                        key={kpi.label}
+                        className="bg-white rounded-lg p-3 shadow-sm"
+                        style={{ animation: `countUp 0.5s ease ${0.8 + i * 0.15}s both` }}
+                      >
+                        <p className="text-[11px] text-[#8A7D72]">{kpi.label}</p>
+                        <p className="font-serif text-lg font-medium" style={{ color: kpi.color }}>
+                          {kpi.value}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="bg-white rounded-lg p-3 shadow-sm">
+                    <p className="text-[11px] text-[#8A7D72] mb-2">Últimas ventas</p>
+                    {[
+                      { prod: 'Aretes luna', canal: 'WhatsApp', neto: '$81.5K', delay: '1.1s' },
+                      { prod: 'Collar sol', canal: 'Instagram', neto: '$115K', delay: '1.25s' },
+                      { prod: 'Anillo', canal: 'Presencial', neto: '$62K', delay: '1.4s' },
+                    ].map((v) => (
+                      <div
+                        key={v.prod}
+                        className="flex items-center justify-between py-1.5 border-b border-[#FAF6F0] last:border-0"
+                        style={{ animation: `fadeInUp 0.4s ease ${v.delay} both` }}
+                      >
+                        <span className="text-[11px] text-[#1A1510] font-medium">{v.prod}</span>
+                        <span className="text-[10px] bg-[#E8F5EE] text-[#3A7D5A] px-2 py-0.5 rounded-full">
+                          {v.canal}
+                        </span>
+                        <span className="text-[11px] font-bold text-[#1E3A2F]">{v.neto}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-[#C4622D]/20 rounded-full blur-2xl -z-10" />
+
+            <div
+              className="absolute -bottom-4 -left-6 bg-white rounded-xl shadow-xl p-4 border border-[#EDE5DC]"
+              style={{ animation: 'fadeInUp 0.6s ease 1.5s both' }}
+            >
+              <p className="text-xs text-[#8A7D72]">Neto este mes</p>
+              <p className="font-serif text-xl font-medium text-[#1E3A2F]">$6.1M</p>
+              <p className="text-xs text-[#3A7D5A] mt-0.5">↑ 23% vs mes anterior</p>
+            </div>
+
+            <div
+              className="absolute top-4 -right-16 bg-[#1E3A2F] rounded-xl shadow-xl p-4"
+              style={{ animation: 'fadeInUp 0.6s ease 1.7s both' }}
+            >
+              <p className="text-xs text-white/60">Comisión Wompi</p>
+              <p className="font-serif text-base font-medium text-white">-$4.488</p>
+              <p className="text-xs text-[#E8845A]">Calculado automático</p>
+            </div>
           </div>
         </div>
       </section>
 
       <section className="bg-white py-14 border-b border-[#EDE5DC]">
-        <div className="max-w-5xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-6">
           <p className="text-center text-xs uppercase tracking-widest text-[#8A7D72] mb-10 font-medium">
             Toma decisiones con información real
           </p>
@@ -258,8 +382,10 @@ export default function Home() {
                 texto: 'Wompi, Bold, Nequi — Polea calcula lo que te cobran y te muestra tu neto.',
               },
             ].map((item, i) => (
-              <div key={i} className="text-center">
-                <div className="text-3xl mb-3">{item.icon}</div>
+              <div key={i} className={`text-center reveal reveal-delay-${i + 1}`}>
+                <div className="text-3xl mb-3" style={{ animation: `float ${2 + i * 0.3}s ease-in-out infinite` }}>
+                  {item.icon}
+                </div>
                 <p className="text-sm font-semibold text-[#1E3A2F] mb-1">{item.titulo}</p>
                 <p className="text-xs text-[#8A7D72] leading-relaxed">{item.texto}</p>
               </div>
@@ -269,50 +395,22 @@ export default function Home() {
       </section>
 
       <section id="problema" className="py-20" style={{ background: '#FAF6F0' }}>
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-6">
           <h2 className="font-serif text-[36px] text-center text-[#1A1510] mb-3">¿Te suena familiar?</h2>
           <p className="text-center text-[#8A7D72] mb-16">Si gestionas un negocio, seguro has pasado por esto.</p>
 
-          {/* Carrusel de cartas */}
-          <div className="relative flex items-center justify-center gap-4 overflow-hidden py-8">
-            {painPoints.map((p, i) => {
-              const total = painPoints.length
-              let diff = i - cardActiva
-              if (diff > total / 2) diff -= total
-              if (diff < -total / 2) diff += total
-
-              const isActive = diff === 0
-              const isNext = diff === 1 || (cardActiva === total - 1 && i === 0)
-              const isPrev = diff === -1 || (cardActiva === 0 && i === total - 1)
-              const isHidden = Math.abs(diff) > 1
-
-              if (isHidden) return null
-
-              return (
-                <div
-                  key={i}
-                  onClick={() => !isActive && setCardActiva(i)}
-                  className={`
-              bg-white rounded-2xl border border-[#EDE5DC] shadow-sm p-8 transition-all duration-500 flex-shrink-0
-              ${
-                isActive
-                  ? 'w-full max-w-lg z-20 opacity-100 scale-100 cursor-default'
-                  : 'w-full max-w-xs z-10 opacity-50 scale-95 cursor-pointer hover:opacity-70'
-              }
-              ${isPrev ? '-translate-x-4' : ''}
-              ${isNext ? 'translate-x-4' : ''}
-            `}
-                >
-                  <div className="text-5xl mb-5">{p.icon}</div>
-                  <h3
-                    className={`font-serif font-medium text-[#1A1510] mb-3 ${isActive ? 'text-[24px]' : 'text-[18px]'}`}
-                  >
-                    {p.titulo}
-                  </h3>
-                  {isActive && <p className="text-[#8A7D72] leading-relaxed">{p.texto}</p>}
-                </div>
-              )
-            })}
+          <div className="relative max-w-3xl mx-auto py-8">
+            <div
+              key={cardActiva}
+              className="bg-white rounded-2xl p-10 border border-[#EDE5DC] shadow-sm min-h-[240px] flex flex-col justify-center transition-all duration-500"
+              style={{ animation: 'fadeInUp 0.4s ease forwards' }}
+            >
+              <div className="text-5xl mb-5">{painPoints[cardActiva].icon}</div>
+              <h3 className="font-serif font-medium text-[#1A1510] mb-3 text-[24px]">
+                {painPoints[cardActiva].titulo}
+              </h3>
+              <p className="text-[#8A7D72] leading-relaxed">{painPoints[cardActiva].texto}</p>
+            </div>
           </div>
 
           {/* Controles */}
@@ -352,11 +450,11 @@ export default function Home() {
       </section>
 
       {/* 5. FUNCIONALIDADES */}
-      <section id="funcionalidades" className="bg-white py-20 max-w-6xl mx-auto px-6">
+      <section id="funcionalidades" className="bg-white py-20 max-w-7xl mx-auto px-6">
         <h2 className="font-serif text-[36px] text-center mb-2">Todo lo que necesitas</h2>
         <p className="text-center text-[#8A7D72] mb-12">Poderoso para crecer, simple para empezar.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC]">
+          <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC] reveal transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-[#C4622D]/30 cursor-default">
             <div className="text-3xl">↗</div>
             <h3 className="font-semibold text-[#1E3A2F] mt-3 mb-2">Ventas multicanal</h3>
             <p className="text-sm text-[#8A7D72]">
@@ -369,7 +467,7 @@ export default function Home() {
               Calcula automáticamente las comisiones de Wompi, Bold y Nequi.
             </p>
           </div>
-          <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC]">
+          <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC] reveal transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-[#C4622D]/30 cursor-default">
             <div className="text-3xl">📦</div>
             <h3 className="font-semibold text-[#1E3A2F] mt-3 mb-2">Inventario en tiempo real</h3>
             <p className="text-sm text-[#8A7D72]">
@@ -377,28 +475,28 @@ export default function Home() {
               agotarse.
             </p>
           </div>
-          <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC]">
+          <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC] reveal transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-[#C4622D]/30 cursor-default">
             <div className="text-3xl">📊</div>
             <h3 className="font-semibold text-[#1E3A2F] mt-3 mb-2">Estado de resultados</h3>
             <p className="text-sm text-[#8A7D72]">
               Ve tu utilidad real mes a mes. Ventas, costos y gastos en un reporte claro que cualquiera entiende.
             </p>
           </div>
-          <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC]">
+          <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC] reveal transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-[#C4622D]/30 cursor-default">
             <div className="text-3xl">👥</div>
             <h3 className="font-semibold text-[#1E3A2F] mt-3 mb-2">Clientes y recurrencia</h3>
             <p className="text-sm text-[#8A7D72]">
               Historial de compras por cliente. Alertas cuando un cliente frecuente lleva tiempo sin comprar.
             </p>
           </div>
-          <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC]">
+          <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC] reveal transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-[#C4622D]/30 cursor-default">
             <div className="text-3xl">🧾</div>
             <h3 className="font-semibold text-[#1E3A2F] mt-3 mb-2">Control de gastos</h3>
             <p className="text-sm text-[#8A7D72]">
               Registra cada gasto por categoría. Sabe exactamente en qué se va el dinero del negocio.
             </p>
           </div>
-          <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC]">
+          <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC] reveal transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-[#C4622D]/30 cursor-default">
             <div className="text-3xl">📥</div>
             <h3 className="font-semibold text-[#1E3A2F] mt-3 mb-2">Importa desde Excel</h3>
             <p className="text-sm text-[#8A7D72]">
@@ -410,7 +508,7 @@ export default function Home() {
 
       {/* 6. DIFERENCIADOR */}
       <section className="bg-[#1E3A2F] py-20 px-6">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           <div>
             <div className="inline-flex bg-[#C4622D]/20 text-[#E8845A] text-xs px-3 py-1 rounded-full font-medium mb-4">
               ✦ Solo en Polea
@@ -429,21 +527,27 @@ export default function Home() {
           <div className="bg-white rounded-2xl p-5 shadow-xl">
             <p className="text-xs text-[#8A7D72] mb-4 font-medium uppercase tracking-wide">Resumen de venta</p>
             <div className="space-y-3">
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm" style={{ animation: 'countUp 0.5s ease 0.3s both' }}>
                 <span className="text-[#8A7D72]">Total bruto</span>
                 <span className="text-[#1A1510] font-medium">$120.000</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm" style={{ animation: 'countUp 0.5s ease 0.4s both' }}>
                 <span className="text-[#8A7D72]">Plataforma</span>
                 <span className="bg-[#FAF6F0] text-[#4A3F35] px-2 py-0.5 rounded-full text-xs font-medium">
                   Wompi
                 </span>
               </div>
-              <div className="flex justify-between text-sm text-[#C44040]">
+              <div
+                className="flex justify-between text-sm text-[#C44040]"
+                style={{ animation: 'countUp 0.5s ease 0.5s both' }}
+              >
                 <span>Comisión (2.99% + $900)</span>
                 <span className="font-medium">-$4.488</span>
               </div>
-              <div className="border-t border-[#EDE5DC] pt-3 flex justify-between">
+              <div
+                className="border-t border-[#EDE5DC] pt-3 flex justify-between"
+                style={{ animation: 'countUp 0.5s ease 0.6s both' }}
+              >
                 <span className="font-semibold text-[#1A1510]">Neto a recibir</span>
                 <span className="font-bold text-[#3A7D5A] text-lg">$115.512</span>
               </div>
@@ -488,7 +592,7 @@ export default function Home() {
         <h2 className="font-serif text-[36px] text-center mb-2">Planes y precios</h2>
         <p className="text-center text-[#8A7D72] mb-12">Sin sorpresas. Sin contratos. Cancela cuando quieras.</p>
         <div className="flex justify-center gap-6 flex-wrap">
-          <div className="bg-[#FAF6F0] rounded-2xl p-8 border border-[#EDE5DC] w-full max-w-sm">
+          <div className="bg-[#FAF6F0] rounded-2xl p-8 border border-[#EDE5DC] w-full max-w-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
             <p className="text-xs uppercase text-[#8A7D72] tracking-wide mb-2">Plan Básico</p>
             <p className="font-serif text-[48px] font-medium text-[#1A1510] leading-none">$49.000</p>
             <p className="text-sm text-[#8A7D72] mb-6">COP / mes</p>
@@ -526,7 +630,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="bg-[#1E3A2F] rounded-2xl p-8 border border-[#1E3A2F] w-full max-w-sm relative overflow-hidden">
+          <div className="bg-[#1E3A2F] rounded-2xl p-8 border border-[#1E3A2F] w-full max-w-sm relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2">
             <span className="absolute top-4 right-4 bg-[#C4622D] text-white text-xs px-3 py-1 rounded-full font-medium">
               Más popular
             </span>
@@ -581,7 +685,14 @@ export default function Home() {
       </section>
 
       {/* 9. CTA FINAL */}
-      <section className="bg-[#C4622D] py-20 text-center px-6">
+      <section
+        className="py-20 text-center px-6"
+        style={{
+          background: 'linear-gradient(135deg, #C4622D 0%, #E8845A 50%, #C4622D 100%)',
+          backgroundSize: '200% 200%',
+          animation: 'shimmer 4s ease infinite',
+        }}
+      >
         <h2 className="font-serif text-[36px] md:text-[44px] text-white leading-tight mb-4 whitespace-pre-line">
           {`¿Listo para conocer\nla ganancia real\nde tu negocio?`}
         </h2>
@@ -608,7 +719,7 @@ export default function Home() {
 
       {/* 10. FOOTER */}
       <footer className="bg-[#1A1510] py-12 px-6">
-        <div className="max-w-6xl mx-auto flex justify-between items-start flex-wrap gap-8">
+        <div className="max-w-7xl mx-auto flex justify-between items-start flex-wrap gap-8">
           <div>
             <p className="font-serif text-xl text-white">POLEA</p>
             <p className="text-xs text-white/40 mt-1">Tu tienda, clara</p>

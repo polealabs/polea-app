@@ -21,13 +21,22 @@ export async function login(formData: FormData) {
 export async function registro(formData: FormData) {
   const supabase = await createClient()
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: formData.get('email') as string,
     password: formData.get('password') as string,
   })
 
   if (error) {
     return { error: error.message }
+  }
+
+  const user = data.user
+  if (user) {
+    const nombre = (formData.get('nombre') as string)?.trim()
+    await supabase.from('perfiles').upsert({
+      id: user.id,
+      nombre: nombre || null,
+    })
   }
 
   redirect('/dashboard')

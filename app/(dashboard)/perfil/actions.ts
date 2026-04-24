@@ -33,6 +33,7 @@ export async function actualizarTienda(formData: FormData) {
     categoria: (formData.get('categoria') as string)?.trim() || '',
     moneda: (formData.get('moneda') as string)?.trim() || 'COP',
     tema: temasValidos.has(temaRecibido) ? temaRecibido : 'bosque',
+    tamano_letra: (formData.get('tamano_letra') as string) || 'normal',
   }
 
   if (!updates.nombre) return { error: 'El nombre de la tienda es obligatorio' }
@@ -63,5 +64,23 @@ export async function actualizarTienda(formData: FormData) {
 
   revalidatePath('/perfil')
   revalidatePath('/dashboard')
+  return { ok: true }
+}
+
+export async function actualizarPerfil(formData: FormData) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado' }
+
+  const { error } = await supabase.from('perfiles').upsert({
+    id: user.id,
+    nombre: (formData.get('nombre_usuario') as string)?.trim() || null,
+    updated_at: new Date().toISOString(),
+  })
+
+  if (error) return { error: error.message }
+  revalidatePath('/perfil')
   return { ok: true }
 }

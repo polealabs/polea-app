@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTienda } from '@/lib/hooks/useTienda'
+import { createClient } from '@/lib/supabase/client'
 
 const navItems = [
   { href: '/dashboard', icon: '⊞', label: 'Dashboard' },
@@ -19,8 +20,9 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const { canViewFinanzas, isOwner } = useTienda()
+  const { canViewFinanzas, isOwner, tienda } = useTienda()
   const [open, setOpen] = useState(false)
+  const [nombreUsuario, setNombreUsuario] = useState<string | null>(null)
   const visibleNavItems = navItems.filter(
     (item) => canViewFinanzas || (item.href !== '/gastos' && item.href !== '/reportes'),
   )
@@ -45,6 +47,19 @@ export default function Sidebar() {
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [open])
+
+  useEffect(() => {
+    async function cargarPerfil() {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase.from('perfiles').select('nombre').eq('id', user.id).maybeSingle()
+      if (data?.nombre) setNombreUsuario(data.nombre)
+    }
+    void cargarPerfil()
+  }, [])
 
   return (
     <>
@@ -82,7 +97,7 @@ export default function Sidebar() {
         {/* LOGO */}
         <div className="px-7 py-8 border-b border-white/10">
           <span className="font-serif text-[28px] font-bold text-cream tracking-tight block leading-none">
-            POLEA
+            {tienda?.nombre ?? 'POLEA'}
           </span>
           <span className="text-[11px] text-white/40 uppercase tracking-widest mt-1 block">
             Tu tienda, clara
@@ -143,8 +158,10 @@ export default function Sidebar() {
               P
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] text-cream font-medium truncate">Mi tienda</p>
-              <p className="text-[11px] text-white/40">Plan gratuito</p>
+              <p className="text-[13px] text-cream font-medium truncate">
+                {nombreUsuario || tienda?.nombre || 'Mi tienda'}
+              </p>
+              <p className="text-[11px] text-white/40">{tienda?.nombre}</p>
             </div>
           </div>
         </div>

@@ -23,6 +23,7 @@ export interface Miembro {
   tienda_id: string
   user_id: string
   rol: Rol
+  email?: string
   invitado_por?: string
   created_at: string
 }
@@ -220,6 +221,12 @@ export interface ConsignacionMovimiento {
   fecha: string
   notas?: string
   created_at: string
+}
+
+export interface Perfil {
+  id: string
+  nombre?: string
+  updated_at: string
 }
 
 export interface Liquidacion {
