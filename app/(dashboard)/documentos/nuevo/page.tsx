@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
-import type { Cliente, ItemDocumento, Producto, Proveedor, TipoDocumento } from '@/lib/types'
+import type { Cliente, ItemDocumento, Producto, Proveedor, TiendaConsignataria, TipoDocumento } from '@/lib/types'
 import { crearDocumento } from '../actions'
 import Toast from '@/components/ui/Toast'
 import { useToast } from '@/lib/hooks/useToast'
@@ -74,9 +74,11 @@ export default function NuevoDocumentoPage() {
   const [tipo, setTipo] = useState<TipoDocumento>(tipoInicial)
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [proveedores, setProveedores] = useState<Proveedor[]>([])
+  const [consignatarias, setConsignatarias] = useState<TiendaConsignataria[]>([])
   const [productos, setProductos] = useState<Producto[]>([])
   const [clienteId, setClienteId] = useState('')
   const [proveedorId, setProveedorId] = useState('')
+  const [consignatariaId, setConsignatariaId] = useState('')
   const [destinatarioNombre, setDestinatarioNombre] = useState('')
   const [destinatarioNit, setDestinatarioNit] = useState('')
   const [destinatarioEmail, setDestinatarioEmail] = useState('')
@@ -95,7 +97,8 @@ export default function NuevoDocumentoPage() {
   const [notas, setNotas] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [modoDestinatario, setModoDestinatario] = useState<'cliente' | 'manual'>('cliente')
+  const [modoCotizacion, setModoCotizacion] = useState<'cliente' | 'manual'>('cliente')
+  const [modoCuentaCobroDest, setModoCuentaCobroDest] = useState<'proveedor' | 'consignataria' | 'manual'>('proveedor')
   const [totalCuentaCobro, setTotalCuentaCobro] = useState(0)
 
   useEffect(() => {
@@ -116,10 +119,17 @@ export default function NuevoDocumentoPage() {
           .eq('tienda_id', tienda.id)
           .gt('stock_actual', 0)
           .order('nombre'),
-      ]).then(([clientesRes, proveedoresRes, productosRes]) => {
+        supabase
+          .from('tiendas_consignatarias')
+          .select('id, nombre, nit, telefono, ciudad')
+          .eq('tienda_id', tienda.id)
+          .eq('activa', true)
+          .order('nombre'),
+      ]).then(([clientesRes, proveedoresRes, productosRes, consigsRes]) => {
         setClientes((clientesRes.data ?? []) as Cliente[])
         setProveedores((proveedoresRes.data ?? []) as Proveedor[])
         setProductos((productosRes.data ?? []) as Producto[])
+        setConsignatarias((consigsRes.data ?? []) as TiendaConsignataria[])
       })
     }, 0)
     return () => window.clearTimeout(id)
@@ -171,11 +181,11 @@ export default function NuevoDocumentoPage() {
   function seleccionarCliente(valor: string) {
     setClienteId(valor)
     if (!valor) {
-      setModoDestinatario('manual')
+      setModoCotizacion('manual')
       return
     }
     const cliente = clientes.find((c) => c.id === valor)
-    setModoDestinatario('cliente')
+    setModoCotizacion('cliente')
     if (!cliente) return
     setDestinatarioNombre(cliente.nombre ?? '')
     setDestinatarioEmail(cliente.correo ?? '')
@@ -185,17 +195,34 @@ export default function NuevoDocumentoPage() {
 
   function seleccionarProveedor(valor: string) {
     setProveedorId(valor)
+    setConsignatariaId('')
     if (!valor) {
-      setModoDestinatario('manual')
+      setModoCuentaCobroDest('manual')
       return
     }
     const proveedor = proveedores.find((p) => p.id === valor)
-    setModoDestinatario('cliente')
+    setModoCuentaCobroDest('proveedor')
     if (!proveedor) return
     setDestinatarioNombre(proveedor.nombre ?? '')
     setDestinatarioNit(proveedor.nit ?? '')
     setDestinatarioTelefono(proveedor.telefono ?? '')
     setDestinatarioCiudad(proveedor.ciudad ?? '')
+  }
+
+  function seleccionarConsignataria(valor: string) {
+    setConsignatariaId(valor)
+    setProveedorId('')
+    if (!valor) {
+      setModoCuentaCobroDest('manual')
+      return
+    }
+    const consig = consignatarias.find((c) => c.id === valor)
+    setModoCuentaCobroDest('consignataria')
+    if (!consig) return
+    setDestinatarioNombre(consig.nombre ?? '')
+    setDestinatarioNit(consig.nit ?? '')
+    setDestinatarioTelefono(consig.telefono ?? '')
+    setDestinatarioCiudad(consig.ciudad ?? '')
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -283,7 +310,22 @@ export default function NuevoDocumentoPage() {
       <form onSubmit={onSubmit} className="space-y-5">
         <div className="bg-white rounded-2xl border border-[#EDE5DC] p-5 shadow-sm">
           <label className="block text-xs font-medium text-ink-soft mb-1">Tipo</label>
-          <select value={tipo} onChange={(e) => setTipo(e.target.value as TipoDocumento)} className={inputClass}>
+          <select
+            value={tipo}
+            onChange={(e) => {
+              const v = e.target.value as TipoDocumento
+              setTipo(v)
+              if (v === 'cotizacion') {
+                setProveedorId('')
+                setConsignatariaId('')
+                setModoCuentaCobroDest('proveedor')
+              } else {
+                setClienteId('')
+                setModoCotizacion('cliente')
+              }
+            }}
+            className={inputClass}
+          >
             <option value="cotizacion">Cotización</option>
             <option value="cuenta_cobro">Cuenta de cobro</option>
           </select>
@@ -291,33 +333,82 @@ export default function NuevoDocumentoPage() {
 
         <div className="bg-white rounded-2xl border border-[#EDE5DC] p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-ink mb-3">Destinatario</h2>
-          <div className="flex gap-2 mb-3">
-            <button type="button" onClick={() => setModoDestinatario('cliente')} className={`text-xs px-3 py-1.5 rounded-full border ${modoDestinatario === 'cliente' ? 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent-pale)]' : 'border-[#EDE5DC] text-ink-soft'}`}>
-              {tipo === 'cuenta_cobro' ? 'Proveedor existente' : 'Cliente existente'}
-            </button>
-            <button type="button" onClick={() => setModoDestinatario('manual')} className={`text-xs px-3 py-1.5 rounded-full border ${modoDestinatario === 'manual' ? 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent-pale)]' : 'border-[#EDE5DC] text-ink-soft'}`}>Escribir manualmente</button>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {tipo === 'cuenta_cobro' ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModoCuentaCobroDest('proveedor')
+                    setConsignatariaId('')
+                  }}
+                  className={`text-xs px-3 py-1.5 rounded-full border ${modoCuentaCobroDest === 'proveedor' ? 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent-pale)]' : 'border-[#EDE5DC] text-ink-soft'}`}
+                >
+                  Proveedor existente
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModoCuentaCobroDest('consignataria')
+                    setProveedorId('')
+                  }}
+                  className={`text-xs px-3 py-1.5 rounded-full border ${modoCuentaCobroDest === 'consignataria' ? 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent-pale)]' : 'border-[#EDE5DC] text-ink-soft'}`}
+                >
+                  Tienda consignataria
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModoCuentaCobroDest('manual')
+                    setProveedorId('')
+                    setConsignatariaId('')
+                  }}
+                  className={`text-xs px-3 py-1.5 rounded-full border ${modoCuentaCobroDest === 'manual' ? 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent-pale)]' : 'border-[#EDE5DC] text-ink-soft'}`}
+                >
+                  Escribir manualmente
+                </button>
+              </>
+            ) : (
+              <>
+                <button type="button" onClick={() => setModoCotizacion('cliente')} className={`text-xs px-3 py-1.5 rounded-full border ${modoCotizacion === 'cliente' ? 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent-pale)]' : 'border-[#EDE5DC] text-ink-soft'}`}>
+                  Cliente existente
+                </button>
+                <button type="button" onClick={() => setModoCotizacion('manual')} className={`text-xs px-3 py-1.5 rounded-full border ${modoCotizacion === 'manual' ? 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent-pale)]' : 'border-[#EDE5DC] text-ink-soft'}`}>Escribir manualmente</button>
+              </>
+            )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {modoDestinatario === 'cliente' && (
+            {tipo === 'cotizacion' && modoCotizacion === 'cliente' && (
               <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-ink-soft mb-1">
-                  {tipo === 'cuenta_cobro' ? 'Proveedor existente' : 'Cliente existente'}
-                </label>
-                {tipo === 'cuenta_cobro' ? (
-                  <select value={proveedorId} onChange={(e) => seleccionarProveedor(e.target.value)} className={inputClass}>
-                    <option value="">Selecciona un proveedor</option>
-                    {proveedores.map((p) => (
-                      <option key={p.id} value={p.id}>{p.nombre}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <select value={clienteId} onChange={(e) => seleccionarCliente(e.target.value)} className={inputClass}>
-                    <option value="">Selecciona un cliente</option>
-                    {clientes.map((c) => (
-                      <option key={c.id} value={c.id}>{c.nombre}</option>
-                    ))}
-                  </select>
-                )}
+                <label className="block text-xs font-medium text-ink-soft mb-1">Cliente existente</label>
+                <select value={clienteId} onChange={(e) => seleccionarCliente(e.target.value)} className={inputClass}>
+                  <option value="">Selecciona un cliente</option>
+                  {clientes.map((c) => (
+                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {tipo === 'cuenta_cobro' && modoCuentaCobroDest === 'proveedor' && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-ink-soft mb-1">Proveedor existente</label>
+                <select value={proveedorId} onChange={(e) => seleccionarProveedor(e.target.value)} className={inputClass}>
+                  <option value="">Selecciona un proveedor</option>
+                  {proveedores.map((p) => (
+                    <option key={p.id} value={p.id}>{p.nombre}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {tipo === 'cuenta_cobro' && modoCuentaCobroDest === 'consignataria' && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-ink-soft mb-1">Tienda consignataria</label>
+                <select value={consignatariaId} onChange={(e) => seleccionarConsignataria(e.target.value)} className={inputClass}>
+                  <option value="">Selecciona una tienda consignataria</option>
+                  {consignatarias.map((c) => (
+                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                  ))}
+                </select>
               </div>
             )}
             <div>

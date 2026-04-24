@@ -180,3 +180,59 @@ export interface Documento {
   notas?: string
   created_at: string
 }
+
+export interface TiendaConsignataria {
+  id: string
+  tienda_id: string
+  nombre: string
+  contacto?: string
+  telefono?: string
+  ciudad?: string
+  nit?: string
+  porcentaje_comision: number
+  activa: boolean
+  created_at: string
+}
+
+export interface Consignacion {
+  id: string
+  tienda_id: string
+  consignataria_id: string
+  producto_id: string
+  cantidad: number
+  unidades_disponibles: number
+  costo_unitario: number
+  fecha: string
+  estado: 'activa' | 'liquidada' | 'devuelta'
+  created_at: string
+}
+
+export interface ConsignacionMovimiento {
+  id: string
+  tienda_id: string
+  consignacion_id: string
+  tipo: 'devolucion' | 'liquidacion'
+  cantidad: number
+  precio_venta?: number
+  total_bruto?: number
+  comision?: number
+  neto?: number
+  fecha: string
+  notas?: string
+  created_at: string
+}
+
+export interface Liquidacion {
+  id: string
+  tienda_id: string
+  consignataria_id: string
+  fecha: string
+  mes: string
+  total_vendido: number
+  porcentaje_comision: number
+  comision: number
+  neto: number
+  notas?: string
+  consignaciones_ids: string[]
+  created_at: string
+}
