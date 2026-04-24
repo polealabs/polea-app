@@ -7,31 +7,304 @@ const WA_URL = 'https://wa.me/573014140381'
 
 const painPoints = [
   {
-    icon: '📊',
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#C4622D"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
+      </svg>
+    ),
     titulo: 'No sé cuánto gané este mes',
     texto:
       'Entre comisiones de Wompi, descuentos y gastos, al final del mes no sabes si tu negocio fue rentable.',
   },
   {
-    icon: '📦',
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#C4622D"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+      </svg>
+    ),
     titulo: 'Mi inventario siempre está desactualizado',
     texto: 'Vendes por WhatsApp, Instagram y en físico — y nunca sabes exactamente cuánto te queda en stock.',
   },
   {
-    icon: '💸',
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#C4622D"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <path d="M3 9h18M9 21V9" />
+      </svg>
+    ),
     titulo: 'Llevo todo en Excel y ya no aguanto',
     texto: 'Hojas de cálculo, cuadernos, notas de voz. Tu negocio ya creció más que eso.',
   },
   {
-    icon: '👥',
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#C4622D"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
     titulo: 'No sé cuáles son mis mejores clientes',
     texto: 'Tienes clientes que compran todo el tiempo pero no sabes quiénes son ni cuándo fue su última compra.',
   },
   {
-    icon: '😤',
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#C4622D"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+    ),
     titulo: 'Cada fin de mes es un caos',
     texto:
       'Juntar ventas, gastos y facturas de todas partes para saber cómo te fue — un proceso que te roba horas.',
+  },
+]
+
+const propuestaValor = [
+  {
+    icon: (
+      <svg
+        width="28"
+        height="28"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#C4622D"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+      </svg>
+    ),
+    titulo: 'Configuración en minutos',
+    texto: 'Sin instalaciones ni cursos. Crea tu cuenta y empieza hoy.',
+  },
+  {
+    icon: (
+      <svg
+        width="28"
+        height="28"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#C4622D"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
+      </svg>
+    ),
+    titulo: 'Estado de resultados automático',
+    texto: 'Tu P&L mes a mes sin necesidad de un contador.',
+  },
+  {
+    icon: (
+      <svg
+        width="28"
+        height="28"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#C4622D"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+      </svg>
+    ),
+    titulo: 'Stock en tiempo real',
+    texto: 'Se actualiza solo con cada venta y cada entrada de mercancía.',
+  },
+  {
+    icon: (
+      <svg
+        width="28"
+        height="28"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#C4622D"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+        <line x1="1" y1="10" x2="23" y2="10" />
+      </svg>
+    ),
+    titulo: 'Comisiones automáticas',
+    texto: 'Wompi, Bold, Nequi — Polea calcula lo que te cobran y te muestra tu neto.',
+  },
+]
+
+const features = [
+  {
+    icon: (
+      <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#1E3A2F"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <line x1="7" y1="17" x2="17" y2="7" />
+        <polyline points="7 7 17 7 17 17" />
+      </svg>
+    ),
+    titulo: 'Ventas multicanal',
+    texto: 'Registra ventas de WhatsApp, Instagram, web y presencial en segundos.',
+    badge: 'Solo en Polea ✦',
+    extra: 'Calcula automáticamente las comisiones de Wompi, Bold y Nequi.',
+  },
+  {
+    icon: (
+      <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#1E3A2F"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+      </svg>
+    ),
+    titulo: 'Inventario en tiempo real',
+    texto: 'El stock se actualiza automáticamente con cada venta. Alertas cuando un producto está por agotarse.',
+  },
+  {
+    icon: (
+      <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#1E3A2F"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
+      </svg>
+    ),
+    titulo: 'Estado de resultados',
+    texto: 'Ve tu utilidad real mes a mes. Ventas, costos y gastos en un reporte claro que cualquiera entiende.',
+  },
+  {
+    icon: (
+      <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#1E3A2F"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
+    titulo: 'Clientes y recurrencia',
+    texto: 'Historial de compras por cliente. Alertas cuando un cliente frecuente lleva tiempo sin comprar.',
+  },
+  {
+    icon: (
+      <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#1E3A2F"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <line x1="12" y1="1" x2="12" y2="23" />
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+      </svg>
+    ),
+    titulo: 'Control de gastos',
+    texto: 'Registra cada gasto por categoría. Sabe exactamente en qué se va el dinero del negocio.',
+  },
+  {
+    icon: (
+      <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#1E3A2F"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="17 8 12 3 7 8" />
+        <line x1="12" y1="3" x2="12" y2="15" />
+      </svg>
+    ),
+    titulo: 'Importa desde Excel',
+    texto: '¿Vienes de hojas de cálculo? Importa tus productos, clientes e historial en minutos con CSV.',
   },
 ]
 
@@ -354,59 +627,46 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-white py-14 border-b border-[#EDE5DC]">
+      <section className="bg-white py-20 border-b border-[#EDE5DC]">
         <div className="max-w-7xl mx-auto px-6">
           <p className="text-center text-xs uppercase tracking-widest text-[#8A7D72] mb-10 font-medium">
             Toma decisiones con información real
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              {
-                icon: '⚡',
-                titulo: 'Configuración en minutos',
-                texto: 'Sin instalaciones ni cursos. Crea tu cuenta y empieza hoy.',
-              },
-              {
-                icon: '📊',
-                titulo: 'Estado de resultados automático',
-                texto: 'Tu P&L mes a mes sin necesidad de un contador.',
-              },
-              {
-                icon: '🔄',
-                titulo: 'Stock en tiempo real',
-                texto: 'Se actualiza solo con cada venta y cada entrada de mercancía.',
-              },
-              {
-                icon: '💳',
-                titulo: 'Comisiones automáticas',
-                texto: 'Wompi, Bold, Nequi — Polea calcula lo que te cobran y te muestra tu neto.',
-              },
-            ].map((item, i) => (
+            {propuestaValor.map((item, i) => (
               <div key={i} className={`text-center reveal reveal-delay-${i + 1}`}>
-                <div className="text-3xl mb-3" style={{ animation: `float ${2 + i * 0.3}s ease-in-out infinite` }}>
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 mx-auto"
+                  style={{ background: '#FAF6F0', border: '1px solid #EDE5DC' }}
+                >
                   {item.icon}
                 </div>
-                <p className="text-sm font-semibold text-[#1E3A2F] mb-1">{item.titulo}</p>
-                <p className="text-xs text-[#8A7D72] leading-relaxed">{item.texto}</p>
+                <p className="text-base font-semibold text-[#1E3A2F] mb-2">{item.titulo}</p>
+                <p className="text-sm text-[#8A7D72] leading-relaxed">{item.texto}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="problema" className="py-20" style={{ background: '#FAF6F0' }}>
+      <section id="problema" className="py-16" style={{ background: '#FAF6F0' }}>
         <div className="max-w-7xl mx-auto px-6">
           <h2 className="font-serif text-[36px] text-center text-[#1A1510] mb-3">¿Te suena familiar?</h2>
           <p className="text-center text-[#8A7D72] mb-16">Si gestionas un negocio, seguro has pasado por esto.</p>
 
-          <div className="relative max-w-3xl mx-auto py-8">
+          <div className="relative max-w-2xl mx-auto py-8">
             <div
               key={cardActiva}
-              className="bg-white rounded-2xl p-10 border border-[#EDE5DC] shadow-sm min-h-[240px] flex flex-col justify-center transition-all duration-500"
+              className="bg-white rounded-2xl p-8 border border-[#EDE5DC] shadow-sm flex flex-col justify-center transition-all duration-300"
               style={{ animation: 'fadeInUp 0.4s ease forwards' }}
             >
-              <div className="text-5xl mb-5">{painPoints[cardActiva].icon}</div>
-              <h3 className="font-serif font-medium text-[#1A1510] mb-3 text-[24px]">
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center mb-5"
+                style={{ background: '#FAF6F0', border: '1px solid #EDE5DC' }}
+              >
+                {painPoints[cardActiva].icon}
+              </div>
+              <h3 className="font-serif text-[22px] font-medium text-[#1A1510] mb-2">
                 {painPoints[cardActiva].titulo}
               </h3>
               <p className="text-[#8A7D72] leading-relaxed">{painPoints[cardActiva].texto}</p>
@@ -454,55 +714,27 @@ export default function Home() {
         <h2 className="font-serif text-[36px] text-center mb-2">Todo lo que necesitas</h2>
         <p className="text-center text-[#8A7D72] mb-12">Poderoso para crecer, simple para empezar.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC] reveal transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-[#C4622D]/30 cursor-default">
-            <div className="text-3xl">↗</div>
-            <h3 className="font-semibold text-[#1E3A2F] mt-3 mb-2">Ventas multicanal</h3>
-            <p className="text-sm text-[#8A7D72]">
-              Registra ventas de WhatsApp, Instagram, web y presencial en segundos.
-            </p>
-            <span className="inline-block mt-3 text-xs bg-[#C4622D] text-white px-2.5 py-1 rounded-full font-medium">
-              Solo en Polea ✦
-            </span>
-            <p className="text-sm text-[#8A7D72] mt-2">
-              Calcula automáticamente las comisiones de Wompi, Bold y Nequi.
-            </p>
-          </div>
-          <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC] reveal transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-[#C4622D]/30 cursor-default">
-            <div className="text-3xl">📦</div>
-            <h3 className="font-semibold text-[#1E3A2F] mt-3 mb-2">Inventario en tiempo real</h3>
-            <p className="text-sm text-[#8A7D72]">
-              El stock se actualiza automáticamente con cada venta. Alertas cuando un producto está por
-              agotarse.
-            </p>
-          </div>
-          <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC] reveal transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-[#C4622D]/30 cursor-default">
-            <div className="text-3xl">📊</div>
-            <h3 className="font-semibold text-[#1E3A2F] mt-3 mb-2">Estado de resultados</h3>
-            <p className="text-sm text-[#8A7D72]">
-              Ve tu utilidad real mes a mes. Ventas, costos y gastos en un reporte claro que cualquiera entiende.
-            </p>
-          </div>
-          <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC] reveal transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-[#C4622D]/30 cursor-default">
-            <div className="text-3xl">👥</div>
-            <h3 className="font-semibold text-[#1E3A2F] mt-3 mb-2">Clientes y recurrencia</h3>
-            <p className="text-sm text-[#8A7D72]">
-              Historial de compras por cliente. Alertas cuando un cliente frecuente lleva tiempo sin comprar.
-            </p>
-          </div>
-          <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC] reveal transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-[#C4622D]/30 cursor-default">
-            <div className="text-3xl">🧾</div>
-            <h3 className="font-semibold text-[#1E3A2F] mt-3 mb-2">Control de gastos</h3>
-            <p className="text-sm text-[#8A7D72]">
-              Registra cada gasto por categoría. Sabe exactamente en qué se va el dinero del negocio.
-            </p>
-          </div>
-          <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC] reveal transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-[#C4622D]/30 cursor-default">
-            <div className="text-3xl">📥</div>
-            <h3 className="font-semibold text-[#1E3A2F] mt-3 mb-2">Importa desde Excel</h3>
-            <p className="text-sm text-[#8A7D72]">
-              ¿Vienes de hojas de cálculo? Importa tus productos, clientes e historial en minutos con CSV.
-            </p>
-          </div>
+          {features.map((feature) => (
+            <div
+              key={feature.titulo}
+              className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC] reveal transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-[#C4622D]/30 cursor-default"
+            >
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
+                style={{ background: '#FAF6F0', border: '1px solid #EDE5DC' }}
+              >
+                {feature.icon}
+              </div>
+              <h3 className="font-semibold text-[#1E3A2F] mb-2">{feature.titulo}</h3>
+              <p className="text-sm text-[#8A7D72]">{feature.texto}</p>
+              {feature.badge && (
+                <span className="inline-block mt-3 text-xs bg-[#C4622D] text-white px-2.5 py-1 rounded-full font-medium">
+                  {feature.badge}
+                </span>
+              )}
+              {feature.extra && <p className="text-sm text-[#8A7D72] mt-2">{feature.extra}</p>}
+            </div>
+          ))}
         </div>
       </section>
 
