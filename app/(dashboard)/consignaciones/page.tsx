@@ -46,6 +46,7 @@ function formatFecha(fecha: string) {
 const inputClass =
   'w-full px-3 py-2 rounded-lg border border-[#1A1510]/20 bg-white text-[#1A1510] placeholder:text-[#1A1510]/40 focus:outline-none focus:ring-2 focus:ring-[#C4622D]/40 focus:border-[#C4622D] transition text-sm'
 const thClass = 'text-left px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[#8A7D72]'
+const thCompactClass = 'text-left px-3 py-3 text-[10px] font-semibold uppercase tracking-wide text-[#8A7D72]'
 
 export default function ConsignacionesPage() {
   const { tienda, loading: tiendaLoading } = useTienda()
@@ -81,10 +82,10 @@ export default function ConsignacionesPage() {
   const [movSubmitting, setMovSubmitting] = useState(false)
   const [movError, setMovError] = useState<string | null>(null)
 
-  const [inventarioVista, setInventarioVista] = useState<'tienda' | 'global'>('tienda')
+  const [inventarioVista, setInventarioVista] = useState<'tienda' | 'global'>('global')
   const [filtroConsignatariaInv, setFiltroConsignatariaInv] = useState('')
   const [mesDevoluciones, setMesDevoluciones] = useState(() => new Date().toISOString().slice(0, 7))
-  const [filtroMesLiq, setFiltroMesLiq] = useState(() => {
+  const [mesLiquidaciones, setMesLiquidaciones] = useState(() => {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
   })
@@ -244,13 +245,8 @@ export default function ConsignacionesPage() {
   )
 
   const liquidacionesHistorial = useMemo(
-    () => movimientos.filter((m) => m.tipo === 'liquidacion' && m.fecha.startsWith(filtroMesLiq)),
-    [movimientos, filtroMesLiq],
-  )
-
-  const netoMesActual = useMemo(
-    () => liquidacionesHistorial.reduce((sum, r) => sum + (r.neto ?? 0), 0),
-    [liquidacionesHistorial],
+    () => movimientos.filter((m) => m.tipo === 'liquidacion' && m.fecha.startsWith(mesLiquidaciones)),
+    [movimientos, mesLiquidaciones],
   )
 
   const pctConsignacionActiva = useMemo(() => {
@@ -496,8 +492,8 @@ export default function ConsignacionesPage() {
             </form>
           )}
 
-          <div className="bg-white border border-[#EDE5DC] rounded-2xl overflow-x-auto">
-            <table className="w-full min-w-[960px] text-sm">
+          <div className="min-w-0 bg-white border border-[#EDE5DC] rounded-2xl overflow-x-auto">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="bg-[#FAF6F0]">
                   <th className={thClass}>Nombre</th>
@@ -534,8 +530,8 @@ export default function ConsignacionesPage() {
       {tab === 'inventario' && (
         <div className="space-y-4">
           <div className="flex gap-2">
-            <button type="button" onClick={() => setInventarioVista('tienda')} className={`px-3 py-1.5 border rounded-full text-xs ${inventarioVista === 'tienda' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : ''}`}>Por tienda</button>
             <button type="button" onClick={() => setInventarioVista('global')} className={`px-3 py-1.5 border rounded-full text-xs ${inventarioVista === 'global' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : ''}`}>Global</button>
+            <button type="button" onClick={() => setInventarioVista('tienda')} className={`px-3 py-1.5 border rounded-full text-xs ${inventarioVista === 'tienda' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : ''}`}>Por tienda</button>
           </div>
 
           {inventarioVista === 'tienda' && (
@@ -547,8 +543,8 @@ export default function ConsignacionesPage() {
                 ))}
               </select>
 
-              <div className="bg-white border border-[#EDE5DC] rounded-2xl overflow-x-auto">
-                <table className="w-full min-w-[1060px] text-sm">
+              <div className="min-w-0 bg-white border border-[#EDE5DC] rounded-2xl overflow-x-auto">
+                <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-[#FAF6F0]">
                       <th className={thClass}>Producto</th>
@@ -595,8 +591,8 @@ export default function ConsignacionesPage() {
           )}
 
           {inventarioVista === 'global' && (
-            <div className="bg-white border border-[#EDE5DC] rounded-2xl overflow-x-auto">
-              <table className="w-full min-w-[900px] text-sm">
+            <div className="min-w-0 bg-white border border-[#EDE5DC] rounded-2xl overflow-x-auto">
+              <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-[#FAF6F0]">
                     <th className={thClass}>Producto</th>
@@ -629,39 +625,50 @@ export default function ConsignacionesPage() {
 
       {tab === 'liquidaciones' && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <input type="month" value={filtroMesLiq} onChange={(e) => setFiltroMesLiq(e.target.value)} className={inputClass} />
-            <p className="text-sm">
-              Neto del mes: <strong style={{ color: 'var(--color-primary)' }}>{formatCOP(netoMesActual)}</strong>
-            </p>
+          <div className="flex items-center justify-between mb-4">
+            <input
+              type="month"
+              value={mesLiquidaciones}
+              onChange={(e) => setMesLiquidaciones(e.target.value)}
+              className={inputClass}
+              style={{ maxWidth: '200px' }}
+            />
+            <div className="text-right">
+              <p className="text-xs font-medium" style={{ color: 'var(--color-text-soft)' }}>Neto del mes</p>
+              <p className="font-serif text-xl font-medium" style={{ color: 'var(--color-primary)' }}>
+                {formatCOP(liquidacionesHistorial.reduce((s, m) => s + (m.neto ?? 0), 0))}
+              </p>
+            </div>
           </div>
-          <div className="bg-white border border-[#EDE5DC] rounded-2xl overflow-x-auto">
-            <table className="w-full min-w-[1200px] text-sm">
+          <div className="min-w-0 bg-white border border-[#EDE5DC] rounded-2xl overflow-x-auto">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="bg-[#FAF6F0]">
-                  <th className={thClass}>Fecha</th>
-                  <th className={thClass}>Tienda</th>
-                  <th className={thClass}>Producto</th>
-                  <th className={`${thClass} text-right`}>Cant vendida</th>
-                  <th className={`${thClass} text-right`}>Precio unit</th>
-                  <th className={`${thClass} text-right`}>Total bruto</th>
-                  <th className={`${thClass} text-right`}>Comisión</th>
-                  <th className={`${thClass} text-right`}>Neto</th>
-                  <th className={thClass}>Notas</th>
+                  <th className={thCompactClass}>Fecha</th>
+                  <th className={thCompactClass}>Tienda</th>
+                  <th className={thCompactClass}>Producto</th>
+                  <th className={`${thCompactClass} text-right`}>Cant vendida</th>
+                  <th className={`${thCompactClass} text-right`}>Precio unit</th>
+                  <th className={`${thCompactClass} text-right`}>Total bruto</th>
+                  <th className={`${thCompactClass} text-right`}>Comisión</th>
+                  <th className={`${thCompactClass} text-right`}>Neto</th>
+                  <th className={thCompactClass}>Notas</th>
                 </tr>
               </thead>
               <tbody>
                 {liquidacionesHistorial.map((m) => (
                   <tr key={m.id} className="border-t border-[#EDE5DC]">
-                    <td className="px-4 py-3">{formatFecha(m.fecha)}</td>
-                    <td className="px-4 py-3">{m.consignataria_nombre}</td>
-                    <td className="px-4 py-3">{m.producto_nombre}</td>
-                    <td className="px-4 py-3 text-right">{m.cantidad}</td>
-                    <td className="px-4 py-3 text-right">{formatCOP(m.precio_venta ?? 0)}</td>
-                    <td className="px-4 py-3 text-right">{formatCOP(m.total_bruto ?? 0)}</td>
-                    <td className="px-4 py-3 text-right">{formatCOP(m.comision ?? 0)}</td>
-                    <td className="px-4 py-3 text-right font-semibold">{formatCOP(m.neto ?? 0)}</td>
-                    <td className="px-4 py-3">{m.notas || '—'}</td>
+                    <td className="px-3 py-3 text-sm">{formatFecha(m.fecha)}</td>
+                    <td className="px-3 py-3 text-sm">{m.consignataria_nombre}</td>
+                    <td className="px-3 py-3 text-sm">{m.producto_nombre}</td>
+                    <td className="px-3 py-3 text-sm text-right">{m.cantidad}</td>
+                    <td className="px-3 py-3 text-sm text-right">{formatCOP(m.precio_venta ?? 0)}</td>
+                    <td className="px-3 py-3 text-sm text-right">{formatCOP(m.total_bruto ?? 0)}</td>
+                    <td className="px-3 py-3 text-sm text-right">{formatCOP(m.comision ?? 0)}</td>
+                    <td className="px-3 py-3 text-sm text-right font-semibold">{formatCOP(m.neto ?? 0)}</td>
+                    <td className="px-3 py-3 text-sm max-w-[220px] truncate" title={m.notas ?? undefined}>
+                      {m.notas ? (m.notas.length > 30 ? `${m.notas.slice(0, 30)}…` : m.notas) : '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -672,16 +679,18 @@ export default function ConsignacionesPage() {
 
       {tab === 'devoluciones' && (
         <div className="space-y-4">
-          <div className="flex justify-end items-center">
+          <div className="flex items-center justify-between mb-4">
+            <div />
             <input
               type="month"
               value={mesDevoluciones}
               onChange={(e) => setMesDevoluciones(e.target.value)}
               className={inputClass}
+              style={{ maxWidth: '200px' }}
             />
           </div>
-          <div className="bg-white border border-[#EDE5DC] rounded-2xl overflow-x-auto">
-            <table className="w-full min-w-[950px] text-sm">
+          <div className="min-w-0 bg-white border border-[#EDE5DC] rounded-2xl overflow-x-auto">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="bg-[#FAF6F0]">
                   <th className={thClass}>Fecha</th>
