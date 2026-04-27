@@ -97,7 +97,9 @@ export default function Sidebar() {
         {/* LOGO */}
         <div className="px-7 py-8 border-b border-white/10">
           <span className="font-serif text-[28px] font-bold text-cream tracking-tight block leading-none">
-            {tienda?.nombre ?? 'POLEA'}
+            {tienda ? tienda.nombre : (
+              <span className="inline-block h-7 w-24 rounded-md animate-pulse" style={{ background: 'rgba(255,255,255,0.15)' }} />
+            )}
           </span>
           <span className="text-[11px] text-white/40 uppercase tracking-widest mt-1 block">
             Tu tienda, clara
@@ -159,9 +161,15 @@ export default function Sidebar() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[13px] text-cream font-medium truncate">
-                {nombreUsuario || tienda?.nombre || 'Mi tienda'}
+                {nombreUsuario ? nombreUsuario : (
+                  <span className="inline-block h-3.5 w-20 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.15)' }} />
+                )}
               </p>
-              <p className="text-[11px] text-white/40">{tienda?.nombre}</p>
+              <p className="text-[11px] text-white/40">
+                {tienda ? tienda.nombre : (
+                  <span className="inline-block h-3 w-16 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.1)' }} />
+                )}
+              </p>
             </div>
           </div>
         </div>

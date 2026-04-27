@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { getTema, type TamanoLetra, type Tema } from '@/lib/temas'
+import { getTema, TEMAS, type TamanoLetra, type Tema } from '@/lib/temas'
 import { createClient } from '@/lib/supabase/client'
 
 interface TemaContextType {
@@ -18,9 +18,25 @@ const TemaContext = createContext<TemaContextType>({
   setTamano: () => {},
 })
 
+const TAMANOS: TamanoLetra[] = ['normal', 'grande']
+
+function leerTemaIdInicial(): string {
+  if (typeof window === 'undefined') return 'bosque'
+  const raw = localStorage.getItem('polea_tema')
+  if (raw && TEMAS.some((t) => t.id === raw)) return raw
+  return 'bosque'
+}
+
+function leerTamanoInicial(): TamanoLetra {
+  if (typeof window === 'undefined') return 'normal'
+  const raw = localStorage.getItem('polea_tamano')
+  if (raw && TAMANOS.includes(raw as TamanoLetra)) return raw as TamanoLetra
+  return 'normal'
+}
+
 export function TemaProvider({ children }: { children: React.ReactNode }) {
-  const [temaId, setTemaIdState] = useState('bosque')
-  const [tamano, setTamanoState] = useState<TamanoLetra>('normal')
+  const [temaId, setTemaIdState] = useState<string>(() => leerTemaIdInicial())
+  const [tamano, setTamanoState] = useState<TamanoLetra>(() => leerTamanoInicial())
 
   useEffect(() => {
     async function cargarTema() {
@@ -38,8 +54,13 @@ export function TemaProvider({ children }: { children: React.ReactNode }) {
 
       if (tiendaOwner?.tema) {
         setTemaIdState(tiendaOwner.tema)
+        localStorage.setItem('polea_tema', tiendaOwner.tema)
       }
-      if (tiendaOwner?.tamano_letra) setTamanoState(tiendaOwner.tamano_letra as TamanoLetra)
+      if (tiendaOwner?.tamano_letra) {
+        const tl = tiendaOwner.tamano_letra as TamanoLetra
+        setTamanoState(tl)
+        localStorage.setItem('polea_tamano', tl)
+      }
       if (tiendaOwner) return
 
       const { data: membresia } = await supabase
@@ -56,8 +77,15 @@ export function TemaProvider({ children }: { children: React.ReactNode }) {
         .eq('id', membresia.tienda_id)
         .maybeSingle()
 
-      if (tiendaMiembro?.tema) setTemaIdState(tiendaMiembro.tema)
-      if (tiendaMiembro?.tamano_letra) setTamanoState(tiendaMiembro.tamano_letra as TamanoLetra)
+      if (tiendaMiembro?.tema) {
+        setTemaIdState(tiendaMiembro.tema)
+        localStorage.setItem('polea_tema', tiendaMiembro.tema)
+      }
+      if (tiendaMiembro?.tamano_letra) {
+        const tl = tiendaMiembro.tamano_letra as TamanoLetra
+        setTamanoState(tl)
+        localStorage.setItem('polea_tamano', tl)
+      }
     }
     void cargarTema()
   }, [])
@@ -88,10 +116,12 @@ export function TemaProvider({ children }: { children: React.ReactNode }) {
 
   function setTemaId(id: string) {
     setTemaIdState(id)
+    localStorage.setItem('polea_tema', id)
   }
 
   function setTamano(t: TamanoLetra) {
     setTamanoState(t)
+    localStorage.setItem('polea_tamano', t)
   }
 
   return <TemaContext.Provider value={{ tema: getTema(temaId), setTemaId, tamano, setTamano }}>{children}</TemaContext.Provider>

@@ -249,7 +249,9 @@ export default function Header({ titulo }: Props) {
               )}
             </div>
             <span className="text-xs font-medium text-[#1A1510] max-w-[120px] truncate hidden sm:block">
-              {nombreUsuario ?? tienda?.nombre ?? 'Usuario'}
+              {nombreUsuario ? nombreUsuario : (
+                <span className="inline-block h-3 w-16 rounded animate-pulse bg-gray-200" />
+              )}
             </span>
           </button>
 
