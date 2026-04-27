@@ -77,7 +77,7 @@ export async function registrarSalida(payload: {
   consignataria_id: string
   producto_id: string
   cantidad: number
-  costo_unitario: number
+  precio_unitario: number
   fecha: string
 }) {
   try {

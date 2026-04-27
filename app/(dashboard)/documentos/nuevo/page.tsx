@@ -135,6 +135,22 @@ export default function NuevoDocumentoPage() {
     return () => window.clearTimeout(id)
   }, [tienda])
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const destinatarioParam = params.get('destinatario')
+    const conceptoParam = params.get('concepto')
+    const totalParam = params.get('total')
+    const consignatariaIdParam = params.get('consignataria_id')
+
+    if (destinatarioParam) setDestinatarioNombre(destinatarioParam)
+    if (conceptoParam) setConcepto(conceptoParam)
+    if (totalParam) setTotalCuentaCobro(Number(totalParam))
+    if (consignatariaIdParam) {
+      setConsignatariaId(consignatariaIdParam)
+      setModoCuentaCobroDest('consignataria')
+    }
+  }, [])
+
   function actualizarItem(i: number, campo: keyof ItemFormulario, valor: string | number) {
     const nuevos = [...items]
     if (campo === 'producto_id') {

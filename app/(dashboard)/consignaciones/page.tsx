@@ -24,11 +24,13 @@ import ConfirmModal from '@/components/ui/ConfirmModal'
 type ConsignacionRow = Consignacion & {
   producto_nombre: string
   consignataria_nombre: string
+  precio_unitario: number
 }
 
 type MovimientoConDetalles = ConsignacionMovimiento & {
   producto_nombre: string
   consignataria_nombre: string
+  consignataria_id: string
 }
 
 function formatCOP(value: number) {
@@ -61,6 +63,7 @@ export default function ConsignacionesPage() {
 
   const [showModalSalida, setShowModalSalida] = useState(false)
   const [showModalMovimiento, setShowModalMovimiento] = useState(false)
+  const [showModalLiquidacion, setShowModalLiquidacion] = useState(false)
   const [showFormTienda, setShowFormTienda] = useState(false)
   const [editando, setEditando] = useState<TiendaConsignataria | null>(null)
   const [consignacionActiva, setConsignacionActiva] = useState<ConsignacionRow | null>(null)
@@ -70,7 +73,7 @@ export default function ConsignacionesPage() {
   const [salidaConsignatariaId, setSalidaConsignatariaId] = useState('')
   const [salidaProductoId, setSalidaProductoId] = useState('')
   const [salidaCantidad, setSalidaCantidad] = useState(1)
-  const [salidaCostoUnitario, setSalidaCostoUnitario] = useState(0)
+  const [salidaPrecioUnitario, setSalidaPrecioUnitario] = useState(0)
   const [salidaFecha, setSalidaFecha] = useState(new Date().toISOString().split('T')[0])
   const [salidaSubmitting, setSalidaSubmitting] = useState(false)
   const [salidaError, setSalidaError] = useState<string | null>(null)
@@ -89,6 +92,7 @@ export default function ConsignacionesPage() {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
   })
+  const [filtroTiendaLiq, setFiltroTiendaLiq] = useState<string>('todas')
   const [formData, setFormData] = useState({
     nombre: '',
     contacto: '',
@@ -111,7 +115,7 @@ export default function ConsignacionesPage() {
         .order('fecha', { ascending: false }),
       supabase
         .from('consignacion_movimientos')
-        .select('*, consignaciones(producto_id, consignataria_id, productos(nombre), tiendas_consignatarias(nombre))')
+        .select('*, consignaciones(producto_id, consignataria_id, precio_unitario, productos(nombre), tiendas_consignatarias(nombre, id))')
         .eq('tienda_id', tienda.id)
         .order('fecha', { ascending: false }),
       supabase
@@ -134,7 +138,7 @@ export default function ConsignacionesPage() {
       const consignacion = r.consignaciones as
         | {
             productos?: { nombre?: string } | { nombre?: string }[] | null
-            tiendas_consignatarias?: { nombre?: string } | { nombre?: string }[] | null
+            tiendas_consignatarias?: { nombre?: string; id?: string } | { nombre?: string; id?: string }[] | null
           }
         | null
       const prodRaw = consignacion?.productos
@@ -145,10 +149,14 @@ export default function ConsignacionesPage() {
       const consignataria_nombre = Array.isArray(tiendaRaw)
         ? (tiendaRaw[0]?.nombre ?? '—')
         : (tiendaRaw?.nombre ?? '—')
+      const consignataria_id = Array.isArray(tiendaRaw)
+        ? (tiendaRaw[0]?.id ?? '')
+        : (tiendaRaw?.id ?? '')
       return {
         ...(r as unknown as ConsignacionMovimiento),
         producto_nombre,
         consignataria_nombre,
+        consignataria_id,
       }
     })
     setMovimientos(movs)
@@ -160,6 +168,7 @@ export default function ConsignacionesPage() {
         ...(r as unknown as Consignacion),
         producto_nombre: prod?.nombre ?? '—',
         consignataria_nombre: tiendaConsig?.nombre ?? '—',
+        precio_unitario: Number((r as { precio_unitario?: number }).precio_unitario ?? 0),
       }
     })
     setConsignaciones(consigs)
@@ -245,8 +254,11 @@ export default function ConsignacionesPage() {
   )
 
   const liquidacionesHistorial = useMemo(
-    () => movimientos.filter((m) => m.tipo === 'liquidacion' && m.fecha.startsWith(mesLiquidaciones)),
-    [movimientos, mesLiquidaciones],
+    () =>
+      movimientos
+        .filter((m) => m.tipo === 'liquidacion' && m.fecha.startsWith(mesLiquidaciones))
+        .filter((m) => filtroTiendaLiq === 'todas' || m.consignataria_id === filtroTiendaLiq),
+    [movimientos, mesLiquidaciones, filtroTiendaLiq],
   )
 
   const pctConsignacionActiva = useMemo(() => {
@@ -298,7 +310,7 @@ export default function ConsignacionesPage() {
       consignataria_id: salidaConsignatariaId,
       producto_id: salidaProductoId,
       cantidad: salidaCantidad,
-      costo_unitario: salidaCostoUnitario,
+      precio_unitario: salidaPrecioUnitario,
       fecha: salidaFecha,
     })
     setSalidaSubmitting(false)
@@ -310,7 +322,7 @@ export default function ConsignacionesPage() {
     setShowModalSalida(false)
     setSalidaProductoId('')
     setSalidaCantidad(1)
-    setSalidaCostoUnitario(0)
+    setSalidaPrecioUnitario(0)
     setSalidaError(null)
     void loadData()
   }
@@ -335,6 +347,7 @@ export default function ConsignacionesPage() {
     }
     showToast(tipoMovimiento === 'devolucion' ? 'Devolución registrada' : 'Liquidación registrada')
     setShowModalMovimiento(false)
+    setShowModalLiquidacion(false)
     setConsignacionActiva(null)
     setMovCantidad(1)
     setMovPrecioVenta(0)
@@ -347,7 +360,7 @@ export default function ConsignacionesPage() {
     setSalidaConsignatariaId(consignatariaId ?? '')
     setSalidaProductoId('')
     setSalidaCantidad(1)
-    setSalidaCostoUnitario(0)
+    setSalidaPrecioUnitario(0)
     setSalidaError(null)
     setShowModalSalida(true)
   }
@@ -382,10 +395,27 @@ export default function ConsignacionesPage() {
     setConsignacionActiva(consig)
     setTipoMovimiento(tipo)
     setMovCantidad(1)
-    setMovPrecioVenta(0)
+    setMovPrecioVenta(tipo === 'liquidacion' ? (consig.precio_unitario ?? 0) : 0)
     setMovFecha(new Date().toISOString().split('T')[0])
     setMovNotas('')
     setMovError(null)
+    setShowModalMovimiento(true)
+  }
+
+  function abrirNuevaLiquidacion() {
+    const primeraActiva = consignaciones.find((c) => c.unidades_disponibles > 0) ?? null
+    if (!primeraActiva) {
+      showToast('No hay consignaciones activas para liquidar', 'error')
+      return
+    }
+    setConsignacionActiva(primeraActiva)
+    setTipoMovimiento('liquidacion')
+    setMovCantidad(1)
+    setMovPrecioVenta(primeraActiva.precio_unitario ?? 0)
+    setMovFecha(new Date().toISOString().split('T')[0])
+    setMovNotas('')
+    setMovError(null)
+    setShowModalLiquidacion(true)
     setShowModalMovimiento(true)
   }
 
@@ -415,19 +445,30 @@ export default function ConsignacionesPage() {
       <div className="flex flex-wrap gap-3 justify-between items-start mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
-            Consignaciones
+            Tiendas Aliadas
           </h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-soft)' }}>
             Gestiona tiendas consignatarias, salidas y liquidaciones.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => abrirSalida()}
-          className="btn-primary px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2"
-        >
-          <span>↗</span> Nueva salida
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => abrirSalida()}
+            className="btn-primary px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2"
+          >
+            <span>↗</span> Nueva salida
+          </button>
+          <button
+            onClick={() => {
+              setShowModalLiquidacion(true)
+              abrirNuevaLiquidacion()
+            }}
+            className="border border-[#1E3A2F] text-[#1E3A2F] px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 text-sm hover:bg-[#1E3A2F] hover:text-white transition"
+          >
+            <span>💰</span> Nueva liquidación
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-6">
@@ -626,13 +667,26 @@ export default function ConsignacionesPage() {
       {tab === 'liquidaciones' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-4">
-            <input
-              type="month"
-              value={mesLiquidaciones}
-              onChange={(e) => setMesLiquidaciones(e.target.value)}
-              className={inputClass}
-              style={{ maxWidth: '200px' }}
-            />
+            <div className="flex gap-2">
+              <input
+                type="month"
+                value={mesLiquidaciones}
+                onChange={(e) => setMesLiquidaciones(e.target.value)}
+                className={inputClass}
+                style={{ maxWidth: '200px' }}
+              />
+              <select
+                value={filtroTiendaLiq}
+                onChange={e => setFiltroTiendaLiq(e.target.value)}
+                className={inputClass}
+                style={{ maxWidth: '220px' }}
+              >
+                <option value="todas">Todas las tiendas</option>
+                {consignatarias.map(c => (
+                  <option key={c.id} value={c.id}>{c.nombre}</option>
+                ))}
+              </select>
+            </div>
             <div className="text-right">
               <p className="text-xs font-medium" style={{ color: 'var(--color-text-soft)' }}>Neto del mes</p>
               <p className="font-serif text-xl font-medium" style={{ color: 'var(--color-primary)' }}>
@@ -640,6 +694,28 @@ export default function ConsignacionesPage() {
               </p>
             </div>
           </div>
+          {liquidacionesHistorial.length > 0 && (
+            <button
+              onClick={() => {
+                const totalNeto = liquidacionesHistorial.reduce((s, m) => s + (m.neto ?? 0), 0)
+                const nombreTienda = filtroTiendaLiq !== 'todas'
+                  ? consignatarias.find(c => c.id === filtroTiendaLiq)?.nombre ?? ''
+                  : 'Todas las tiendas'
+                const mes = new Date(mesLiquidaciones + '-01').toLocaleString('es-CO', { month: 'long', year: 'numeric' })
+                const params = new URLSearchParams({
+                  tipo: 'cuenta_cobro',
+                  destinatario: nombreTienda,
+                  concepto: `Ventas bajo consignación en ${nombreTienda} - ${mes}`,
+                  total: String(totalNeto),
+                  consignataria_id: filtroTiendaLiq !== 'todas' ? filtroTiendaLiq : '',
+                })
+                window.location.href = `/documentos/nuevo?${params.toString()}`
+              }}
+              className="btn-primary px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2"
+            >
+              <span>🧾</span> Crear cuenta de cobro
+            </button>
+          )}
           <div className="min-w-0 bg-white border border-[#EDE5DC] rounded-2xl overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -736,7 +812,17 @@ export default function ConsignacionesPage() {
                   <option key={c.id} value={c.id}>{c.nombre}</option>
                 ))}
               </select>
-              <select required value={salidaProductoId} onChange={(e) => setSalidaProductoId(e.target.value)} className={inputClass}>
+              <select
+                required
+                value={salidaProductoId}
+                onChange={e => {
+                  const prod = productos.find(p => p.id === e.target.value)
+                  setSalidaProductoId(e.target.value)
+                  setSalidaPrecioUnitario(prod?.precio_venta ?? 0)
+                  setSalidaCantidad(1)
+                }}
+                className={inputClass}
+              >
                 <option value="">Producto</option>
                 {productos.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -746,7 +832,16 @@ export default function ConsignacionesPage() {
               </select>
               {productoSeleccionado && <p className="text-xs text-[#1A1510]/50">Stock disponible: {productoSeleccionado.stock_actual} unidades</p>}
               <input type="number" min={1} max={productoSeleccionado?.stock_actual ?? undefined} value={salidaCantidad} onChange={(e) => setSalidaCantidad(Number(e.target.value))} className={inputClass} placeholder="Cantidad" />
-              <input type="number" min={0} value={salidaCostoUnitario || ''} onChange={(e) => setSalidaCostoUnitario(Number(e.target.value))} className={inputClass} placeholder="Costo unitario (opcional)" />
+              <div>
+                <label className="block text-xs font-medium text-[#1A1510]/60 mb-1">Precio unitario</label>
+                <input
+                  type="number"
+                  value={salidaPrecioUnitario === 0 ? '' : salidaPrecioUnitario}
+                  onChange={e => setSalidaPrecioUnitario(e.target.value === '' ? 0 : Number(e.target.value))}
+                  className={inputClass}
+                  placeholder="Se autocompleta con el precio del producto"
+                />
+              </div>
               <input type="date" value={salidaFecha} onChange={(e) => setSalidaFecha(e.target.value)} className={inputClass} />
               {salidaError && <p className="text-sm text-red-600">{salidaError}</p>}
               <div className="flex justify-end gap-2 pt-2">
@@ -760,17 +855,46 @@ export default function ConsignacionesPage() {
 
       {showModalMovimiento && consignacionActiva && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowModalMovimiento(false)} />
+          <div className="absolute inset-0 bg-black/40" onClick={() => { setShowModalMovimiento(false); setShowModalLiquidacion(false) }} />
           <div className="relative bg-white rounded-2xl p-6 w-full max-w-lg border shadow-xl">
             <h3 className="text-lg font-semibold">{tipoMovimiento === 'devolucion' ? 'Registrar devolución' : 'Registrar liquidación'}</h3>
+            {showModalLiquidacion && (
+              <select
+                value={consignacionActiva.id}
+                onChange={(e) => {
+                  const sel = consignaciones.find(c => c.id === e.target.value)
+                  if (!sel) return
+                  setConsignacionActiva(sel)
+                  setMovCantidad(1)
+                  setMovPrecioVenta(sel.precio_unitario ?? 0)
+                }}
+                className={`${inputClass} mb-2`}
+              >
+                {consignaciones.filter(c => c.unidades_disponibles > 0).map(c => (
+                  <option key={c.id} value={c.id}>{c.consignataria_nombre} · {c.producto_nombre} ({c.unidades_disponibles})</option>
+                ))}
+              </select>
+            )}
             <p className="text-sm text-[#1A1510]/50">Producto: {consignacionActiva.producto_nombre}</p>
             <p className="text-sm text-[#1A1510]/50">Tienda: {consignacionActiva.consignataria_nombre}</p>
             <p className="text-sm text-[#1A1510]/50 mb-4">Disponibles: {consignacionActiva.unidades_disponibles} unidades</p>
             <form onSubmit={submitMovimiento} className="space-y-3">
+              {tipoMovimiento === 'liquidacion' && (
+                <label className="block text-xs font-medium text-[#1A1510]/60 -mb-1">Unidades vendidas</label>
+              )}
               <input type="number" min={1} max={consignacionActiva.unidades_disponibles} value={movCantidad} onChange={(e) => setMovCantidad(Number(e.target.value))} className={inputClass} placeholder="Cantidad" />
               {tipoMovimiento === 'liquidacion' && (
                 <>
-                  <input type="number" min={0} value={movPrecioVenta || ''} onChange={(e) => setMovPrecioVenta(Number(e.target.value))} className={inputClass} placeholder="Precio de venta por unidad" />
+                  <div>
+                    <label className="block text-xs font-medium text-[#1A1510]/60 mb-1">Precio de venta por unidad</label>
+                    <input
+                      type="number"
+                      value={movPrecioVenta === 0 ? '' : movPrecioVenta}
+                      onChange={e => setMovPrecioVenta(e.target.value === '' ? 0 : Number(e.target.value))}
+                      className={inputClass}
+                    />
+                    <p className="text-xs text-[#8A7D72] mt-1">Precio original: {formatCOP(consignacionActiva?.precio_unitario ?? 0)}</p>
+                  </div>
                   <div className="bg-[var(--color-accent-pale)] rounded-xl p-4 text-sm">
                     <p>Total vendido: {formatCOP(previewMovimiento.bruto)}</p>
                     <p>Comisión ({pctConsignacionActiva}%): -{formatCOP(previewMovimiento.comision)}</p>
@@ -792,7 +916,7 @@ export default function ConsignacionesPage() {
               />
               {movError && <p className="text-sm text-red-600">{movError}</p>}
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" className="px-4 py-2 border border-[#EDE5DC] rounded-lg text-sm text-[#4A3F35]" onClick={() => setShowModalMovimiento(false)}>Cancelar</button>
+                <button type="button" className="px-4 py-2 border border-[#EDE5DC] rounded-lg text-sm text-[#4A3F35]" onClick={() => { setShowModalMovimiento(false); setShowModalLiquidacion(false) }}>Cancelar</button>
                 <button type="submit" disabled={movSubmitting} className="btn-primary px-4 py-2 rounded-lg">{movSubmitting ? 'Guardando...' : 'Guardar movimiento'}</button>
               </div>
             </form>
