@@ -108,6 +108,8 @@ export default function ReportesPage() {
   }
 
   const sinActividad = datos.ventasNetas === 0 && datos.totalGastos === 0
+  const top3Productos = datos.top3Productos ?? []
+  const top3Clientes = datos.top3Clientes ?? []
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
@@ -319,33 +321,44 @@ export default function ReportesPage() {
 
               <div className="space-y-4">
                 <div className="bg-white rounded-2xl border border-[#EDE5DC] p-6 shadow-sm">
-                  <p className="text-sm font-semibold text-[#1A1510] flex items-center">
-                    ⭐ Producto estrella
-                    <Bombillo texto="El producto que más unidades vendiste este mes. Asegúrate de tener siempre stock de él." />
-                  </p>
-                  {datos.productoMasVendido ? (
-                    <>
-                      <p className="text-lg font-serif text-[#1E3A2F] mt-2">{datos.productoMasVendido.nombre}</p>
-                      <p className="text-xs text-[#8A7D72] mt-1">{datos.productoMasVendido.cantidad} unidades vendidas</p>
-                    </>
-                  ) : (
-                    <p className="text-sm text-[#8A7D72] mt-2">Sin datos suficientes</p>
-                  )}
+                  <div>
+                    <p className="text-xs font-semibold text-[#8A7D72] uppercase tracking-wide mb-3">⭐ Top 3 Productos</p>
+                    {top3Productos.length > 0 ? (
+                      top3Productos.map((prod, i) => (
+                        <div key={`${prod.nombre}-${i}`} className="flex items-center justify-between py-2 border-b border-[#EDE5DC] last:border-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-serif text-sm text-[#8A7D72]">#{i + 1}</span>
+                            <span className="text-sm font-medium text-[#1A1510]">{prod.nombre}</span>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-[#1E3A2F]">{formatCOP(prod.total)}</p>
+                            <p className="text-xs text-[#8A7D72]">{prod.unidades} uds</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-[#8A7D72] mt-2">Sin datos suficientes</p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="bg-white rounded-2xl border border-[#EDE5DC] p-6 shadow-sm">
-                  <p className="text-sm font-semibold text-[#1A1510] flex items-center">
-                    👑 Cliente top
-                    <Bombillo texto="El cliente que más te compró este mes. Considera darle un trato especial o descuento para fidelizarlo." />
-                  </p>
-                  {datos.clienteQueMasCompro ? (
-                    <>
-                      <p className="text-lg font-serif text-[#1E3A2F] mt-2">{datos.clienteQueMasCompro.nombre}</p>
-                      <p className="text-xs text-[#8A7D72] mt-1">{formatCOP(datos.clienteQueMasCompro.total)}</p>
-                    </>
-                  ) : (
-                    <p className="text-sm text-[#8A7D72] mt-2">Sin clientes registrados</p>
-                  )}
+                  <div>
+                    <p className="text-xs font-semibold text-[#8A7D72] uppercase tracking-wide mb-3">👥 Top 3 Clientes</p>
+                    {top3Clientes.length > 0 ? (
+                      top3Clientes.map((cliente, i) => (
+                        <div key={`${cliente.nombre}-${i}`} className="flex items-center justify-between py-2 border-b border-[#EDE5DC] last:border-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-serif text-sm text-[#8A7D72]">#{i + 1}</span>
+                            <span className="text-sm font-medium text-[#1A1510]">{cliente.nombre}</span>
+                          </div>
+                          <p className="text-sm font-semibold text-[#1E3A2F]">{formatCOP(cliente.total)}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-[#8A7D72] mt-2">Sin clientes registrados</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

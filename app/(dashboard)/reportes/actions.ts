@@ -19,6 +19,8 @@ export interface DatosReporte {
   unidadesVendidas: number
   productoMasVendido: { nombre: string; cantidad: number } | null
   clienteQueMasCompro: { nombre: string; total: number } | null
+  top3Productos: { nombre: string; total: number; unidades: number }[]
+  top3Clientes: { nombre: string; total: number }[]
   ventasNetasMesAnterior: number
   variacionVentas: number | null
 }
@@ -130,14 +132,24 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
   const unidadesVendidas = itemsRows.reduce((s, i) => s + i.cantidad, 0)
 
   const conteoProductos = new Map<string, { nombre: string; cantidad: number }>()
+  const ventasPorProducto = new Map<string, { nombre: string; total: number; unidades: number }>()
   itemsRows.forEach((i) => {
     const producto = Array.isArray(i.productos) ? i.productos[0] : i.productos
     const nombre = producto?.nombre ?? 'Desconocido'
     const prev = conteoProductos.get(i.producto_id) ?? { nombre, cantidad: 0 }
     conteoProductos.set(i.producto_id, { nombre, cantidad: prev.cantidad + i.cantidad })
+    const prevVenta = ventasPorProducto.get(i.producto_id) ?? { nombre, total: 0, unidades: 0 }
+    ventasPorProducto.set(i.producto_id, {
+      nombre,
+      total: prevVenta.total + i.neto,
+      unidades: prevVenta.unidades + i.cantidad,
+    })
   })
   const productoMasVendido =
     conteoProductos.size > 0 ? [...conteoProductos.values()].sort((a, b) => b.cantidad - a.cantidad)[0] : null
+  const top3Productos = [...ventasPorProducto.values()]
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 3)
 
   const conteoClientes = new Map<string, number>()
   ventasRows.forEach((v) => {
@@ -147,10 +159,17 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
   })
 
   let clienteQueMasCompro: { nombre: string; total: number } | null = null
+  let top3Clientes: { nombre: string; total: number }[] = []
   if (conteoClientes.size > 0) {
-    const [topClienteId, topTotal] = [...conteoClientes.entries()].sort((a, b) => b[1] - a[1])[0]
-    const { data: clienteData } = await supabase.from('clientes').select('nombre').eq('id', topClienteId).single()
-    if (clienteData) clienteQueMasCompro = { nombre: clienteData.nombre, total: topTotal }
+    const clientesIds = [...conteoClientes.keys()]
+    const { data: clientesData } = await supabase.from('clientes').select('id, nombre').in('id', clientesIds)
+    const nombres = new Map((clientesData ?? []).map((c) => [c.id, c.nombre]))
+    const rankingClientes = [...conteoClientes.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([id, total]) => ({ nombre: nombres.get(id) ?? 'Sin nombre', total }))
+
+    top3Clientes = rankingClientes.slice(0, 3)
+    clienteQueMasCompro = rankingClientes[0] ?? null
   }
 
   const ventasNetasMesAnterior = ventasAntRows.reduce((s, v) => s + v.total_neto, 0)
@@ -174,6 +193,8 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
     unidadesVendidas,
     productoMasVendido,
     clienteQueMasCompro,
+    top3Productos,
+    top3Clientes,
     ventasNetasMesAnterior,
     variacionVentas,
   }

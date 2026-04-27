@@ -106,7 +106,7 @@ function canalBadgeClass(canal: VentaCabecera['canal']) {
 }
 
 export default function VentasPage() {
-  const { tienda, loading: tiendaLoading, canEdit } = useTienda()
+  const { tienda, loading: tiendaLoading, canEdit, canDelete } = useTienda()
   const [productos, setProductos] = useState<Producto[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [ventas, setVentas] = useState<VentaConDetalles[]>([])
@@ -118,6 +118,7 @@ export default function VentasPage() {
   const [mesActual, setMesActual] = useState(() => new Date().toISOString().slice(0, 7))
   const [filtroCanalStr, setFiltroCanalStr] = useState('')
   const [filtroPlataformaStr, setFiltroPlataformaStr] = useState('')
+  const [busquedaCliente, setBusquedaCliente] = useState('')
 
   const [canal, setCanal] = useState<VentaCabecera['canal']>('WhatsApp')
   const [plataforma, setPlataforma] = useState<VentaCabecera['plataforma_pago']>('Efectivo')
@@ -159,7 +160,9 @@ export default function VentasPage() {
 
     const mapped: VentaConDetalles[] = (data ?? []).map((v: VentaCabeceraRaw) => ({
       ...v,
-      cliente_nombre: Array.isArray(v.clientes) ? v.clientes[0]?.nombre : v.clientes?.nombre,
+      cliente_nombre: Array.isArray(v.clientes)
+        ? v.clientes[0]?.nombre ?? 'Sin cliente'
+        : v.clientes?.nombre ?? 'Sin cliente',
       items: (v.venta_items ?? []).map((i) => ({
         producto_nombre: Array.isArray(i.productos) ? i.productos[0]?.nombre ?? '—' : i.productos?.nombre ?? '—',
         cantidad: i.cantidad,
@@ -346,7 +349,8 @@ export default function VentasPage() {
   const ventasFiltradas = ventas.filter((v) => {
     const matchCanal = filtroCanalStr === '' || v.canal === filtroCanalStr
     const matchPlataforma = filtroPlataformaStr === '' || v.plataforma_pago === filtroPlataformaStr
-    return matchCanal && matchPlataforma
+    const matchCliente = !busquedaCliente || (v.cliente_nombre?.toLowerCase() ?? '').includes(busquedaCliente.toLowerCase())
+    return matchCanal && matchPlataforma && matchCliente
   })
 
   if (tiendaLoading || loading) {
@@ -472,11 +476,20 @@ export default function VentasPage() {
           <option value="Efectivo">Efectivo</option>
           <option value="Contraentrega">Contraentrega</option>
         </select>
-        {(filtroCanalStr || filtroPlataformaStr) && (
+        <input
+          type="text"
+          value={busquedaCliente}
+          onChange={e => setBusquedaCliente(e.target.value)}
+          placeholder="Buscar por cliente..."
+          className={inputClass}
+          style={{ minWidth: '180px' }}
+        />
+        {(filtroCanalStr || filtroPlataformaStr || busquedaCliente) && (
           <button
             onClick={() => {
               setFiltroCanalStr('')
               setFiltroPlataformaStr('')
+              setBusquedaCliente('')
             }}
             className="text-xs text-[#C4622D] font-medium hover:underline px-2"
           >
@@ -484,11 +497,12 @@ export default function VentasPage() {
           </button>
         )}
       </div>
-      {(filtroCanalStr || filtroPlataformaStr) && (
+      {(filtroCanalStr || filtroPlataformaStr || busquedaCliente) && (
         <p className="text-xs text-[#8A7D72] mb-3">
           Mostrando {ventasFiltradas.length} venta{ventasFiltradas.length !== 1 ? 's' : ''}
           {filtroCanalStr ? ` · ${filtroCanalStr}` : ''}
           {filtroPlataformaStr ? ` · ${filtroPlataformaStr}` : ''}
+          {busquedaCliente ? ` · Cliente: "${busquedaCliente}"` : ''}
         </p>
       )}
 
@@ -754,13 +768,14 @@ export default function VentasPage() {
         <div className="bg-white rounded-2xl border border-[#EDE5DC] p-12 text-center shadow-sm">
           <p className="text-[#1A1510]/40 text-sm">Aún no tienes ventas registradas.</p>
         </div>
-      ) : ventasFiltradas.length === 0 && (filtroCanalStr || filtroPlataformaStr) ? (
+      ) : ventasFiltradas.length === 0 && (filtroCanalStr || filtroPlataformaStr || busquedaCliente) ? (
         <div className="bg-white rounded-2xl border border-[#EDE5DC] p-12 text-center shadow-sm">
           <p className="text-[#8A7D72] text-sm">No hay ventas con estos filtros.</p>
           <button
             onClick={() => {
               setFiltroCanalStr('')
               setFiltroPlataformaStr('')
+              setBusquedaCliente('')
             }}
             className="mt-2 text-sm text-[#C4622D] font-medium hover:underline"
           >
@@ -801,13 +816,15 @@ export default function VentasPage() {
                   </td>
                   <td className="px-5 py-4 text-right font-bold text-[#1E3A2F]">{formatCOP(v.total_neto)}</td>
                   <td className="px-5 py-4 text-right">
-                    <button
-                      type="button"
-                      onClick={() => setConfirmDelete(v.id)}
-                      className="text-xs text-[#1A1510]/45 hover:text-red-500"
-                    >
-                      Eliminar
-                    </button>
+                    {canDelete && (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDelete(v.id)}
+                        className="text-sm text-[#C44040] hover:underline"
+                      >
+                        Eliminar
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

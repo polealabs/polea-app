@@ -7,11 +7,11 @@ import { createClient } from '@/lib/supabase/client'
 
 const navItems = [
   { href: '/dashboard', icon: '⊞', label: 'Dashboard' },
-  { href: '/productos', icon: '◫', label: 'Productos' },
+  { href: '/productos', icon: '◫', label: 'Inventario' },
   { href: '/entradas', icon: '↓', label: 'Entradas' },
   { href: '/ventas', icon: '↗', label: 'Ventas' },
   { href: '/clientes', icon: '◎', label: 'Clientes' },
-  { href: '/consignaciones', icon: '🏪', label: 'Consignaciones' },
+  { href: '/consignaciones', icon: '🏪', label: 'Tiendas Aliadas' },
   { href: '/documentos', icon: '📄', label: 'Documentos' },
   { href: '/gastos', icon: '−', label: 'Gastos' },
   { href: '/proveedores', icon: '◈', label: 'Proveedores' },

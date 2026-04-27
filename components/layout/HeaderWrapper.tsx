@@ -6,11 +6,11 @@ import Header from './Header'
 const TITULOS: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/dashboard/docs': 'Documentación',
-  '/productos': 'Productos',
+  '/productos': 'Inventario',
   '/entradas': 'Entradas de stock',
   '/ventas': 'Ventas',
   '/clientes': 'Clientes',
-  '/consignaciones': 'Consignaciones',
+  '/consignaciones': 'Tiendas Aliadas',
   '/documentos': 'Documentos',
   '/documentos/nuevo': 'Nuevo documento',
   '/gastos': 'Gastos',

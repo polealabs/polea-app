@@ -620,22 +620,16 @@ export default function DashboardPage() {
             <ul className="space-y-0.5">
               {notificacionesActivas.map((alerta, i) => (
                 <li key={`${alerta.tipo}-${i}`} className="text-sm text-white/90 leading-snug">
-                  · {alerta.mensaje}
+                  <Link
+                    href={alerta.link}
+                    onClick={e => e.stopPropagation()}
+                    className="hover:text-white hover:underline underline-offset-2 transition cursor-pointer"
+                  >
+                    · {alerta.mensaje} →
+                  </Link>
                 </li>
               ))}
             </ul>
-          </div>
-          <div className="flex flex-col gap-1 flex-shrink-0">
-            {notificacionesActivas.map((alerta, i) => (
-              <Link
-                key={i}
-                href={alerta.link}
-                onClick={(e) => e.stopPropagation()}
-                className="relative z-10 text-xs text-[#E8845A] font-medium underline underline-offset-2 whitespace-nowrap text-right hover:text-white transition"
-              >
-                Ver →
-              </Link>
-            ))}
           </div>
         </div>
       )}
