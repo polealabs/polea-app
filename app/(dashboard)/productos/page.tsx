@@ -25,7 +25,7 @@ const TIPOS: Producto['tipo'][] = [
   'Material POP',
 ]
 
-type FiltroStock = 'todos' | 'agotado' | 'bajo' | 'sin-movimiento'
+type FiltroStock = 'todos' | 'agotado' | 'bajo' | 'sin-movimiento' | 'defectuosos'
 
 function formatCOP(n: number) {
   return new Intl.NumberFormat('es-CO', {
@@ -227,11 +227,14 @@ export default function ProductosPage() {
     showToast('Producto eliminado')
   }
 
+  const totalDefectuosos = productos.filter((p) => (p.unidades_defectuosas ?? 0) > 0).length
+
   const conteos = {
     todos: productos.length,
     agotado: productos.filter((p) => p.stock_actual <= 0).length,
     bajo: productos.filter((p) => p.stock_actual > 0 && p.stock_actual <= p.stock_minimo).length,
     'sin-movimiento': idsSinMovimiento.size,
+    defectuosos: totalDefectuosos,
   }
 
   const chips = [
@@ -259,6 +262,12 @@ export default function ProductosPage() {
       color: 'border-[#EDE5DC] text-[#4A3F35] bg-white',
       activeColor: 'border-[#8B5CF6] bg-[#F0EDF9] text-[#8B5CF6]',
     },
+    {
+      key: 'defectuosos' as const,
+      label: 'Defectuosos',
+      color: 'border-[#EDE5DC] text-[#4A3F35] bg-white',
+      activeColor: 'border-[#C44040] bg-[#FDEAEA] text-[#C44040]',
+    },
   ]
 
   const productosPorFiltro = (() => {
@@ -269,6 +278,8 @@ export default function ProductosPage() {
         return productos.filter((p) => p.stock_actual > 0 && p.stock_actual <= p.stock_minimo)
       case 'sin-movimiento':
         return productos.filter((p) => idsSinMovimiento.has(p.id))
+      case 'defectuosos':
+        return productos.filter((p) => (p.unidades_defectuosas ?? 0) > 0)
       default:
         return productos
     }
@@ -538,7 +549,7 @@ export default function ProductosPage() {
                 <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                   Stock
                 </th>
-                <th className="px-5 py-3 text-center text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-soft)' }}>
+                <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                   Defectuosos
                 </th>
                 <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
