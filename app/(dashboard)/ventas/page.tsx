@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
 import { crearVentaMulti, eliminarVenta } from './actions'
+import { obtenerDevoluciones, registrarDevolucion } from './devoluciones'
 import { calcularNetoConDescuento } from '@/lib/utils'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import ClienteInlineForm from '@/components/ui/ClienteInlineForm'
@@ -13,11 +14,25 @@ import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
 import { descargarCSV } from '@/lib/csv'
 import { useToast } from '@/lib/hooks/useToast'
 import { importarVentas } from './actions-import'
-import type { Producto, Cliente, VentaCabecera } from '@/lib/types'
+import type { Cliente, DevolucionVenta, Producto, VentaCabecera } from '@/lib/types'
+
+type DevolucionConNombre = DevolucionVenta & {
+  productos_original?: { nombre?: string } | { nombre?: string }[] | null
+  productos_cambio?: { nombre?: string } | { nombre?: string }[] | null
+}
+
+function nombreDesdeEmbed(
+  embed: DevolucionConNombre['productos_original'],
+): string | undefined {
+  if (!embed) return undefined
+  if (Array.isArray(embed)) return embed[0]?.nombre
+  return embed.nombre
+}
 
 type VentaConDetalles = VentaCabecera & {
   cliente_nombre?: string
   items: {
+    producto_id: string
     producto_nombre: string
     cantidad: number
     precio_venta: number
@@ -29,6 +44,7 @@ type VentaConDetalles = VentaCabecera & {
 type VentaCabeceraRaw = VentaCabecera & {
   clientes?: { nombre?: string } | { nombre?: string }[] | null
   venta_items?: {
+    producto_id: string
     cantidad: number
     precio_venta: number
     descuento: number
@@ -119,6 +135,28 @@ export default function VentasPage() {
   const [filtroCanalStr, setFiltroCanalStr] = useState('')
   const [filtroPlataformaStr, setFiltroPlataformaStr] = useState('')
   const [busquedaCliente, setBusquedaCliente] = useState('')
+  const [devolucionesPorVenta, setDevolucionesPorVenta] = useState<Record<string, number>>({})
+
+  const [ventaDetalle, setVentaDetalle] = useState<VentaConDetalles | null>(null)
+  const [showDetalleModal, setShowDetalleModal] = useState(false)
+  const [devoluciones, setDevoluciones] = useState<DevolucionConNombre[]>([])
+  const [showFormDevolucion, setShowFormDevolucion] = useState(false)
+  const [loadingDevoluciones, setLoadingDevoluciones] = useState(false)
+
+  const [devTipo, setDevTipo] = useState<'defectuoso' | 'cambio'>('defectuoso')
+  const [devResolucion, setDevResolucion] = useState<
+    'reembolso' | 'credito' | 'cambio_mismo' | 'cambio_otro'
+  >('reembolso')
+  const [devProductoOriginalId, setDevProductoOriginalId] = useState('')
+  const [devCantidad, setDevCantidad] = useState(1)
+  const [devPrecioOriginal, setDevPrecioOriginal] = useState(0)
+  const [devProductoCambioId, setDevProductoCambioId] = useState('')
+  const [devPrecioCambio, setDevPrecioCambio] = useState(0)
+  const [devMotivo, setDevMotivo] = useState('')
+  const [devNotas, setDevNotas] = useState('')
+  const [devFecha, setDevFecha] = useState(new Date().toISOString().split('T')[0])
+  const [devSubmitting, setDevSubmitting] = useState(false)
+  const [devError, setDevError] = useState<string | null>(null)
 
   const [canal, setCanal] = useState<VentaCabecera['canal']>('WhatsApp')
   const [plataforma, setPlataforma] = useState<VentaCabecera['plataforma_pago']>('Efectivo')
@@ -139,24 +177,34 @@ export default function VentasPage() {
     nextMonth.setMonth(nextMonth.getMonth() + 1)
     const end = nextMonth.toISOString().slice(0, 10)
 
-    const { data } = await supabase
-      .from('ventas_cabecera')
-      .select(
-        `
+    const [{ data }, { data: devCount }] = await Promise.all([
+      supabase
+        .from('ventas_cabecera')
+        .select(
+          `
       *,
       clientes(nombre),
       venta_items(
+        producto_id,
         cantidad, precio_venta, descuento, neto,
         productos(nombre)
       )
     `,
-      )
-      .eq('tienda_id', tienda.id)
-      .gte('fecha', start)
-      .lt('fecha', end)
-      .order('fecha', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(100)
+        )
+        .eq('tienda_id', tienda.id)
+        .gte('fecha', start)
+        .lt('fecha', end)
+        .order('fecha', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(100),
+      supabase.from('devoluciones_venta').select('venta_id').eq('tienda_id', tienda.id),
+    ])
+
+    const devPorVenta: Record<string, number> = {}
+    ;(devCount ?? []).forEach((d: { venta_id: string }) => {
+      devPorVenta[d.venta_id] = (devPorVenta[d.venta_id] ?? 0) + 1
+    })
+    setDevolucionesPorVenta(devPorVenta)
 
     const mapped: VentaConDetalles[] = (data ?? []).map((v: VentaCabeceraRaw) => ({
       ...v,
@@ -164,6 +212,7 @@ export default function VentasPage() {
         ? v.clientes[0]?.nombre ?? 'Sin cliente'
         : v.clientes?.nombre ?? 'Sin cliente',
       items: (v.venta_items ?? []).map((i) => ({
+        producto_id: i.producto_id,
         producto_nombre: Array.isArray(i.productos) ? i.productos[0]?.nombre ?? '—' : i.productos?.nombre ?? '—',
         cantidad: i.cantidad,
         precio_venta: i.precio_venta,
@@ -293,6 +342,15 @@ export default function VentasPage() {
       await fetchVentas()
       showToast('Venta eliminada')
     }
+  }
+
+  async function abrirDetalle(venta: VentaConDetalles) {
+    setVentaDetalle(venta)
+    setShowDetalleModal(true)
+    setLoadingDevoluciones(true)
+    const result = await obtenerDevoluciones(venta.id)
+    if (result && 'ok' in result && result.ok) setDevoluciones(result.devoluciones ?? [])
+    setLoadingDevoluciones(false)
   }
 
   const resumen = useMemo(() => {
@@ -807,24 +865,41 @@ export default function VentasPage() {
                   <td className="px-5 py-4 text-[#1A1510]/70">{formatFecha(v.fecha)}</td>
                   <td className="px-5 py-4 text-[#1A1510]/80">{v.cliente_nombre ?? 'Sin cliente'}</td>
                   <td className="px-5 py-4">
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${canalBadgeClass(v.canal)}`}>
-                      {v.canal}
-                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${canalBadgeClass(v.canal)}`}>
+                        {v.canal}
+                      </span>
+                      {devolucionesPorVenta[v.id] ? (
+                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">
+                          {devolucionesPorVenta[v.id]} dev.
+                        </span>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="px-5 py-4 text-[#1A1510]/80">
                     {v.items.map((it) => `${it.producto_nombre} × ${it.cantidad}`).join(', ')}
                   </td>
                   <td className="px-5 py-4 text-right font-bold text-[#1E3A2F]">{formatCOP(v.total_neto)}</td>
                   <td className="px-5 py-4 text-right">
-                    {canDelete && (
+                    <div className="flex items-center justify-end gap-3 flex-wrap">
                       <button
                         type="button"
-                        onClick={() => setConfirmDelete(v.id)}
-                        className="text-sm text-[#C44040] hover:underline"
+                        onClick={() => void abrirDetalle(v)}
+                        className="text-sm font-medium hover:underline"
+                        style={{ color: 'var(--color-primary)' }}
                       >
-                        Eliminar
+                        Ver
                       </button>
-                    )}
+                      {canDelete && (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDelete(v.id)}
+                          className="text-sm text-[#C44040] hover:underline"
+                        >
+                          Eliminar
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -833,6 +908,465 @@ export default function VentasPage() {
           </div>
         </div>
       )}
+
+      {showDetalleModal && ventaDetalle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            style={{ background: 'var(--color-surface)' }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b sticky top-0"
+              style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+            >
+              <div>
+                <p className="font-semibold" style={{ color: 'var(--color-text)' }}>
+                  Detalle de venta
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-soft)' }}>
+                  {ventaDetalle.fecha} · {ventaDetalle.canal} · {ventaDetalle.plataforma_pago}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDetalleModal(false)
+                  setShowFormDevolucion(false)
+                }}
+                className="text-xl"
+                style={{ color: 'var(--color-text-soft)' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs" style={{ color: 'var(--color-text-soft)' }}>
+                    Cliente
+                  </p>
+                  <p className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
+                    {ventaDetalle.cliente_nombre || 'Sin cliente'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs" style={{ color: 'var(--color-text-soft)' }}>
+                    Total neto
+                  </p>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--color-primary)' }}>
+                    {formatCOP(ventaDetalle.total_neto)}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <p
+                  className="text-xs font-semibold uppercase tracking-wide mb-2"
+                  style={{ color: 'var(--color-text-soft)' }}
+                >
+                  Productos
+                </p>
+                <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--color-border)' }}>
+                  {(ventaDetalle.items ?? []).map((item, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between px-4 py-2.5 border-b last:border-0"
+                      style={{ borderColor: 'var(--color-border)' }}
+                    >
+                      <span className="text-sm" style={{ color: 'var(--color-text)' }}>
+                        {item.producto_nombre} × {item.cantidad}
+                      </span>
+                      <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
+                        {formatCOP(item.precio_venta * item.cantidad)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p
+                    className="text-xs font-semibold uppercase tracking-wide"
+                    style={{ color: 'var(--color-text-soft)' }}
+                  >
+                    Devoluciones ({devoluciones.length})
+                  </p>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => setShowFormDevolucion((prev) => !prev)}
+                      className="text-xs font-medium px-3 py-1.5 rounded-lg transition"
+                      style={{ background: 'var(--color-accent)', color: 'white' }}
+                    >
+                      + Registrar devolución
+                    </button>
+                  )}
+                </div>
+
+                {loadingDevoluciones ? (
+                  <p className="text-sm" style={{ color: 'var(--color-text-soft)' }}>
+                    Cargando...
+                  </p>
+                ) : devoluciones.length === 0 ? (
+                  <p className="text-sm" style={{ color: 'var(--color-text-soft)' }}>
+                    Sin devoluciones registradas.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {devoluciones.map((dev) => {
+                      const nombreOriginal = nombreDesdeEmbed(dev.productos_original)
+                      const nombreCambio = nombreDesdeEmbed(dev.productos_cambio)
+                      return (
+                        <div
+                          key={dev.id}
+                          className="rounded-xl border p-4 space-y-1.5"
+                          style={{ borderColor: 'var(--color-border)', background: 'var(--color-background)' }}
+                        >
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span
+                              className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                dev.tipo === 'defectuoso'
+                                  ? 'bg-red-100 text-red-700'
+                                  : 'bg-blue-100 text-blue-700'
+                              }`}
+                            >
+                              {dev.tipo === 'defectuoso' ? '⚠ Defectuoso' : '🔄 Cambio'}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-700">
+                              {dev.resolucion === 'reembolso'
+                                ? '💵 Reembolso'
+                                : dev.resolucion === 'credito'
+                                  ? '🎫 Crédito'
+                                  : dev.resolucion === 'cambio_mismo'
+                                    ? '↩ Mismo producto'
+                                    : '↔ Otro producto'}
+                            </span>
+                            <span className="text-xs ml-auto" style={{ color: 'var(--color-text-soft)' }}>
+                              {dev.fecha}
+                            </span>
+                          </div>
+                          <p className="text-sm" style={{ color: 'var(--color-text)' }}>
+                            <span className="font-medium">{nombreOriginal}</span> × {dev.cantidad} —{' '}
+                            {formatCOP(dev.precio_original * dev.cantidad)}
+                          </p>
+                          {dev.producto_cambio_id && (
+                            <p className="text-sm" style={{ color: 'var(--color-text)' }}>
+                              Cambio por: <span className="font-medium">{nombreCambio}</span>
+                              {dev.diferencia !== 0 && (
+                                <span
+                                  className={`ml-2 font-semibold ${dev.diferencia > 0 ? 'text-red-600' : 'text-green-600'}`}
+                                >
+                                  {dev.diferencia > 0 ? `+${formatCOP(dev.diferencia)}` : formatCOP(dev.diferencia)}
+                                </span>
+                              )}
+                            </p>
+                          )}
+                          {dev.motivo && (
+                            <p className="text-xs" style={{ color: 'var(--color-text-soft)' }}>
+                              Motivo: {dev.motivo}
+                            </p>
+                          )}
+                          {dev.notas && (
+                            <p className="text-xs" style={{ color: 'var(--color-text-soft)' }}>
+                              Nota: {dev.notas}
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {showFormDevolucion && (
+                <div
+                  className="rounded-xl border p-5 space-y-4"
+                  style={{ borderColor: 'var(--color-accent)', background: 'var(--color-accent-pale)' }}
+                >
+                  <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
+                    Registrar devolución
+                  </p>
+
+                  <div>
+                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-soft)' }}>
+                      Tipo de devolución
+                    </label>
+                    <div className="flex gap-2">
+                      {(['defectuoso', 'cambio'] as const).map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => {
+                            setDevTipo(t)
+                            setDevResolucion(t === 'defectuoso' ? 'reembolso' : 'cambio_mismo')
+                          }}
+                          className="flex-1 px-3 py-2 rounded-lg text-sm font-medium transition border"
+                          style={{
+                            background: devTipo === t ? 'var(--color-primary)' : 'var(--color-surface)',
+                            color: devTipo === t ? 'white' : 'var(--color-text)',
+                            borderColor: devTipo === t ? 'var(--color-primary)' : 'var(--color-border)',
+                          }}
+                        >
+                          {t === 'defectuoso' ? '⚠ Defectuoso' : '🔄 Cambio'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-soft)' }}>
+                      Producto que devuelve
+                    </label>
+                    <select
+                      value={devProductoOriginalId}
+                      onChange={(e) => {
+                        const item = ventaDetalle.items?.find((i) => i.producto_id === e.target.value)
+                        setDevProductoOriginalId(e.target.value)
+                        setDevPrecioOriginal(item?.precio_venta ?? 0)
+                        setDevCantidad(1)
+                      }}
+                      className="w-full px-3 py-2 rounded-lg border text-sm"
+                      style={{
+                        borderColor: 'var(--color-border)',
+                        background: 'var(--color-surface)',
+                        color: 'var(--color-text)',
+                      }}
+                    >
+                      <option value="">Selecciona un producto</option>
+                      {(ventaDetalle.items ?? []).map((item) => (
+                        <option key={item.producto_id} value={item.producto_id}>
+                          {item.producto_nombre} (vendido × {item.cantidad})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-soft)' }}>
+                      Cantidad a devolver
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={devCantidad === 0 ? '' : devCantidad}
+                      onChange={(e) => setDevCantidad(e.target.value === '' ? 0 : Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-lg border text-sm"
+                      style={{
+                        borderColor: 'var(--color-border)',
+                        background: 'var(--color-surface)',
+                        color: 'var(--color-text)',
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-soft)' }}>
+                      Resolución
+                    </label>
+                    <select
+                      value={devResolucion}
+                      onChange={(e) =>
+                        setDevResolucion(e.target.value as typeof devResolucion)
+                      }
+                      className="w-full px-3 py-2 rounded-lg border text-sm"
+                      style={{
+                        borderColor: 'var(--color-border)',
+                        background: 'var(--color-surface)',
+                        color: 'var(--color-text)',
+                      }}
+                    >
+                      {devTipo === 'defectuoso' ? (
+                        <>
+                          <option value="reembolso">💵 Reembolso al cliente</option>
+                          <option value="credito">🎫 Crédito para próxima compra</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="cambio_mismo">↩ Cambio por el mismo producto</option>
+                          <option value="cambio_otro">↔ Cambio por otro producto</option>
+                          <option value="reembolso">💵 Reembolso</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+
+                  {devResolucion === 'cambio_otro' && (
+                    <div>
+                      <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-soft)' }}>
+                        Producto de cambio
+                      </label>
+                      <select
+                        value={devProductoCambioId}
+                        onChange={(e) => {
+                          const prod = productos.find((p) => p.id === e.target.value)
+                          setDevProductoCambioId(e.target.value)
+                          setDevPrecioCambio(prod?.precio_venta ?? 0)
+                        }}
+                        className="w-full px-3 py-2 rounded-lg border text-sm"
+                        style={{
+                          borderColor: 'var(--color-border)',
+                          background: 'var(--color-surface)',
+                          color: 'var(--color-text)',
+                        }}
+                      >
+                        <option value="">Selecciona producto</option>
+                        {productos
+                          .filter((p) => p.stock_actual > 0)
+                          .map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.nombre} — {formatCOP(p.precio_venta)}
+                            </option>
+                          ))}
+                      </select>
+                      {devProductoCambioId && devPrecioOriginal > 0 && (
+                        <div
+                          className="mt-2 rounded-lg p-3 text-sm"
+                          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+                        >
+                          <div className="flex justify-between">
+                            <span style={{ color: 'var(--color-text-soft)' }}>Producto devuelto</span>
+                            <span style={{ color: 'var(--color-text)' }}>{formatCOP(devPrecioOriginal)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span style={{ color: 'var(--color-text-soft)' }}>Producto de cambio</span>
+                            <span style={{ color: 'var(--color-text)' }}>{formatCOP(devPrecioCambio)}</span>
+                          </div>
+                          <div
+                            className="flex justify-between font-semibold border-t pt-2 mt-2"
+                            style={{ borderColor: 'var(--color-border)' }}
+                          >
+                            <span style={{ color: 'var(--color-text)' }}>Diferencia</span>
+                            <span
+                              style={{
+                                color: devPrecioCambio - devPrecioOriginal > 0 ? '#C44040' : '#3A7D5A',
+                              }}
+                            >
+                              {devPrecioCambio - devPrecioOriginal > 0 ? 'Cliente paga' : 'Saldo a favor'}{' '}
+                              {formatCOP(Math.abs(devPrecioCambio - devPrecioOriginal))}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-soft)' }}>
+                      Motivo
+                    </label>
+                    <input
+                      type="text"
+                      value={devMotivo}
+                      onChange={(e) => setDevMotivo(e.target.value)}
+                      placeholder="Ej: Costura suelta, talla incorrecta..."
+                      className="w-full px-3 py-2 rounded-lg border text-sm"
+                      style={{
+                        borderColor: 'var(--color-border)',
+                        background: 'var(--color-surface)',
+                        color: 'var(--color-text)',
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-soft)' }}>
+                      Notas adicionales
+                    </label>
+                    <textarea
+                      value={devNotas}
+                      onChange={(e) => setDevNotas(e.target.value)}
+                      rows={2}
+                      placeholder="Observaciones..."
+                      className="w-full px-3 py-2 rounded-lg border text-sm resize-none"
+                      style={{
+                        borderColor: 'var(--color-border)',
+                        background: 'var(--color-surface)',
+                        color: 'var(--color-text)',
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-soft)' }}>
+                      Fecha de devolución
+                    </label>
+                    <input
+                      type="date"
+                      value={devFecha}
+                      onChange={(e) => setDevFecha(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border text-sm"
+                      style={{
+                        borderColor: 'var(--color-border)',
+                        background: 'var(--color-surface)',
+                        color: 'var(--color-text)',
+                      }}
+                    />
+                  </div>
+
+                  {devError && (
+                    <p className="text-sm text-red-600 bg-red-50 px-4 py-2.5 rounded-lg">{devError}</p>
+                  )}
+
+                  <div className="flex gap-3 justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setShowFormDevolucion(false)}
+                      className="text-sm px-4 py-2 rounded-lg border transition"
+                      style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-soft)' }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      disabled={devSubmitting || !devProductoOriginalId || devCantidad <= 0}
+                      onClick={async () => {
+                        setDevSubmitting(true)
+                        setDevError(null)
+                        const result = await registrarDevolucion({
+                          venta_id: ventaDetalle.id,
+                          fecha: devFecha,
+                          tipo: devTipo,
+                          resolucion: devResolucion,
+                          producto_original_id: devProductoOriginalId,
+                          cantidad: devCantidad,
+                          precio_original: devPrecioOriginal,
+                          producto_cambio_id:
+                            devResolucion === 'cambio_otro' ? devProductoCambioId || undefined : undefined,
+                          precio_cambio: devResolucion === 'cambio_otro' ? devPrecioCambio : undefined,
+                          motivo: devMotivo || undefined,
+                          notas: devNotas || undefined,
+                        })
+                        if (result && 'error' in result && result.error) {
+                          setDevError(result.error)
+                        } else {
+                          const updated = await obtenerDevoluciones(ventaDetalle.id)
+                          if (updated && 'ok' in updated && updated.ok)
+                            setDevoluciones(updated.devoluciones ?? [])
+                          setShowFormDevolucion(false)
+                          setDevProductoOriginalId('')
+                          setDevCantidad(1)
+                          setDevMotivo('')
+                          setDevNotas('')
+                          await fetchVentas()
+                          showToast('Devolución registrada', 'success')
+                        }
+                        setDevSubmitting(false)
+                      }}
+                      className="text-sm px-4 py-2 rounded-lg font-semibold transition disabled:opacity-50"
+                      style={{ background: 'var(--color-accent)', color: 'white' }}
+                    >
+                      {devSubmitting ? 'Guardando...' : 'Registrar devolución'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <Toast toasts={toasts} onRemove={removeToast} />
     </div>
   )

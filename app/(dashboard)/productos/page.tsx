@@ -538,6 +538,9 @@ export default function ProductosPage() {
                 <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                   Stock
                 </th>
+                <th className="px-5 py-3 text-center text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-soft)' }}>
+                  Defectuosos
+                </th>
                 <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                   Mínimo
                 </th>
@@ -577,6 +580,15 @@ export default function ProductosPage() {
                     >
                       {p.stock_actual}
                     </span>
+                  </td>
+                  <td className="px-5 py-3.5 text-sm text-center">
+                    {(p.unidades_defectuosas ?? 0) > 0 ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">
+                        {p.unidades_defectuosas} def.
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--color-text-faint)' }}>—</span>
+                    )}
                   </td>
                   <td className="px-5 py-4 text-right text-[#1A1510]/50">{p.stock_minimo}</td>
                   <td className="px-5 py-4">{stockEstadoBadge(p)}</td>

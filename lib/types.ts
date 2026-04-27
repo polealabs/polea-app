@@ -49,6 +49,7 @@ export interface Producto {
   precio_venta: number
   stock_actual: number
   stock_minimo: number
+  unidades_defectuosas?: number
   created_at: string
 }
 
@@ -241,5 +242,27 @@ export interface Liquidacion {
   neto: number
   notas?: string
   consignaciones_ids: string[]
+  created_at: string
+}
+
+export type TipoDevolucion = 'defectuoso' | 'cambio'
+export type ResolucionDevolucion = 'reembolso' | 'credito' | 'cambio_mismo' | 'cambio_otro'
+
+export interface DevolucionVenta {
+  id: string
+  tienda_id: string
+  venta_id: string
+  fecha: string
+  tipo: TipoDevolucion
+  resolucion: ResolucionDevolucion
+  producto_original_id: string
+  cantidad: number
+  precio_original: number
+  producto_cambio_id?: string
+  precio_cambio?: number
+  diferencia: number
+  motivo?: string
+  notas?: string
+  mes_contable: string
   created_at: string
 }
