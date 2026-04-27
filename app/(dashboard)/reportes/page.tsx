@@ -110,6 +110,7 @@ export default function ReportesPage() {
   const sinActividad = datos.ventasNetas === 0 && datos.totalGastos === 0
   const top3Productos = datos.top3Productos ?? []
   const top3Clientes = datos.top3Clientes ?? []
+  const flujoNetoMes = datos.ventasNetas - datos.totalComprasMes - datos.totalGastos
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
@@ -174,7 +175,7 @@ export default function ReportesPage() {
               <div className="bg-white rounded-2xl border border-[#EDE5DC] p-4 shadow-sm">
                 <p className="text-xs text-[#8A7D72] mb-1 flex items-center">
                   Utilidad bruta
-                  <Bombillo texto="Lo que te queda después de restar el costo de la mercancía que compraste. Si es negativo, estás vendiendo por debajo de lo que te cuesta producir." />
+                  <Bombillo texto="Lo que te queda después de restar el CPV (costo de los productos efectivamente vendidos en el mes)." />
                 </p>
                 <p className={`text-xl sm:text-2xl font-serif ${datos.utilidadBruta >= 0 ? 'text-[#3A7D5A]' : 'text-[#C44040]'}`}>
                   {formatCOP(datos.utilidadBruta)}
@@ -224,6 +225,10 @@ export default function ReportesPage() {
                   <p className="text-sm font-semibold text-[#C4622D]">- {formatCOP(datos.totalDescuentos)}</p>
                 </div>
               )}
+              <div className="flex items-center justify-between py-2">
+                <p className="text-sm text-[#4A3F35]">Comisiones de plataforma</p>
+                <p className="text-sm font-semibold text-[#4A3F35]">- {formatCOP(datos.totalComisionesPlataforma)}</p>
+              </div>
 
               <div className="border-t border-[#EDE5DC] my-3" />
 
@@ -235,12 +240,12 @@ export default function ReportesPage() {
               <div className="flex items-center justify-between py-2">
                 <div>
                   <p className="text-sm text-[#4A3F35] flex items-center">
-                    Costo de mercancía
-                    <Bombillo texto="Calculado con base en las entradas de stock registradas en el mes." />
+                    CPV - Costo de productos vendidos
+                    <Bombillo texto="Se calcula con los productos vendidos en el mes y el costo unitario de entrada más reciente antes de la venta para productos terminados." />
                   </p>
-                  <p className="text-xs text-[#8A7D72]">Costo de lo que compraste para vender</p>
+                  <p className="text-xs text-[#8A7D72]">Costo de los {datos.totalUnidadesVendidas} productos vendidos este mes</p>
                 </div>
-                <p className="text-sm font-semibold text-[#4A3F35]">- {formatCOP(datos.costoMercancia)}</p>
+                <p className="text-sm font-semibold text-[#4A3F35]">- {formatCOP(datos.cpvMes)}</p>
               </div>
 
               <div className="border-t border-[#EDE5DC] my-3" />
@@ -253,7 +258,7 @@ export default function ReportesPage() {
                   <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full bg-[#F2F0EC] text-[#5A4F45]">
                     {datos.margenBruto.toFixed(1)}% margen
                   </span>
-                  <Bombillo texto="El margen bruto te dice qué porcentaje de tus ventas se convierte en ganancia antes de gastos. Un margen saludable depende del sector, pero en general más del 40% es bueno." />
+                  <Bombillo texto="El margen bruto muestra cuánto queda después del CPV y antes de gastos operacionales." />
                 </div>
                 <p className={`text-sm font-bold ${datos.utilidadBruta >= 0 ? 'text-[#3A7D5A]' : 'text-[#C44040]'}`}>
                   {formatCOP(datos.utilidadBruta)}
@@ -279,17 +284,62 @@ export default function ReportesPage() {
 
               <div className="flex items-center justify-between py-2">
                 <div className="flex items-center">
+                  <p className={`text-base font-bold ${datos.utilidadOperacional >= 0 ? 'text-[#3A7D5A]' : 'text-[#C44040]'}`}>
+                    Utilidad operacional
+                  </p>
+                </div>
+                <p className={`text-base font-bold ${datos.utilidadOperacional >= 0 ? 'text-[#3A7D5A]' : 'text-[#C44040]'}`}>
+                  {formatCOP(datos.utilidadOperacional)}
+                </p>
+              </div>
+
+              <div className="border-t border-[#EDE5DC] my-3" />
+
+              <div className="flex items-center justify-between py-2">
+                <div className="flex items-center">
                   <p className={`text-lg font-bold ${datos.utilidadNeta >= 0 ? 'text-[#3A7D5A]' : 'text-[#C44040]'}`}>
                     Utilidad neta
                   </p>
                   <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full bg-[#F2F0EC] text-[#5A4F45]">
                     {datos.margenNeto.toFixed(1)}% margen neto
                   </span>
-                  <Bombillo texto="Tu ganancia real del mes. Si es positiva, el negocio es rentable. Si es negativa, los costos superaron los ingresos — revisa qué gastos puedes optimizar." />
+                  <Bombillo texto="Resultado final tras ventas netas, CPV y gastos operacionales." />
                 </div>
                 <p className={`text-lg font-bold ${datos.utilidadNeta >= 0 ? 'text-[#3A7D5A]' : 'text-[#C44040]'}`}>
                   {formatCOP(datos.utilidadNeta)}
                 </p>
+              </div>
+
+              <div className="bg-[#FAF6F0] rounded-xl p-4 border border-[#EDE5DC] mt-4">
+                <p className="text-xs font-semibold text-[#8A7D72] uppercase tracking-wide mb-1">📦 Compras al proveedor este mes</p>
+                <p className="font-serif text-lg font-medium text-[#1A1510]">{formatCOP(datos.totalComprasMes)}</p>
+                <p className="text-xs text-[#8A7D72] mt-1">
+                  Estas compras entran al inventario como activo, no como gasto. Solo se convierten en costo cuando el producto se vende (CPV).
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-[#EDE5DC] shadow-sm p-6 mt-6 mb-6">
+              <p className="text-xs font-semibold text-[#8A7D72] uppercase tracking-wide mb-4">💵 Flujo de caja</p>
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span style={{ color: 'var(--color-text-soft)' }}>Ingresos recibidos (ventas netas)</span>
+                  <span className="font-semibold text-[#3A7D5A]">+ {formatCOP(datos.ventasNetas)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span style={{ color: 'var(--color-text-soft)' }}>Compras al proveedor</span>
+                  <span className="font-semibold text-[#C44040]">- {formatCOP(datos.totalComprasMes)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span style={{ color: 'var(--color-text-soft)' }}>Gastos operacionales</span>
+                  <span className="font-semibold text-[#C44040]">- {formatCOP(datos.totalGastos)}</span>
+                </div>
+                <div className="border-t border-[#EDE5DC] pt-3 flex justify-between">
+                  <span className="font-semibold" style={{ color: 'var(--color-text)' }}>Flujo neto del mes</span>
+                  <span className={`font-bold font-serif text-lg ${flujoNetoMes >= 0 ? 'text-[#3A7D5A]' : 'text-[#C44040]'}`}>
+                    {formatCOP(flujoNetoMes)}
+                  </span>
+                </div>
               </div>
             </div>
 

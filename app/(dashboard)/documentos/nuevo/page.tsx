@@ -141,14 +141,16 @@ export default function NuevoDocumentoPage() {
     const conceptoParam = params.get('concepto')
     const totalParam = params.get('total')
     const consignatariaIdParam = params.get('consignataria_id')
-
-    if (destinatarioParam) setDestinatarioNombre(destinatarioParam)
-    if (conceptoParam) setConcepto(conceptoParam)
-    if (totalParam) setTotalCuentaCobro(Number(totalParam))
-    if (consignatariaIdParam) {
-      setConsignatariaId(consignatariaIdParam)
-      setModoCuentaCobroDest('consignataria')
-    }
+    const id = window.setTimeout(() => {
+      if (destinatarioParam) setDestinatarioNombre(destinatarioParam)
+      if (conceptoParam) setConcepto(conceptoParam)
+      if (totalParam) setTotalCuentaCobro(Number(totalParam))
+      if (consignatariaIdParam) {
+        setConsignatariaId(consignatariaIdParam)
+        setModoCuentaCobroDest('consignataria')
+      }
+    }, 0)
+    return () => window.clearTimeout(id)
   }, [])
 
   function actualizarItem(i: number, campo: keyof ItemFormulario, valor: string | number) {
