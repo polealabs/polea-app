@@ -20,6 +20,7 @@ import {
 import Toast from '@/components/ui/Toast'
 import { useToast } from '@/lib/hooks/useToast'
 import ConfirmModal from '@/components/ui/ConfirmModal'
+import { toLocalISODateString, toLocalISOYearMonthString } from '@/lib/utils'
 
 type ConsignacionRow = Consignacion & {
   producto_nombre: string
@@ -74,24 +75,21 @@ export default function ConsignacionesPage() {
   const [salidaProductoId, setSalidaProductoId] = useState('')
   const [salidaCantidad, setSalidaCantidad] = useState(1)
   const [salidaPrecioUnitario, setSalidaPrecioUnitario] = useState(0)
-  const [salidaFecha, setSalidaFecha] = useState(new Date().toISOString().split('T')[0])
+  const [salidaFecha, setSalidaFecha] = useState(() => toLocalISODateString())
   const [salidaSubmitting, setSalidaSubmitting] = useState(false)
   const [salidaError, setSalidaError] = useState<string | null>(null)
 
   const [movCantidad, setMovCantidad] = useState(1)
   const [movPrecioVenta, setMovPrecioVenta] = useState(0)
-  const [movFecha, setMovFecha] = useState(new Date().toISOString().split('T')[0])
+  const [movFecha, setMovFecha] = useState(() => toLocalISODateString())
   const [movNotas, setMovNotas] = useState('')
   const [movSubmitting, setMovSubmitting] = useState(false)
   const [movError, setMovError] = useState<string | null>(null)
 
   const [inventarioVista, setInventarioVista] = useState<'tienda' | 'global'>('global')
   const [filtroConsignatariaInv, setFiltroConsignatariaInv] = useState('')
-  const [mesDevoluciones, setMesDevoluciones] = useState(() => new Date().toISOString().slice(0, 7))
-  const [mesLiquidaciones, setMesLiquidaciones] = useState(() => {
-    const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-  })
+  const [mesDevoluciones, setMesDevoluciones] = useState(() => toLocalISOYearMonthString())
+  const [mesLiquidaciones, setMesLiquidaciones] = useState(() => toLocalISOYearMonthString())
   const [filtroTiendaLiq, setFiltroTiendaLiq] = useState<string>('todas')
   const [formData, setFormData] = useState({
     nombre: '',
@@ -396,7 +394,7 @@ export default function ConsignacionesPage() {
     setTipoMovimiento(tipo)
     setMovCantidad(1)
     setMovPrecioVenta(tipo === 'liquidacion' ? (consig.precio_unitario ?? 0) : 0)
-    setMovFecha(new Date().toISOString().split('T')[0])
+    setMovFecha(toLocalISODateString())
     setMovNotas('')
     setMovError(null)
     setShowModalMovimiento(true)
@@ -412,7 +410,7 @@ export default function ConsignacionesPage() {
     setTipoMovimiento('liquidacion')
     setMovCantidad(1)
     setMovPrecioVenta(primeraActiva.precio_unitario ?? 0)
-    setMovFecha(new Date().toISOString().split('T')[0])
+    setMovFecha(toLocalISODateString())
     setMovNotas('')
     setMovError(null)
     setShowModalLiquidacion(true)

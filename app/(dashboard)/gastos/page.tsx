@@ -73,9 +73,17 @@ export default function GastosPage() {
   const [showForm, setShowForm] = useState(false)
   const [showProveedorForm, setShowProveedorForm] = useState(false)
   const [proveedorIdSeleccionado, setProveedorIdSeleccionado] = useState('')
-  const [mesActual, setMesActual] = useState(() => new Date().toISOString().slice(0, 7))
+  const [mesActual, setMesActual] = useState(() => {
+    const hoy = new Date()
+    const local = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000)
+    return local.toISOString().slice(0, 7)
+  })
   const [chipCategoria, setChipCategoria] = useState<string>('todos')
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
+  const today = useMemo(() => {
+    const hoy = new Date()
+    const local = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000)
+    return local.toISOString().slice(0, 10)
+  }, [])
   const { toasts, showToast, removeToast } = useToast()
 
   const fetchGastos = useCallback(async (tiendaId: string, mes: string) => {

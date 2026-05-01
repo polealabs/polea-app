@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { calcularNetoConDescuento } from '@/lib/utils'
+import { calcularComisionMedioPago } from '@/lib/utils'
 
 async function getTiendaId() {
   const supabase = await createClient()
@@ -29,7 +29,9 @@ export type LineaVenta = {
 export async function crearVentaMulti(payload: {
   cliente_id?: string
   canal: string
-  plataforma_pago: string
+  plataforma_pago?: string
+  medio_pago_id?: string
+  envio?: number
   fecha: string
   lineas: LineaVenta[]
 }) {
@@ -66,26 +68,39 @@ export async function crearVentaMulti(payload: {
     }
 
     const lineasCalculadas = payload.lineas.map((l) => {
-      const { bruto, descuentoTotal, baseNeta, costoTransaccion, neto } = calcularNetoConDescuento(
-        l.precio_venta,
-        l.cantidad,
-        l.descuento ?? 0,
-        payload.plataforma_pago
-      )
+      const bruto = l.precio_venta * l.cantidad
+      const descuentoTotal = Math.round(bruto * ((l.descuento ?? 0) / 100))
+      const baseNeta = bruto - descuentoTotal
       return {
         ...l,
         descuento: l.descuento ?? 0,
         bruto,
         descuento_total: descuentoTotal,
         base_neta: baseNeta,
-        costo_transaccion: costoTransaccion,
-        neto,
       }
     })
 
     const total_bruto = lineasCalculadas.reduce((s, l) => s + l.bruto, 0)
-    const total_costo_transaccion = lineasCalculadas.reduce((s, l) => s + l.costo_transaccion, 0)
-    const total_neto = lineasCalculadas.reduce((s, l) => s + l.neto, 0)
+    const subtotal = lineasCalculadas.reduce((s, l) => s + l.base_neta, 0)
+    const envio = Math.max(0, Number(payload.envio ?? 0))
+
+    let comisionTotal = 0
+    let ivaComision = 0
+    let netoFinal = subtotal + envio
+    if (payload.medio_pago_id) {
+      const { data: medio } = await supabase
+        .from('medios_pago')
+        .select('comision_porcentaje, tarifa_fija, cobra_iva')
+        .eq('id', payload.medio_pago_id)
+        .eq('tienda_id', tienda_id)
+        .maybeSingle()
+      if (medio) {
+        const calc = calcularComisionMedioPago(subtotal, envio, medio)
+        comisionTotal = calc.comision_total
+        ivaComision = calc.iva_comision
+        netoFinal = calc.neto
+      }
+    }
 
     const { data: cabecera, error: errCab } = await supabase
       .from('ventas_cabecera')
@@ -93,17 +108,21 @@ export async function crearVentaMulti(payload: {
         tienda_id,
         cliente_id: payload.cliente_id || null,
         canal: payload.canal,
-        plataforma_pago: payload.plataforma_pago,
+        plataforma_pago: payload.plataforma_pago || 'Efectivo',
+        medio_pago_id: payload.medio_pago_id || null,
+        envio,
+        comision_iva: ivaComision,
         fecha: payload.fecha,
         total_bruto,
-        total_costo_transaccion,
-        total_neto,
+        total_costo_transaccion: comisionTotal,
+        total_neto: netoFinal,
       })
       .select('id')
       .single()
 
     if (errCab) return { error: errCab.message }
 
+    const ratio = subtotal > 0 ? comisionTotal / subtotal : 0
     const items = lineasCalculadas.map((l) => ({
       cabecera_id: cabecera.id,
       tienda_id,
@@ -111,8 +130,8 @@ export async function crearVentaMulti(payload: {
       cantidad: l.cantidad,
       precio_venta: l.precio_venta,
       descuento: l.descuento ?? 0,
-      costo_transaccion: l.costo_transaccion,
-      neto: l.neto,
+      costo_transaccion: Math.round(l.base_neta * ratio),
+      neto: l.base_neta - Math.round(l.base_neta * ratio),
     }))
 
     const { error: errItems } = await supabase.from('venta_items').insert(items)

@@ -46,7 +46,11 @@ function Bombillo({ texto }: { texto: string }) {
 
 export default function ReportesPage() {
   const { tienda, loading: tiendaLoading, canViewFinanzas } = useTienda()
-  const [mes, setMes] = useState(() => new Date().toISOString().slice(0, 7))
+  const [mes, setMes] = useState(() => {
+    const hoy = new Date()
+    const local = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000)
+    return local.toISOString().slice(0, 7)
+  })
   const [datos, setDatos] = useState<DatosReporte | null>(null)
   const [loading, setLoading] = useState(true)
   const [exportando, setExportando] = useState(false)

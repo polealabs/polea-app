@@ -19,6 +19,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/perfil') ||
     pathname.startsWith('/ayuda') ||
     pathname.startsWith('/preferencias') ||
+    pathname.startsWith('/configuracion') ||
     pathname.startsWith('/reportes')
 
   const supabaseCookie = request.cookies.getAll().find(c =>

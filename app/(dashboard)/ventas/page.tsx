@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
 import { crearVentaMulti, eliminarVenta } from './actions'
 import { obtenerDevoluciones, registrarDevolucion } from './devoluciones'
-import { calcularNetoConDescuento } from '@/lib/utils'
+import { calcularComisionMedioPago, toLocalISODateString } from '@/lib/utils'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import ClienteInlineForm from '@/components/ui/ClienteInlineForm'
 import ImportCSV from '@/components/ui/ImportCSV'
@@ -14,7 +14,7 @@ import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
 import { descargarCSV } from '@/lib/csv'
 import { useToast } from '@/lib/hooks/useToast'
 import { importarVentas } from './actions-import'
-import type { Cliente, DevolucionVenta, Producto, VentaCabecera } from '@/lib/types'
+import type { Cliente, DevolucionVenta, MedioPago, Producto, VentaCabecera } from '@/lib/types'
 
 type DevolucionConNombre = DevolucionVenta & {
   productos_original?: { nombre?: string } | { nombre?: string }[] | null
@@ -31,6 +31,7 @@ function nombreDesdeEmbed(
 
 type VentaConDetalles = VentaCabecera & {
   cliente_nombre?: string
+  medio_pago_nombre?: string
   items: {
     producto_id: string
     producto_nombre: string
@@ -43,6 +44,7 @@ type VentaConDetalles = VentaCabecera & {
 
 type VentaCabeceraRaw = VentaCabecera & {
   clientes?: { nombre?: string } | { nombre?: string }[] | null
+  medios_pago?: { nombre?: string } | { nombre?: string }[] | null
   venta_items?: {
     producto_id: string
     cantidad: number
@@ -131,11 +133,17 @@ export default function VentasPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
-  const [mesActual, setMesActual] = useState(() => new Date().toISOString().slice(0, 7))
+  const [mesActual, setMesActual] = useState(() => {
+    const hoy = new Date()
+    const offset = hoy.getTimezoneOffset()
+    const local = new Date(hoy.getTime() - offset * 60000)
+    return local.toISOString().slice(0, 7)
+  })
   const [filtroCanalStr, setFiltroCanalStr] = useState('')
-  const [filtroPlataformaStr, setFiltroPlataformaStr] = useState('')
+  const [filtroMedioStr, setFiltroMedioStr] = useState('')
   const [busquedaCliente, setBusquedaCliente] = useState('')
   const [devolucionesPorVenta, setDevolucionesPorVenta] = useState<Record<string, number>>({})
+  const [mediosPago, setMediosPago] = useState<MedioPago[]>([])
 
   const [ventaDetalle, setVentaDetalle] = useState<VentaConDetalles | null>(null)
   const [showDetalleModal, setShowDetalleModal] = useState(false)
@@ -154,13 +162,14 @@ export default function VentasPage() {
   const [devPrecioCambio, setDevPrecioCambio] = useState(0)
   const [devMotivo, setDevMotivo] = useState('')
   const [devNotas, setDevNotas] = useState('')
-  const [devFecha, setDevFecha] = useState(new Date().toISOString().split('T')[0])
+  const [devFecha, setDevFecha] = useState(() => toLocalISODateString())
   const [devSubmitting, setDevSubmitting] = useState(false)
   const [devError, setDevError] = useState<string | null>(null)
 
   const [canal, setCanal] = useState<VentaCabecera['canal']>('WhatsApp')
-  const [plataforma, setPlataforma] = useState<VentaCabecera['plataforma_pago']>('Efectivo')
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
+  const [medioId, setMedioId] = useState('')
+  const [envio, setEnvio] = useState(0)
+  const [fecha, setFecha] = useState(() => toLocalISODateString())
   const [clienteId, setClienteId] = useState('')
   const [showClienteForm, setShowClienteForm] = useState(false)
   const { toasts, showToast, removeToast } = useToast()
@@ -184,6 +193,7 @@ export default function VentasPage() {
           `
       *,
       clientes(nombre),
+      medios_pago(nombre),
       venta_items(
         producto_id,
         cantidad, precio_venta, descuento, neto,
@@ -211,6 +221,9 @@ export default function VentasPage() {
       cliente_nombre: Array.isArray(v.clientes)
         ? v.clientes[0]?.nombre ?? 'Sin cliente'
         : v.clientes?.nombre ?? 'Sin cliente',
+      medio_pago_nombre: Array.isArray(v.medios_pago)
+        ? v.medios_pago[0]?.nombre
+        : v.medios_pago?.nombre,
       items: (v.venta_items ?? []).map((i) => ({
         producto_id: i.producto_id,
         producto_nombre: Array.isArray(i.productos) ? i.productos[0]?.nombre ?? '—' : i.productos?.nombre ?? '—',
@@ -226,12 +239,14 @@ export default function VentasPage() {
   const fetchData = useCallback(async () => {
     if (!tienda) return
     const supabase = createClient()
-    const [{ data: productosData }, { data: clientesData }] = await Promise.all([
+    const [{ data: productosData }, { data: clientesData }, { data: mediosData }] = await Promise.all([
       supabase.from('productos').select('*').eq('tienda_id', tienda.id).order('nombre'),
       supabase.from('clientes').select('*').eq('tienda_id', tienda.id).order('nombre'),
+      supabase.from('medios_pago').select('*').eq('tienda_id', tienda.id).eq('activo', true).order('nombre'),
     ])
     setProductos(productosData ?? [])
     setClientes(clientesData ?? [])
+    setMediosPago((mediosData ?? []) as MedioPago[])
     await fetchVentas()
     setLoading(false)
   }, [fetchVentas, tienda])
@@ -305,7 +320,9 @@ export default function VentasPage() {
     const result = await crearVentaMulti({
       cliente_id: clienteId || undefined,
       canal,
-      plataforma_pago: plataforma,
+      plataforma_pago: 'Efectivo',
+      medio_pago_id: medioId || undefined,
+      envio,
       fecha,
       lineas: lineas.map((l) => ({
         producto_id: l.producto_id,
@@ -321,10 +338,11 @@ export default function VentasPage() {
       setShowForm(false)
       setLineas([{ producto_id: '', cantidad: 1, precio_venta: 0, precio_original: 0, descuento: 0 }])
       setCanal('WhatsApp')
-      setPlataforma('Efectivo')
+      setMedioId('')
+      setEnvio(0)
       setClienteId('')
       setShowClienteForm(false)
-      setFecha(new Date().toISOString().split('T')[0])
+      setFecha(toLocalISODateString())
       await fetchData()
       showToast('Venta registrada')
     }
@@ -359,26 +377,13 @@ export default function VentasPage() {
       (s, l) => s + Math.round(l.precio_venta * l.cantidad * (l.descuento / 100)),
       0
     )
-    const total_costo_transaccion = lineas.reduce((s, l) => {
-      const { costoTransaccion } = calcularNetoConDescuento(
-        l.precio_venta,
-        l.cantidad,
-        l.descuento,
-        plataforma
-      )
-      return s + costoTransaccion
-    }, 0)
-    const total_neto = lineas.reduce((s, l) => {
-      const { neto } = calcularNetoConDescuento(
-        l.precio_venta,
-        l.cantidad,
-        l.descuento,
-        plataforma
-      )
-      return s + neto
-    }, 0)
-    return { total_bruto, total_descuentos, total_costo_transaccion, total_neto }
-  }, [lineas, plataforma])
+    const subtotalLineas = total_bruto - total_descuentos
+    const medioSeleccionado = mediosPago.find((m) => m.id === medioId)
+    const calcComision = medioSeleccionado
+      ? calcularComisionMedioPago(subtotalLineas, envio, medioSeleccionado)
+      : { base_comision: 0, comision_base: 0, iva_comision: 0, comision_total: 0, neto: subtotalLineas + envio }
+    return { total_bruto, total_descuentos, subtotalLineas, calcComision, medioSeleccionado }
+  }, [envio, lineas, medioId, mediosPago])
 
   const advertenciasStockPorLinea = lineas.map((l, i) => {
     if (!l.producto_id) return null
@@ -402,13 +407,14 @@ export default function VentasPage() {
 
   const hayConflictoStock = advertenciasStockPorLinea.some((m) => m != null)
 
-  const maxFecha = new Date().toISOString().split('T')[0]
+  const maxFecha = toLocalISODateString()
   const hayProductoConStock = productos.some((p) => p.stock_actual > 0)
   const ventasFiltradas = ventas.filter((v) => {
     const matchCanal = filtroCanalStr === '' || v.canal === filtroCanalStr
-    const matchPlataforma = filtroPlataformaStr === '' || v.plataforma_pago === filtroPlataformaStr
+    const medioLabel = v.medio_pago_nombre ?? v.plataforma_pago
+    const matchMedio = filtroMedioStr === '' || medioLabel === filtroMedioStr
     const matchCliente = !busquedaCliente || (v.cliente_nombre?.toLowerCase() ?? '').includes(busquedaCliente.toLowerCase())
-    return matchCanal && matchPlataforma && matchCliente
+    return matchCanal && matchMedio && matchCliente
   })
 
   if (tiendaLoading || loading) {
@@ -521,18 +527,23 @@ export default function VentasPage() {
           <option value="Tienda multimarca">Tienda multimarca</option>
         </select>
         <select
-          value={filtroPlataformaStr}
-          onChange={(e) => setFiltroPlataformaStr(e.target.value)}
+          value={filtroMedioStr}
+          onChange={(e) => setFiltroMedioStr(e.target.value)}
           className={inputClass + ' max-w-[200px]'}
         >
-          <option value="">Todas las plataformas</option>
-          <option value="Wompi">Wompi</option>
-          <option value="Bold">Bold</option>
-          <option value="Nequi">Nequi</option>
-          <option value="Daviplata">Daviplata</option>
-          <option value="Transferencia">Transferencia</option>
-          <option value="Efectivo">Efectivo</option>
-          <option value="Contraentrega">Contraentrega</option>
+          <option value="">Todos los medios</option>
+          {mediosPago.map((m) => (
+            <option key={m.id} value={m.nombre}>
+              {m.nombre}
+            </option>
+          ))}
+          <option value="Wompi">Wompi (histórico)</option>
+          <option value="Bold">Bold (histórico)</option>
+          <option value="Nequi">Nequi (histórico)</option>
+          <option value="Daviplata">Daviplata (histórico)</option>
+          <option value="Transferencia">Transferencia (histórico)</option>
+          <option value="Efectivo">Efectivo (histórico)</option>
+          <option value="Contraentrega">Contraentrega (histórico)</option>
         </select>
         <input
           type="text"
@@ -542,11 +553,11 @@ export default function VentasPage() {
           className={inputClass}
           style={{ minWidth: '180px' }}
         />
-        {(filtroCanalStr || filtroPlataformaStr || busquedaCliente) && (
+        {(filtroCanalStr || filtroMedioStr || busquedaCliente) && (
           <button
             onClick={() => {
               setFiltroCanalStr('')
-              setFiltroPlataformaStr('')
+              setFiltroMedioStr('')
               setBusquedaCliente('')
             }}
             className="text-xs text-[#C4622D] font-medium hover:underline px-2"
@@ -555,11 +566,11 @@ export default function VentasPage() {
           </button>
         )}
       </div>
-      {(filtroCanalStr || filtroPlataformaStr || busquedaCliente) && (
+      {(filtroCanalStr || filtroMedioStr || busquedaCliente) && (
         <p className="text-xs text-[#8A7D72] mb-3">
           Mostrando {ventasFiltradas.length} venta{ventasFiltradas.length !== 1 ? 's' : ''}
           {filtroCanalStr ? ` · ${filtroCanalStr}` : ''}
-          {filtroPlataformaStr ? ` · ${filtroPlataformaStr}` : ''}
+          {filtroMedioStr ? ` · ${filtroMedioStr}` : ''}
           {busquedaCliente ? ` · Cliente: "${busquedaCliente}"` : ''}
         </p>
       )}
@@ -578,19 +589,18 @@ export default function VentasPage() {
               </select>
             </div>
             <div>
-              <label className={labelClass}>Plataforma</label>
+              <label className={labelClass}>Medio de pago</label>
               <select
                 className={inputClass}
-                value={plataforma}
-                onChange={(e) => setPlataforma(e.target.value as VentaCabecera['plataforma_pago'])}
+                value={medioId}
+                onChange={(e) => setMedioId(e.target.value)}
               >
-                <option value="Wompi">Wompi</option>
-                <option value="Bold">Bold</option>
-                <option value="Transferencia">Transferencia</option>
-                <option value="Efectivo">Efectivo</option>
-                <option value="Nequi">Nequi</option>
-                <option value="Daviplata">Daviplata</option>
-                <option value="Contraentrega">Contraentrega</option>
+                <option value="">Seleccionar medio</option>
+                {mediosPago.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nombre} {m.comision_porcentaje > 0 ? `(${m.comision_porcentaje}%)` : ''}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
@@ -636,6 +646,16 @@ export default function VentasPage() {
               )}
             </div>
           </div>
+          <div className="mt-4 max-w-[250px]">
+            <label className={labelClass}>Envío (opcional)</label>
+            <input
+              type="number"
+              value={envio === 0 ? '' : envio}
+              onChange={(e) => setEnvio(e.target.value === '' ? 0 : Number(e.target.value))}
+              placeholder="0"
+              className={inputClass}
+            />
+          </div>
 
           <div className="mt-6 border-t border-[#EDE5DC] pt-4">
             <h3 className="text-sm font-semibold text-[#1E3A2F] mb-4">Productos</h3>
@@ -643,12 +663,9 @@ export default function VentasPage() {
               {lineas.map((l, i) => {
                 const prod = productos.find((p) => p.id === l.producto_id)
                 const maxLinea = prod ? maxCantidadPorLinea(lineas, i, productos) : null
-                const { neto: netoLinea, costoTransaccion: costoLinea } = calcularNetoConDescuento(
-                  l.precio_venta,
-                  l.cantidad,
-                  l.descuento,
-                  plataforma
-                )
+                const brutoLinea = l.precio_venta * l.cantidad
+                const descuentoLinea = Math.round(brutoLinea * (l.descuento / 100))
+                const netoLinea = brutoLinea - descuentoLinea
                 const stockMsg = advertenciasStockPorLinea[i]
                 return (
                   <div key={i} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start rounded-xl border border-[#EDE5DC] p-4">
@@ -747,9 +764,6 @@ export default function VentasPage() {
                       <p className="text-xs text-[#8A7D72] mt-1">
                         Neto línea:{' '}
                         <span className="font-semibold text-[#1E3A2F]">{formatCOP(netoLinea)}</span>
-                        {costoLinea > 0 && (
-                          <span className="text-[#C4B8B0]"> · Costo tx: {formatCOP(costoLinea)}</span>
-                        )}
                       </p>
                     </div>
                     <div className="md:col-span-1 flex md:flex-col items-end gap-2 justify-start pt-6">
@@ -772,26 +786,42 @@ export default function VentasPage() {
               + Agregar producto
             </button>
 
-            <div className="mt-6 border-t border-[#EDE5DC] pt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <p className="text-xs text-[#1A1510]/60">Total bruto</p>
-                <p className="text-base font-semibold text-[#1A1510]">{formatCOP(resumen.total_bruto)}</p>
-              </div>
-              {resumen.total_descuentos > 0 && (
-                <div>
-                  <p className="text-xs text-[#1A1510]/60">Total descuentos</p>
-                  <p className="text-base font-semibold text-[#C4622D]">
-                    - {formatCOP(resumen.total_descuentos)}
-                  </p>
+            <div className="mt-6 border-t border-[#EDE5DC] pt-4">
+              <div className="bg-[#F9EDE5] rounded-xl p-4 space-y-1.5">
+                <div className="flex justify-between text-sm">
+                  <span style={{ color: 'var(--color-text-soft)' }}>Subtotal productos</span>
+                  <span style={{ color: 'var(--color-text)' }}>{formatCOP(resumen.subtotalLineas)}</span>
                 </div>
-              )}
-              <div>
-                <p className="text-xs text-[#1A1510]/60">Total costo transacción</p>
-                <p className="text-base font-semibold text-[#1A1510]">{formatCOP(resumen.total_costo_transaccion)}</p>
-              </div>
-              <div className="md:col-span-3">
-                <p className="text-xs text-[#1A1510]/60">Total neto</p>
-                <p className="text-xl font-bold text-[#1E3A2F]">{formatCOP(resumen.total_neto)}</p>
+                {envio > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: 'var(--color-text-soft)' }}>Envío</span>
+                    <span style={{ color: 'var(--color-text)' }}>+{formatCOP(envio)}</span>
+                  </div>
+                )}
+                {resumen.medioSeleccionado && resumen.calcComision.comision_base > 0 && (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span style={{ color: 'var(--color-text-soft)' }}>
+                        Comisión {resumen.medioSeleccionado.nombre} ({resumen.medioSeleccionado.comision_porcentaje}%
+                        {resumen.medioSeleccionado.tarifa_fija > 0
+                          ? ` + ${formatCOP(resumen.medioSeleccionado.tarifa_fija)}`
+                          : ''}
+                        )
+                      </span>
+                      <span className="text-[#C44040]">-{formatCOP(resumen.calcComision.comision_base)}</span>
+                    </div>
+                    {resumen.calcComision.iva_comision > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: 'var(--color-text-soft)' }}>IVA comisión (19%)</span>
+                        <span className="text-[#C44040]">-{formatCOP(resumen.calcComision.iva_comision)}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+                <div className="border-t pt-2 flex justify-between font-bold text-sm" style={{ borderColor: 'var(--color-border)' }}>
+                  <span style={{ color: 'var(--color-text)' }}>Total neto</span>
+                  <span style={{ color: 'var(--color-primary)' }}>{formatCOP(resumen.calcComision.neto)}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -826,13 +856,13 @@ export default function VentasPage() {
         <div className="bg-white rounded-2xl border border-[#EDE5DC] p-12 text-center shadow-sm">
           <p className="text-[#1A1510]/40 text-sm">Aún no tienes ventas registradas.</p>
         </div>
-      ) : ventasFiltradas.length === 0 && (filtroCanalStr || filtroPlataformaStr || busquedaCliente) ? (
+      ) : ventasFiltradas.length === 0 && (filtroCanalStr || filtroMedioStr || busquedaCliente) ? (
         <div className="bg-white rounded-2xl border border-[#EDE5DC] p-12 text-center shadow-sm">
           <p className="text-[#8A7D72] text-sm">No hay ventas con estos filtros.</p>
           <button
             onClick={() => {
               setFiltroCanalStr('')
-              setFiltroPlataformaStr('')
+              setFiltroMedioStr('')
               setBusquedaCliente('')
             }}
             className="mt-2 text-sm text-[#C4622D] font-medium hover:underline"
@@ -868,6 +898,9 @@ export default function VentasPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${canalBadgeClass(v.canal)}`}>
                         {v.canal}
+                      </span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-[#FAF6F0] text-[#6A5D52] font-medium">
+                        {v.medio_pago_nombre ?? v.plataforma_pago}
                       </span>
                       {devolucionesPorVenta[v.id] ? (
                         <span className="text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">
@@ -924,7 +957,7 @@ export default function VentasPage() {
                   Detalle de venta
                 </p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-soft)' }}>
-                  {ventaDetalle.fecha} · {ventaDetalle.canal} · {ventaDetalle.plataforma_pago}
+                  {ventaDetalle.fecha} · {ventaDetalle.canal} · {ventaDetalle.medio_pago_nombre ?? ventaDetalle.plataforma_pago}
                 </p>
               </div>
               <button

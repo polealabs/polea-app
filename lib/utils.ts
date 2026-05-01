@@ -42,3 +42,35 @@ export function calcularNetoConDescuento(
   const neto = calcularNeto(baseNeta, costoTransaccion)
   return { bruto, descuentoTotal, baseNeta, costoTransaccion, neto }
 }
+
+/** Fecha calendario local en YYYY-MM-DD (evita desfase UTC con toISOString). */
+export function toLocalISODateString(d: Date = new Date()) {
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+  return local.toISOString().slice(0, 10)
+}
+
+/** Mes calendario local en YYYY-MM. */
+export function toLocalISOYearMonthString(d: Date = new Date()) {
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+  return local.toISOString().slice(0, 7)
+}
+
+export function calcularComisionMedioPago(
+  subtotal: number,
+  envio: number,
+  medio: { comision_porcentaje: number; tarifa_fija: number; cobra_iva: boolean }
+): {
+  base_comision: number
+  comision_base: number
+  iva_comision: number
+  comision_total: number
+  neto: number
+} {
+  const base_comision = subtotal + envio
+  const comision_base = Math.round(base_comision * (medio.comision_porcentaje / 100)) + medio.tarifa_fija
+  const iva_comision = medio.cobra_iva ? Math.round(comision_base * 0.19) : 0
+  const comision_total = comision_base + iva_comision
+  const neto = base_comision - comision_total
+
+  return { base_comision, comision_base, iva_comision, comision_total, neto }
+}

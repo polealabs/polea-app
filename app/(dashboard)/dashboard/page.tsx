@@ -6,9 +6,9 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
 import { DashboardHomeSkeleton } from '@/components/skeletons/DashboardHomeSkeleton'
-import type { Producto, VentaCabecera, Cliente } from '@/lib/types'
+import type { Cliente, MedioPago, Producto, VentaCabecera } from '@/lib/types'
 import { crearVentaMulti } from '@/app/(dashboard)/ventas/actions'
-import { calcularNetoConDescuento } from '@/lib/utils'
+import { calcularComisionMedioPago, toLocalISODateString, toLocalISOYearMonthString } from '@/lib/utils'
 
 type VentaConDetalles = VentaCabecera & {
   cliente_nombre?: string
@@ -61,7 +61,7 @@ function getSaludo() {
 }
 
 function getDiaLabel(fecha: string) {
-  const hoy = new Date().toISOString().split('T')[0]
+  const hoy = toLocalISODateString()
   if (fecha === hoy) return 'Hoy'
   return new Date(fecha + 'T12:00:00').toLocaleDateString('es-CO', { weekday: 'short' })
 }
@@ -87,13 +87,13 @@ function getRangoSemana(offset: number): { desde: string; hasta: string; dias: s
     const d = new Date(inicio)
     d.setDate(inicio.getDate() + i)
     if (d <= hoy) {
-      dias.push(d.toISOString().split('T')[0])
+      dias.push(toLocalISODateString(d))
     }
   }
 
   return {
-    desde: inicio.toISOString().split('T')[0],
-    hasta: finReal.toISOString().split('T')[0],
+    desde: toLocalISODateString(inicio),
+    hasta: toLocalISODateString(finReal),
     dias,
   }
 }
@@ -148,9 +148,11 @@ export default function DashboardPage() {
   const [showVentaModal, setShowVentaModal] = useState(false)
   const [productosVenta, setProductosVenta] = useState<Producto[]>([])
   const [clientesVenta, setClientesVenta] = useState<Cliente[]>([])
+  const [mediosPago, setMediosPago] = useState<MedioPago[]>([])
   const [canal, setCanal] = useState('WhatsApp')
-  const [plataforma, setPlataforma] = useState('Efectivo')
-  const [fechaVenta, setFechaVenta] = useState(() => new Date().toISOString().split('T')[0])
+  const [medioId, setMedioId] = useState('')
+  const [envio, setEnvio] = useState(0)
+  const [fechaVenta, setFechaVenta] = useState(() => toLocalISODateString())
   const [clienteId, setClienteId] = useState('')
   const [lineas, setLineas] = useState<LineaVentaForm[]>([
     { producto_id: '', cantidad: 1, precio_venta: 0, precio_original: 0, descuento: 0 },
@@ -192,14 +194,22 @@ export default function DashboardPage() {
     const tiendaId = tienda.id
     const supabase = createClient()
 
-    const hoy = new Date().toISOString().split('T')[0]
-    const mesActual = new Date().toISOString().slice(0, 7)
-    const hace30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    const mesActualStr = new Date().toISOString().slice(0, 7)
-    const mesAnteriorDate = new Date()
+    const ahora = new Date()
+    const hoy = toLocalISODateString(ahora)
+    const mesActual = toLocalISOYearMonthString(ahora)
+    const mesActualStr = mesActual
+
+    const d30 = new Date(ahora)
+    d30.setDate(ahora.getDate() - 30)
+    const hace30 = toLocalISODateString(d30)
+
+    const mesAnteriorDate = new Date(ahora)
     mesAnteriorDate.setMonth(mesAnteriorDate.getMonth() - 1)
-    const mesAnteriorStr = mesAnteriorDate.toISOString().slice(0, 7)
-    const hace60 = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const mesAnteriorStr = toLocalISOYearMonthString(mesAnteriorDate)
+
+    const d60 = new Date(ahora)
+    d60.setDate(ahora.getDate() - 60)
+    const hace60 = toLocalISODateString(d60)
 
     const [
       ventasHoyRes,
@@ -435,8 +445,9 @@ export default function DashboardPage() {
     setShowVentaModal(false)
     setLineas([{ producto_id: '', cantidad: 1, precio_venta: 0, precio_original: 0, descuento: 0 }])
     setCanal('WhatsApp')
-    setPlataforma('Efectivo')
-    setFechaVenta(new Date().toISOString().split('T')[0])
+    setMedioId('')
+    setEnvio(0)
+    setFechaVenta(toLocalISODateString())
     setClienteId('')
     setErrorVenta(null)
     setShowClienteFormModal(false)
@@ -456,7 +467,9 @@ export default function DashboardPage() {
     const result = await crearVentaMulti({
       cliente_id: clienteId || undefined,
       canal,
-      plataforma_pago: plataforma,
+      plataforma_pago: 'Efectivo',
+      medio_pago_id: medioId || undefined,
+      envio,
       fecha: fechaVenta,
       lineas: lineasValidas.map((l) => ({
         producto_id: l.producto_id,
@@ -481,9 +494,11 @@ export default function DashboardPage() {
     void Promise.all([
       supabase.from('productos').select('*').eq('tienda_id', tienda.id).gt('stock_actual', 0).order('nombre'),
       supabase.from('clientes').select('*').eq('tienda_id', tienda.id).order('nombre'),
-    ]).then(([{ data: prods }, { data: cls }]) => {
+      supabase.from('medios_pago').select('*').eq('tienda_id', tienda.id).eq('activo', true).order('nombre'),
+    ]).then(([{ data: prods }, { data: cls }, { data: medios }]) => {
       setProductosVenta((prods ?? []) as Producto[])
       setClientesVenta((cls ?? []) as Cliente[])
+      setMediosPago((medios ?? []) as MedioPago[])
     })
   }, [showVentaModal, tienda])
 
@@ -985,19 +1000,18 @@ export default function DashboardPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[var(--color-text-soft)] mb-1">Plataforma</label>
+                  <label className="block text-xs font-medium text-[var(--color-text-soft)] mb-1">Medio de pago</label>
                   <select
-                    value={plataforma}
-                    onChange={(e) => setPlataforma(e.target.value)}
+                    value={medioId}
+                    onChange={(e) => setMedioId(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
                   >
-                    <option>Efectivo</option>
-                    <option>Transferencia</option>
-                    <option>Nequi</option>
-                    <option>Daviplata</option>
-                    <option>Wompi</option>
-                    <option>Bold</option>
-                    <option>Contraentrega</option>
+                    <option value="">Seleccionar medio</option>
+                    {mediosPago.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.nombre} {m.comision_porcentaje > 0 ? `(${m.comision_porcentaje}%)` : ''}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -1006,7 +1020,7 @@ export default function DashboardPage() {
                     type="date"
                     value={fechaVenta}
                     onChange={(e) => setFechaVenta(e.target.value)}
-                    max={new Date().toISOString().split('T')[0]}
+                    max={toLocalISODateString()}
                     className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
                   />
                 </div>
@@ -1030,16 +1044,24 @@ export default function DashboardPage() {
                 </div>
               </div>
 
+              <div className="max-w-[260px]">
+                <label className="block text-xs font-medium text-[var(--color-text-soft)] mb-1">Envío (opcional)</label>
+                <input
+                  type="number"
+                  value={envio === 0 ? '' : envio}
+                  onChange={(e) => setEnvio(e.target.value === '' ? 0 : Number(e.target.value))}
+                  placeholder="0"
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+                />
+              </div>
+
               <div>
                 <p className="text-xs font-medium text-[var(--color-text-soft)] mb-2">Productos</p>
                 <div className="space-y-3">
                   {lineas.map((linea, i) => {
-                    const { neto: netoLinea } = calcularNetoConDescuento(
-                      linea.precio_venta,
-                      linea.cantidad,
-                      linea.descuento,
-                      plataforma,
-                    )
+                    const brutoLinea = linea.precio_venta * linea.cantidad
+                    const descuentoLinea = Math.round(brutoLinea * ((linea.descuento ?? 0) / 100))
+                    const netoLinea = brutoLinea - descuentoLinea
                     return (
                       <div key={i} className="bg-[var(--color-background)] rounded-xl p-3 space-y-2">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -1165,15 +1187,17 @@ export default function DashboardPage() {
               {lineas.some((l) => l.producto_id && l.precio_venta > 0) && (
                 <div className="bg-[#F9EDE5] rounded-xl p-4 space-y-1">
                   {(() => {
-                    const totalNeto = lineas.reduce((s, l) => {
-                      const { neto } = calcularNetoConDescuento(l.precio_venta, l.cantidad, l.descuento, plataforma)
-                      return s + neto
-                    }, 0)
                     const totalBruto = lineas.reduce((s, l) => s + l.precio_venta * l.cantidad, 0)
+                    const descuentos = lineas.reduce((s, l) => s + Math.round(l.precio_venta * l.cantidad * ((l.descuento ?? 0) / 100)), 0)
+                    const subtotal = totalBruto - descuentos
+                    const medioSeleccionado = mediosPago.find((m) => m.id === medioId)
+                    const calcComision = medioSeleccionado
+                      ? calcularComisionMedioPago(subtotal, envio, medioSeleccionado)
+                      : { base_comision: 0, comision_base: 0, iva_comision: 0, comision_total: 0, neto: subtotal + envio }
                     return (
                       <>
                         <div className="flex justify-between text-sm">
-                          <span className="text-[var(--color-text-soft)]">Total bruto</span>
+                          <span className="text-[var(--color-text-soft)]">Subtotal productos</span>
                           <span className="text-[var(--color-text)]">
                             {new Intl.NumberFormat('es-CO', {
                               style: 'currency',
@@ -1182,6 +1206,54 @@ export default function DashboardPage() {
                             }).format(totalBruto)}
                           </span>
                         </div>
+                        {envio > 0 && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-[var(--color-text-soft)]">Envío</span>
+                            <span className="text-[#3A7D5A]">
+                              + {new Intl.NumberFormat('es-CO', {
+                                style: 'currency',
+                                currency: 'COP',
+                                minimumFractionDigits: 0,
+                              }).format(envio)}
+                            </span>
+                          </div>
+                        )}
+                        {medioSeleccionado && calcComision.comision_base > 0 && (
+                          <>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-[var(--color-text-soft)]">
+                                Comisión {medioSeleccionado.nombre} ({medioSeleccionado.comision_porcentaje}%
+                                {medioSeleccionado.tarifa_fija > 0
+                                  ? ` + ${new Intl.NumberFormat('es-CO', {
+                                      style: 'currency',
+                                      currency: 'COP',
+                                      minimumFractionDigits: 0,
+                                    }).format(medioSeleccionado.tarifa_fija)}`
+                                  : ''}
+                                )
+                              </span>
+                              <span className="text-[#C44040]">
+                                - {new Intl.NumberFormat('es-CO', {
+                                  style: 'currency',
+                                  currency: 'COP',
+                                  minimumFractionDigits: 0,
+                                }).format(calcComision.comision_base)}
+                              </span>
+                            </div>
+                            {calcComision.iva_comision > 0 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-[var(--color-text-soft)]">IVA comisión (19%)</span>
+                                <span className="text-[#C44040]">
+                                  - {new Intl.NumberFormat('es-CO', {
+                                    style: 'currency',
+                                    currency: 'COP',
+                                    minimumFractionDigits: 0,
+                                  }).format(calcComision.iva_comision)}
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        )}
                         <div className="flex justify-between text-sm font-bold">
                           <span className="text-[var(--color-primary)]">Total neto</span>
                           <span className="text-[var(--color-primary)]">
@@ -1189,7 +1261,7 @@ export default function DashboardPage() {
                               style: 'currency',
                               currency: 'COP',
                               minimumFractionDigits: 0,
-                            }).format(totalNeto)}
+                            }).format(calcComision.neto)}
                           </span>
                         </div>
                       </>

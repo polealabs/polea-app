@@ -18,6 +18,7 @@ const TITULOS: Record<string, string> = {
   '/equipo': 'Equipo',
   '/reportes': 'Reportes',
   '/preferencias': 'Preferencias',
+  '/configuracion/medios-pago': 'Medios de pago',
   '/perfil': 'Mi tienda',
   '/ayuda': 'Ayuda',
 }

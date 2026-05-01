@@ -114,6 +114,8 @@ export interface VentaCabecera {
   cliente_id?: string
   canal: 'WhatsApp' | 'Instagram' | 'Web' | 'Presencial' | 'Tienda multimarca'
   plataforma_pago: 'Wompi' | 'Bold' | 'Transferencia' | 'Efectivo' | 'Nequi' | 'Daviplata' | 'Contraentrega'
+  medio_pago_id?: string
+  envio?: number
   fecha: string
   total_bruto: number
   total_costo_transaccion: number
@@ -264,5 +266,26 @@ export interface DevolucionVenta {
   motivo?: string
   notas?: string
   mes_contable: string
+  created_at: string
+}
+
+export type TipoMedioPago =
+  | 'efectivo'
+  | 'transferencia'
+  | 'datafono'
+  | 'pasarela_web'
+  | 'cuotas'
+  | 'contraentrega'
+  | 'nequi_daviplata'
+
+export interface MedioPago {
+  id: string
+  tienda_id: string
+  nombre: string
+  tipo: TipoMedioPago
+  comision_porcentaje: number
+  tarifa_fija: number
+  cobra_iva: boolean
+  activo: boolean
   created_at: string
 }
