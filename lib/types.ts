@@ -242,12 +242,22 @@ export interface Consignacion {
   id: string
   tienda_id: string
   consignataria_id: string
+  salida_id?: string
   producto_id: string
   cantidad: number
   unidades_disponibles: number
   costo_unitario: number
   fecha: string
   estado: 'activa' | 'liquidada' | 'devuelta'
+  created_at: string
+}
+
+export interface ConsignacionSalida {
+  id: string
+  tienda_id: string
+  consignataria_id: string
+  fecha: string
+  notas?: string
   created_at: string
 }
 

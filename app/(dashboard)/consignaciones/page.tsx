@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
@@ -15,7 +14,8 @@ import {
   editarConsignataria,
   eliminarConsignataria,
   registrarMovimiento,
-  registrarSalida,
+  registrarDevolucionMultiple,
+  registrarSalidaMultiple,
 } from './actions'
 import Toast from '@/components/ui/Toast'
 import { useToast } from '@/lib/hooks/useToast'
@@ -66,6 +66,7 @@ export default function ConsignacionesPage() {
   const [showModalSalida, setShowModalSalida] = useState(false)
   const [showModalMovimiento, setShowModalMovimiento] = useState(false)
   const [showModalLiquidacion, setShowModalLiquidacion] = useState(false)
+  const [showModalDevolucionMultiple, setShowModalDevolucionMultiple] = useState(false)
   const [showFormTienda, setShowFormTienda] = useState(false)
   const [editando, setEditando] = useState<TiendaConsignataria | null>(null)
   const [consignacionActiva, setConsignacionActiva] = useState<ConsignacionRow | null>(null)
@@ -73,12 +74,24 @@ export default function ConsignacionesPage() {
   const [confirmDeleteTienda, setConfirmDeleteTienda] = useState<string | null>(null)
 
   const [salidaConsignatariaId, setSalidaConsignatariaId] = useState('')
-  const [salidaProductoId, setSalidaProductoId] = useState('')
-  const [salidaCantidad, setSalidaCantidad] = useState(1)
-  const [salidaPrecioUnitario, setSalidaPrecioUnitario] = useState(0)
   const [salidaFecha, setSalidaFecha] = useState(() => toLocalISODateString())
+  const [salidaNotas, setSalidaNotas] = useState('')
+  const [salidaItems, setSalidaItems] = useState<
+    {
+      producto_id: string
+      cantidad: number
+      precio_unitario: number
+    }[]
+  >([{ producto_id: '', cantidad: 1, precio_unitario: 0 }])
   const [salidaSubmitting, setSalidaSubmitting] = useState(false)
   const [salidaError, setSalidaError] = useState<string | null>(null)
+
+  const [devMultiConsignatariaId, setDevMultiConsignatariaId] = useState('')
+  const [devMultiFecha, setDevMultiFecha] = useState(() => toLocalISODateString())
+  const [devMultiNotas, setDevMultiNotas] = useState('')
+  const [devMultiItems, setDevMultiItems] = useState<{ consignacion_id: string; cantidad: number }[]>([])
+  const [devMultiSubmitting, setDevMultiSubmitting] = useState(false)
+  const [devMultiError, setDevMultiError] = useState<string | null>(null)
 
   const [movCantidad, setMovCantidad] = useState(1)
   const [movPrecioVenta, setMovPrecioVenta] = useState(0)
@@ -182,9 +195,15 @@ export default function ConsignacionesPage() {
     return () => window.clearTimeout(id)
   }, [tienda, loadData])
 
-  const productoSeleccionado = useMemo(
-    () => productos.find((p) => p.id === salidaProductoId) ?? null,
-    [productos, salidaProductoId],
+  const consignacionesActivas = useMemo(
+    () =>
+      consignaciones.filter(
+        (c) =>
+          c.consignataria_id === devMultiConsignatariaId &&
+          c.estado === 'activa' &&
+          c.unidades_disponibles > 0,
+      ),
+    [consignaciones, devMultiConsignatariaId],
   )
 
   const tabCounts = useMemo(
@@ -301,29 +320,49 @@ export default function ConsignacionesPage() {
     void loadData()
   }
 
-  async function submitSalida(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setSalidaSubmitting(true)
-    setSalidaError(null)
-    const res = await registrarSalida({
-      consignataria_id: salidaConsignatariaId,
-      producto_id: salidaProductoId,
-      cantidad: salidaCantidad,
-      precio_unitario: salidaPrecioUnitario,
-      fecha: salidaFecha,
+  function agregarLineaSalida() {
+    setSalidaItems((prev) => [...prev, { producto_id: '', cantidad: 1, precio_unitario: 0 }])
+  }
+
+  function actualizarLineaSalida(i: number, campo: string, valor: string | number) {
+    setSalidaItems((prev) => {
+      const nuevas = [...prev]
+      nuevas[i] = { ...nuevas[i], [campo]: valor }
+      if (campo === 'producto_id') {
+        const prod = productos.find((p) => p.id === valor)
+        if (prod) nuevas[i].precio_unitario = prod.precio_venta
+      }
+      return nuevas
     })
-    setSalidaSubmitting(false)
-    if (res?.error) {
-      setSalidaError(res.error)
+  }
+
+  function eliminarLineaSalida(i: number) {
+    setSalidaItems((prev) => prev.filter((_, j) => j !== i))
+  }
+
+  async function submitDevolucionMultiple() {
+    setDevMultiSubmitting(true)
+    setDevMultiError(null)
+    const itemsValidos = devMultiItems.filter((i) => i.consignacion_id && i.cantidad > 0)
+    const result = await registrarDevolucionMultiple({
+      consignataria_id: devMultiConsignatariaId,
+      fecha: devMultiFecha,
+      notas: devMultiNotas || undefined,
+      items: itemsValidos,
+    })
+    if (result?.error) {
+      setDevMultiError(result.error)
+      setDevMultiSubmitting(false)
       return
     }
-    showToast('Salida registrada')
-    setShowModalSalida(false)
-    setSalidaProductoId('')
-    setSalidaCantidad(1)
-    setSalidaPrecioUnitario(0)
-    setSalidaError(null)
-    void loadData()
+    setShowModalDevolucionMultiple(false)
+    setDevMultiConsignatariaId('')
+    setDevMultiItems([])
+    setDevMultiNotas('')
+    setDevMultiError(null)
+    setDevMultiSubmitting(false)
+    showToast('Devolución registrada', 'success')
+    await loadData()
   }
 
   async function submitMovimiento(e: React.FormEvent<HTMLFormElement>) {
@@ -357,9 +396,9 @@ export default function ConsignacionesPage() {
 
   function abrirSalida(consignatariaId?: string) {
     setSalidaConsignatariaId(consignatariaId ?? '')
-    setSalidaProductoId('')
-    setSalidaCantidad(1)
-    setSalidaPrecioUnitario(0)
+    setSalidaItems([{ producto_id: '', cantidad: 1, precio_unitario: 0 }])
+    setSalidaNotas('')
+    setSalidaFecha(toLocalISODateString())
     setSalidaError(null)
     setShowModalSalida(true)
   }
@@ -755,7 +794,20 @@ export default function ConsignacionesPage() {
       {tab === 'devoluciones' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-4">
-            <div />
+            <button
+              type="button"
+              onClick={() => {
+                setShowModalDevolucionMultiple(true)
+                setDevMultiConsignatariaId('')
+                setDevMultiFecha(toLocalISODateString())
+                setDevMultiNotas('')
+                setDevMultiItems([])
+                setDevMultiError(null)
+              }}
+              className="btn-primary text-sm font-semibold px-4 py-2 rounded-lg"
+            >
+              + Nueva devolución
+            </button>
             <input
               type="month"
               value={mesDevoluciones}
@@ -797,56 +849,419 @@ export default function ConsignacionesPage() {
       )}
 
       {showModalSalida && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowModalSalida(false)} />
-          <div className="relative bg-white rounded-2xl p-6 w-full max-w-lg border shadow-xl">
-            <h3 className="text-lg font-semibold mb-1">Nueva salida</h3>
-            <p className="text-sm mb-4 text-[#1A1510]/50">
-              Si no hay stock disponible, primero recíbelo en <Link href="/productos" className="text-[var(--color-accent)] hover:underline">productos</Link>.
-            </p>
-            <form onSubmit={submitSalida} className="space-y-3">
-              <select required value={salidaConsignatariaId} onChange={(e) => setSalidaConsignatariaId(e.target.value)} className={inputClass}>
-                <option value="">Tienda consignataria</option>
-                {consignatarias.filter((c) => c.activa).map((c) => (
-                  <option key={c.id} value={c.id}>{c.nombre}</option>
-                ))}
-              </select>
-              <ProductoSelect
-                opciones={productos.map((p) => ({
-                  id: p.id,
-                  label: p.nombre,
-                  sublabel: `Disponible: ${p.stock_actual} uds · ${formatCOP(p.precio_venta)}`,
-                }))}
-                value={salidaProductoId}
-                onChange={(id) => {
-                  const prod = productos.find((p) => p.id === id)
-                  setSalidaProductoId(id)
-                  if (prod) {
-                    setSalidaPrecioUnitario(prod.precio_venta)
-                    setSalidaCantidad(1)
-                  }
-                }}
-                placeholder="Buscar producto..."
-              />
-              {productoSeleccionado && <p className="text-xs text-[#1A1510]/50">Stock disponible: {productoSeleccionado.stock_actual} unidades</p>}
-              <input type="number" min={1} max={productoSeleccionado?.stock_actual ?? undefined} value={salidaCantidad} onChange={(e) => setSalidaCantidad(Number(e.target.value))} className={inputClass} placeholder="Cantidad" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            style={{ background: 'var(--color-surface)' }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b sticky top-0 z-10"
+              style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+            >
+              <p className="font-semibold" style={{ color: 'var(--color-text)' }}>
+                Nueva salida a consignación
+              </p>
+              <button
+                onClick={() => setShowModalSalida(false)}
+                className="text-xl"
+                style={{ color: 'var(--color-text-soft)' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-[#1A1510]/60 mb-1">Precio unitario</label>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-soft)' }}>
+                  Tienda consignataria
+                </label>
+                <select
+                  value={salidaConsignatariaId}
+                  onChange={(e) => setSalidaConsignatariaId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border text-sm"
+                  style={{
+                    borderColor: 'var(--color-border)',
+                    background: 'var(--color-surface)',
+                    color: 'var(--color-text)',
+                  }}
+                >
+                  <option value="">Selecciona una tienda</option>
+                  {consignatarias.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre} ({c.porcentaje_comision}% comisión)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-soft)' }}>
+                  Fecha
+                </label>
                 <input
-                  type="number"
-                  value={salidaPrecioUnitario === 0 ? '' : salidaPrecioUnitario}
-                  onChange={e => setSalidaPrecioUnitario(e.target.value === '' ? 0 : Number(e.target.value))}
-                  className={inputClass}
-                  placeholder="Se autocompleta con el precio del producto"
+                  type="date"
+                  value={salidaFecha}
+                  onChange={(e) => setSalidaFecha(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border text-sm"
+                  style={{
+                    borderColor: 'var(--color-border)',
+                    background: 'var(--color-surface)',
+                    color: 'var(--color-text)',
+                  }}
                 />
               </div>
-              <input type="date" value={salidaFecha} onChange={(e) => setSalidaFecha(e.target.value)} className={inputClass} />
-              {salidaError && <p className="text-sm text-red-600">{salidaError}</p>}
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" className="px-4 py-2 border border-[#EDE5DC] rounded-lg text-sm text-[#4A3F35]" onClick={() => setShowModalSalida(false)}>Cancelar</button>
-                <button type="submit" disabled={salidaSubmitting} className="btn-primary px-4 py-2 rounded-lg">{salidaSubmitting ? 'Registrando...' : 'Registrar salida'}</button>
+
+              <div>
+                <p className="text-xs font-medium mb-2" style={{ color: 'var(--color-text-soft)' }}>
+                  Productos
+                </p>
+                <div className="space-y-3">
+                  {salidaItems.map((item, i) => {
+                    const prod = productos.find((p) => p.id === item.producto_id)
+                    return (
+                      <div
+                        key={i}
+                        className="rounded-xl p-3 space-y-2"
+                        style={{
+                          background: 'var(--color-background)',
+                          border: '1px solid var(--color-border)',
+                        }}
+                      >
+                        <div className="grid grid-cols-1 gap-2">
+                          <ProductoSelect
+                            opciones={productos.map((p) => ({
+                              id: p.id,
+                              label: p.nombre,
+                              sublabel: `Stock: ${p.stock_actual} uds · ${formatCOP(p.precio_venta)}`,
+                            }))}
+                            value={item.producto_id}
+                            onChange={(id) => actualizarLineaSalida(i, 'producto_id', id)}
+                            placeholder="Buscar producto..."
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-xs mb-1" style={{ color: 'var(--color-text-soft)' }}>
+                              Cantidad
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              max={prod?.stock_actual ?? 999}
+                              value={item.cantidad === 0 ? '' : item.cantidad}
+                              onChange={(e) =>
+                                actualizarLineaSalida(
+                                  i,
+                                  'cantidad',
+                                  e.target.value === '' ? 0 : Number(e.target.value),
+                                )
+                              }
+                              className="w-full px-3 py-2 rounded-lg border text-sm"
+                              style={{
+                                borderColor: 'var(--color-border)',
+                                background: 'var(--color-surface)',
+                                color: 'var(--color-text)',
+                              }}
+                            />
+                            {prod && (
+                              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-soft)' }}>
+                                Máx: {prod.stock_actual}
+                              </p>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-xs mb-1" style={{ color: 'var(--color-text-soft)' }}>
+                              Precio unitario
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={item.precio_unitario === 0 ? '' : item.precio_unitario}
+                              onChange={(e) =>
+                                actualizarLineaSalida(
+                                  i,
+                                  'precio_unitario',
+                                  e.target.value === '' ? 0 : Number(e.target.value),
+                                )
+                              }
+                              className="w-full px-3 py-2 rounded-lg border text-sm"
+                              style={{
+                                borderColor: 'var(--color-border)',
+                                background: 'var(--color-surface)',
+                                color: 'var(--color-text)',
+                              }}
+                            />
+                          </div>
+                        </div>
+                        {salidaItems.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => eliminarLineaSalida(i)}
+                            className="text-xs text-red-500 hover:underline"
+                          >
+                            ✕ Eliminar
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={agregarLineaSalida}
+                  className="mt-2 text-xs font-medium hover:underline"
+                  style={{ color: 'var(--color-accent)' }}
+                >
+                  + Agregar producto
+                </button>
               </div>
-            </form>
+
+              <div>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-soft)' }}>
+                  Notas (opcional)
+                </label>
+                <textarea
+                  value={salidaNotas}
+                  onChange={(e) => setSalidaNotas(e.target.value)}
+                  rows={2}
+                  placeholder="Observaciones de la salida..."
+                  className="w-full px-3 py-2 rounded-lg border text-sm resize-none"
+                  style={{
+                    borderColor: 'var(--color-border)',
+                    background: 'var(--color-surface)',
+                    color: 'var(--color-text)',
+                  }}
+                />
+              </div>
+
+              {salidaError && (
+                <p className="text-sm text-red-600 bg-red-50 px-4 py-2.5 rounded-lg">{salidaError}</p>
+              )}
+            </div>
+
+            <div
+              className="px-6 py-4 border-t flex gap-3 justify-end sticky bottom-0"
+              style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+            >
+              <button
+                onClick={() => setShowModalSalida(false)}
+                className="text-sm px-4 py-2 rounded-lg border transition"
+                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-soft)' }}
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={salidaSubmitting || !salidaConsignatariaId || salidaItems.every((i) => !i.producto_id)}
+                onClick={async () => {
+                  setSalidaSubmitting(true)
+                  setSalidaError(null)
+                  const itemsValidos = salidaItems.filter((i) => i.producto_id && i.cantidad > 0)
+                  const result = await registrarSalidaMultiple({
+                    consignataria_id: salidaConsignatariaId,
+                    fecha: salidaFecha,
+                    notas: salidaNotas || undefined,
+                    items: itemsValidos,
+                  })
+                  if (result?.error) {
+                    setSalidaError(result.error)
+                  } else {
+                    setShowModalSalida(false)
+                    setSalidaItems([{ producto_id: '', cantidad: 1, precio_unitario: 0 }])
+                    setSalidaConsignatariaId('')
+                    setSalidaNotas('')
+                    showToast('Salida registrada', 'success')
+                    await loadData()
+                  }
+                  setSalidaSubmitting(false)
+                }}
+                className="text-sm px-4 py-2 rounded-lg font-semibold transition disabled:opacity-50"
+                style={{ background: 'var(--color-accent)', color: 'white' }}
+              >
+                {salidaSubmitting ? 'Guardando...' : 'Registrar salida'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showModalDevolucionMultiple && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            style={{ background: 'var(--color-surface)' }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b sticky top-0 z-10"
+              style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+            >
+              <p className="font-semibold" style={{ color: 'var(--color-text)' }}>
+                Nueva devolución múltiple
+              </p>
+              <button
+                onClick={() => setShowModalDevolucionMultiple(false)}
+                className="text-xl"
+                style={{ color: 'var(--color-text-soft)' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-soft)' }}>
+                  Tienda consignataria
+                </label>
+                <select
+                  value={devMultiConsignatariaId}
+                  onChange={(e) => {
+                    setDevMultiConsignatariaId(e.target.value)
+                    setDevMultiItems([])
+                  }}
+                  className="w-full px-3 py-2 rounded-lg border text-sm"
+                  style={{
+                    borderColor: 'var(--color-border)',
+                    background: 'var(--color-surface)',
+                    color: 'var(--color-text)',
+                  }}
+                >
+                  <option value="">Selecciona una tienda</option>
+                  {consignatarias.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-soft)' }}>
+                  Fecha
+                </label>
+                <input
+                  type="date"
+                  value={devMultiFecha}
+                  onChange={(e) => setDevMultiFecha(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border text-sm"
+                  style={{
+                    borderColor: 'var(--color-border)',
+                    background: 'var(--color-surface)',
+                    color: 'var(--color-text)',
+                  }}
+                />
+              </div>
+
+              <div>
+                <p className="text-xs font-medium mb-2" style={{ color: 'var(--color-text-soft)' }}>
+                  Consignaciones activas
+                </p>
+                <div className="space-y-2">
+                  {consignacionesActivas.map((c) => (
+                    <div
+                      key={c.id}
+                      className="flex items-center gap-3 p-3 rounded-xl"
+                      style={{
+                        background: 'var(--color-background)',
+                        border: '1px solid var(--color-border)',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={devMultiItems.some((i) => i.consignacion_id === c.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setDevMultiItems((prev) => [
+                              ...prev,
+                              { consignacion_id: c.id, cantidad: c.unidades_disponibles },
+                            ])
+                          } else {
+                            setDevMultiItems((prev) =>
+                              prev.filter((i) => i.consignacion_id !== c.id),
+                            )
+                          }
+                        }}
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
+                          {c.producto_nombre}
+                        </p>
+                        <p className="text-xs" style={{ color: 'var(--color-text-soft)' }}>
+                          Disponibles: {c.unidades_disponibles} uds
+                        </p>
+                      </div>
+                      {devMultiItems.some((i) => i.consignacion_id === c.id) && (
+                        <input
+                          type="number"
+                          min="1"
+                          max={c.unidades_disponibles}
+                          value={devMultiItems.find((i) => i.consignacion_id === c.id)?.cantidad ?? 1}
+                          onChange={(e) =>
+                            setDevMultiItems((prev) =>
+                              prev.map((i) =>
+                                i.consignacion_id === c.id
+                                  ? { ...i, cantidad: Number(e.target.value) }
+                                  : i,
+                              ),
+                            )
+                          }
+                          className="w-16 px-2 py-1 rounded-lg border text-sm text-center"
+                          style={{
+                            borderColor: 'var(--color-border)',
+                            background: 'var(--color-surface)',
+                            color: 'var(--color-text)',
+                          }}
+                        />
+                      )}
+                    </div>
+                  ))}
+                  {devMultiConsignatariaId && consignacionesActivas.length === 0 && (
+                    <p className="text-sm text-[#8A7D72]">No hay consignaciones activas para esta tienda.</p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-soft)' }}>
+                  Notas (opcional)
+                </label>
+                <textarea
+                  value={devMultiNotas}
+                  onChange={(e) => setDevMultiNotas(e.target.value)}
+                  rows={2}
+                  placeholder="Observaciones de la devolución..."
+                  className="w-full px-3 py-2 rounded-lg border text-sm resize-none"
+                  style={{
+                    borderColor: 'var(--color-border)',
+                    background: 'var(--color-surface)',
+                    color: 'var(--color-text)',
+                  }}
+                />
+              </div>
+
+              {devMultiError && (
+                <p className="text-sm text-red-600 bg-red-50 px-4 py-2.5 rounded-lg">{devMultiError}</p>
+              )}
+            </div>
+
+            <div
+              className="px-6 py-4 border-t flex gap-3 justify-end sticky bottom-0"
+              style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+            >
+              <button
+                onClick={() => setShowModalDevolucionMultiple(false)}
+                className="text-sm px-4 py-2 rounded-lg border transition"
+                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-soft)' }}
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={devMultiSubmitting || !devMultiConsignatariaId || devMultiItems.length === 0}
+                onClick={() => void submitDevolucionMultiple()}
+                className="text-sm px-4 py-2 rounded-lg font-semibold transition disabled:opacity-50"
+                style={{ background: 'var(--color-accent)', color: 'white' }}
+              >
+                {devMultiSubmitting ? 'Guardando...' : 'Registrar devolución'}
+              </button>
+            </div>
           </div>
         </div>
       )}

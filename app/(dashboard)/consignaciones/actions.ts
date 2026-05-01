@@ -73,36 +73,93 @@ export async function eliminarConsignataria(id: string) {
 }
 
 // CONSIGNACIONES (SALIDAS)
-export async function registrarSalida(payload: {
+export async function registrarSalidaMultiple(payload: {
   consignataria_id: string
-  producto_id: string
-  cantidad: number
-  precio_unitario: number
   fecha: string
+  notas?: string
+  items: {
+    producto_id: string
+    cantidad: number
+    precio_unitario: number
+  }[]
 }) {
   try {
     const { tienda_id, supabase } = await getTienda()
-    if (payload.cantidad <= 0) return { error: 'La cantidad debe ser mayor a 0' }
+    if (!payload.items.length) return { error: 'Agrega al menos un producto' }
 
-    const { data: producto } = await supabase
-      .from('productos')
-      .select('stock_actual, nombre')
-      .eq('id', payload.producto_id)
-      .eq('tienda_id', tienda_id)
-      .single()
-
-    if (!producto) return { error: 'Producto no encontrado' }
-    if (producto.stock_actual < payload.cantidad) {
-      return { error: `Stock insuficiente. Disponible: ${producto.stock_actual} unidades de ${producto.nombre}` }
+    for (const item of payload.items) {
+      const { data: prod } = await supabase
+        .from('productos')
+        .select('stock_actual, nombre')
+        .eq('id', item.producto_id)
+        .eq('tienda_id', tienda_id)
+        .single()
+      if (!prod) return { error: 'Producto no encontrado' }
+      if (prod.stock_actual < item.cantidad) {
+        return { error: `Stock insuficiente para ${prod.nombre}. Disponible: ${prod.stock_actual} uds` }
+      }
     }
 
-    const { error } = await supabase.from('consignaciones').insert({
-      tienda_id,
-      estado: 'activa',
-      unidades_disponibles: payload.cantidad,
-      ...payload,
-    })
-    if (error) return { error: error.message }
+    const { data: salida, error: errorSalida } = await supabase
+      .from('consignacion_salidas')
+      .insert({
+        tienda_id,
+        consignataria_id: payload.consignataria_id,
+        fecha: payload.fecha,
+        notas: payload.notas || null,
+      })
+      .select()
+      .single()
+
+    if (errorSalida || !salida) return { error: errorSalida?.message ?? 'Error al crear salida' }
+
+    for (const item of payload.items) {
+      const { error: errorConsig } = await supabase.from('consignaciones').insert({
+        tienda_id,
+        consignataria_id: payload.consignataria_id,
+        producto_id: item.producto_id,
+        cantidad: item.cantidad,
+        precio_unitario: item.precio_unitario,
+        unidades_disponibles: item.cantidad,
+        fecha: payload.fecha,
+        salida_id: salida.id,
+        estado: 'activa',
+      })
+      if (errorConsig) return { error: errorConsig.message }
+    }
+
+    revalidatePath('/consignaciones')
+    revalidatePath('/productos')
+    return { ok: true, salida_id: salida.id }
+  } catch (e: unknown) {
+    return { error: e instanceof Error ? e.message : 'Error desconocido' }
+  }
+}
+
+export async function registrarDevolucionMultiple(payload: {
+  consignataria_id: string
+  fecha: string
+  notas?: string
+  items: {
+    consignacion_id: string
+    cantidad: number
+  }[]
+}) {
+  try {
+    await getTienda()
+    if (!payload.items.length) return { error: 'Agrega al menos un producto' }
+
+    for (const item of payload.items) {
+      const result = await registrarMovimiento({
+        consignacion_id: item.consignacion_id,
+        tipo: 'devolucion',
+        cantidad: item.cantidad,
+        fecha: payload.fecha,
+        notas: payload.notas,
+      })
+      if (result?.error) return { error: result.error }
+    }
+
     revalidatePath('/consignaciones')
     revalidatePath('/productos')
     return { ok: true }
