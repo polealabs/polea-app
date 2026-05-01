@@ -97,14 +97,48 @@ export interface Venta {
   created_at: string
 }
 
+export type TipoGasto = 'variable' | 'fijo' | 'financiero'
+
+export const CATEGORIAS_GASTO: Record<TipoGasto, { label: string; subcategorias: string[] }> = {
+  variable: {
+    label: 'Gasto variable',
+    subcategorias: [
+      'Empaques y materiales',
+      'Envíos y transporte',
+      'Comisiones de ventas',
+      'Pasarelas de pago',
+      'Insumos de producción',
+      'Otro variable',
+    ],
+  },
+  fijo: {
+    label: 'Gasto fijo',
+    subcategorias: [
+      'Arriendo',
+      'Nómina / honorarios',
+      'Publicidad y pauta digital',
+      'Fotografía y contenido',
+      'Suscripciones y software',
+      'Ferias y eventos',
+      'Otro fijo',
+    ],
+  },
+  financiero: {
+    label: 'Gasto financiero',
+    subcategorias: ['Intereses de crédito', 'Cuota de préstamo', 'Otro financiero'],
+  },
+}
+
 export interface Gasto {
   id: string
   tienda_id: string
-  proveedor_id?: string
   descripcion: string
   monto: number
-  categoria: 'Producción' | 'Empaque' | 'Envíos' | 'Marketing' | 'Plataformas' | 'Otro'
   fecha: string
+  categoria: string
+  tipo_gasto?: TipoGasto
+  subcategoria?: string
+  proveedor_id?: string
   created_at: string
 }
 

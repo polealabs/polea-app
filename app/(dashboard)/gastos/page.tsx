@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
 import { crearGasto, eliminarGasto } from './actions'
-import type { Gasto, Proveedor } from '@/lib/types'
+import { CATEGORIAS_GASTO, type Gasto, type Proveedor, type TipoGasto } from '@/lib/types'
 import ImportCSV from '@/components/ui/ImportCSV'
 import ProveedorInlineForm from '@/components/ui/ProveedorInlineForm'
 import Toast from '@/components/ui/Toast'
@@ -13,11 +13,43 @@ import { descargarCSV } from '@/lib/csv'
 import { useToast } from '@/lib/hooks/useToast'
 import { importarGastos } from './actions-import'
 
-const CATEGORIAS_GASTO: Gasto['categoria'][] = ['Producción', 'Empaque', 'Envíos', 'Marketing', 'Plataformas', 'Otro']
-
 const inputClass =
   'w-full px-3 py-2 rounded-lg border border-[#1A1510]/20 bg-white text-[#1A1510] placeholder:text-[#1A1510]/40 focus:outline-none focus:ring-2 focus:ring-[#C4622D]/40 focus:border-[#C4622D] transition text-sm'
 const labelClass = 'block text-xs font-medium text-[#1A1510]/60 mb-1'
+
+const badgeTipo: Record<TipoGasto, { bg: string; text: string; label: string }> = {
+  variable: { bg: '#FFF3E0', text: '#E65100', label: 'Variable' },
+  fijo: { bg: '#E8F5EE', text: '#1E3A2F', label: 'Fijo' },
+  financiero: { bg: '#EEF3FF', text: '#3B5BDB', label: 'Financiero' },
+}
+
+const LEGACY_CATEGORIAS_VARIABLE = new Set([
+  'Producción',
+  'Empaque',
+  'Envíos',
+  'Marketing',
+  'Plataformas',
+  'Otro',
+])
+
+const chipsTipo = [
+  { key: 'todos', label: 'Todos' },
+  { key: 'variable', label: 'Variables' },
+  { key: 'fijo', label: 'Fijos' },
+  { key: 'financiero', label: 'Financieros' },
+] as const
+
+function gastoCoincideTipoChip(g: Gasto, key: string): boolean {
+  if (key === 'todos') return true
+  if (key === 'variable') {
+    if (g.tipo_gasto === 'variable') return true
+    if (!g.tipo_gasto && LEGACY_CATEGORIAS_VARIABLE.has(g.categoria)) return true
+    return false
+  }
+  if (key === 'fijo') return g.tipo_gasto === 'fijo'
+  if (key === 'financiero') return g.tipo_gasto === 'financiero'
+  return true
+}
 
 function formatCOP(n: number) {
   return new Intl.NumberFormat('es-CO', {
@@ -44,7 +76,7 @@ function descargarPlantillaGastos() {
   ])
 }
 
-function categoriaBadgeClass(categoria: Gasto['categoria']) {
+function categoriaBadgeClass(categoria: string) {
   switch (categoria) {
     case 'Producción':
       return 'bg-[#1E3A2F] text-white'
@@ -59,8 +91,16 @@ function categoriaBadgeClass(categoria: Gasto['categoria']) {
     case 'Otro':
       return 'bg-[#6B7280] text-white'
     default:
-      return 'bg-[#6B7280] text-white'
+      return 'bg-[#EDE5DC] text-[#4A3F35]'
   }
+}
+
+function resetFormularioGasto(
+  setTipoGasto: (v: TipoGasto | '') => void,
+  setSubcategoria: (v: string) => void,
+) {
+  setTipoGasto('')
+  setSubcategoria('')
 }
 
 export default function GastosPage() {
@@ -78,7 +118,9 @@ export default function GastosPage() {
     const local = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000)
     return local.toISOString().slice(0, 7)
   })
-  const [chipCategoria, setChipCategoria] = useState<string>('todos')
+  const [chipTipo, setChipTipo] = useState<string>('todos')
+  const [tipoGasto, setTipoGasto] = useState<TipoGasto | ''>('')
+  const [subcategoria, setSubcategoria] = useState('')
   const today = useMemo(() => {
     const hoy = new Date()
     const local = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000)
@@ -121,9 +163,16 @@ export default function GastosPage() {
   }, [fetchGastos, mesActual, tienda])
 
   async function handleSubmit(formData: FormData) {
+    if (!tipoGasto || !subcategoria) {
+      setError('Selecciona tipo de gasto y una subcategoría.')
+      showToast('Selecciona tipo de gasto y una subcategoría.', 'error')
+      return
+    }
     setSubmitting(true)
     setError(null)
     formData.set('proveedor_id', proveedorIdSeleccionado)
+    formData.set('tipo_gasto', tipoGasto)
+    formData.set('subcategoria', subcategoria)
     const result = await crearGasto(formData)
     if (result?.error) {
       setError(result.error)
@@ -132,6 +181,7 @@ export default function GastosPage() {
       setShowForm(false)
       setShowProveedorForm(false)
       setProveedorIdSeleccionado('')
+      resetFormularioGasto(setTipoGasto, setSubcategoria)
       await fetchGastos(tienda.id, mesActual)
       showToast('Gasto registrado')
     }
@@ -166,18 +216,27 @@ export default function GastosPage() {
   const resumenCategorias = useMemo(() => {
     const totals = new Map<string, number>()
     gastos.forEach((gasto) => {
-      totals.set(gasto.categoria, (totals.get(gasto.categoria) ?? 0) + gasto.monto)
+      const clave = gasto.subcategoria || gasto.categoria
+      totals.set(clave, (totals.get(clave) ?? 0) + gasto.monto)
     })
     return Array.from(totals.entries())
   }, [gastos])
-  const gastosFiltrados = chipCategoria === 'todos' ? gastos : gastos.filter((g) => g.categoria === chipCategoria)
-  const conteosGastos = useMemo(() => {
+
+  const gastosFiltrados = useMemo(
+    () => (chipTipo === 'todos' ? gastos : gastos.filter((g) => gastoCoincideTipoChip(g, chipTipo))),
+    [gastos, chipTipo],
+  )
+
+  const conteosPorTipo = useMemo(() => {
     const conteos: Record<string, number> = { todos: gastos.length }
-    CATEGORIAS_GASTO.forEach((cat) => {
-      conteos[cat] = gastos.filter((g) => g.categoria === cat).length
-    })
+    for (const c of chipsTipo) {
+      if (c.key === 'todos') continue
+      conteos[c.key] = gastos.filter((g) => gastoCoincideTipoChip(g, c.key)).length
+    }
     return conteos
   }, [gastos])
+
+  const chipLabelActivo = chipsTipo.find((c) => c.key === chipTipo)?.label ?? chipTipo
 
   if (tiendaLoading || loading) {
     return <ModuleTableSkeleton maxWidthClass="max-w-6xl" rows={8} />
@@ -195,7 +254,9 @@ export default function GastosPage() {
     <div className="p-4 md:p-6 max-w-6xl mx-auto" style={{ background: 'var(--color-background)' }}>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>Gastos</h1>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
+            Gastos
+          </h1>
           <p className="text-sm text-[#1A1510]/50 mt-0.5">{gastos.length} gastos en el mes</p>
         </div>
         <div className="flex gap-3">
@@ -204,7 +265,7 @@ export default function GastosPage() {
             value={mesActual}
             onChange={(e) => {
               setMesActual(e.target.value)
-              setChipCategoria('todos')
+              setChipTipo('todos')
             }}
             className={inputClass}
           />
@@ -214,6 +275,7 @@ export default function GastosPage() {
               setError(null)
               setShowProveedorForm(false)
               setProveedorIdSeleccionado('')
+              resetFormularioGasto(setTipoGasto, setSubcategoria)
             }}
             className="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-lg"
           >
@@ -232,7 +294,7 @@ export default function GastosPage() {
           if (res.exitosos > 0 && tienda) await fetchGastos(tienda.id, mesActual)
           return res
         }}
-        descripcion="Categorías válidas: Producción, Empaque, Envíos, Marketing, Plataformas, Otro · Fechas: DD/MM/YYYY o YYYY-MM-DD"
+        descripcion="CSV: categorías clásicas Producción, Empaque, Envíos, Marketing, Plataformas, Otro · En la app: tipo (variable/fijo/financiero) y subcategoría · Fechas: DD/MM/YYYY o YYYY-MM-DD"
       />
 
       <div
@@ -248,39 +310,33 @@ export default function GastosPage() {
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4">
-        <button
-          onClick={() => setChipCategoria('todos')}
-          className={`text-xs font-medium px-3 py-1.5 rounded-full border transition ${
-            chipCategoria === 'todos'
-              ? 'border-[#1E3A2F] bg-[#1E3A2F] text-white'
-              : 'border-[#EDE5DC] text-[#4A3F35] bg-white hover:border-[#C4B8B0]'
-          }`}
-        >
-          Todos ({gastos.length})
-        </button>
-        {CATEGORIAS_GASTO.filter((cat) => conteosGastos[cat] > 0).map((cat) => (
+        {chipsTipo.map((c) => (
           <button
-            key={cat}
-            onClick={() => setChipCategoria(cat)}
+            key={c.key}
+            type="button"
+            onClick={() => setChipTipo(c.key)}
             className={`text-xs font-medium px-3 py-1.5 rounded-full border transition ${
-              chipCategoria === cat
-                ? 'border-[#C4622D] bg-[#C4622D] text-white'
+              chipTipo === c.key
+                ? 'border-[#1E3A2F] bg-[#1E3A2F] text-white'
                 : 'border-[#EDE5DC] text-[#4A3F35] bg-white hover:border-[#C4B8B0]'
             }`}
           >
-            {cat} ({conteosGastos[cat]})
+            {c.label} ({conteosPorTipo[c.key] ?? 0})
           </button>
         ))}
       </div>
-      {chipCategoria !== 'todos' && (
+      {chipTipo !== 'todos' && (
         <p className="text-xs text-[#8A7D72] mb-4">
           Mostrando {gastosFiltrados.length} gasto{gastosFiltrados.length !== 1 ? 's' : ''} ·{' '}
-          {formatCOP(gastosFiltrados.reduce((s, g) => s + g.monto, 0))} en {chipCategoria}
+          {formatCOP(gastosFiltrados.reduce((s, g) => s + g.monto, 0))} en {chipLabelActivo}
         </p>
       )}
 
       {showForm && (
-        <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-6 mb-6 shadow-sm" style={{ background: 'var(--color-surface)' }}>
+        <div
+          className="bg-white rounded-2xl border border-[#1A1510]/8 p-6 mb-6 shadow-sm"
+          style={{ background: 'var(--color-surface)' }}
+        >
           <h2 className="text-base font-semibold text-[#1E3A2F] mb-4">Nuevo gasto</h2>
           <form
             onSubmit={async (e) => {
@@ -289,6 +345,48 @@ export default function GastosPage() {
             }}
             className="grid grid-cols-1 gap-4 sm:grid-cols-4"
           >
+            <div className="sm:col-span-4">
+              <label className={labelClass}>Tipo de gasto</label>
+              <div className="grid grid-cols-3 gap-2">
+                {(Object.entries(CATEGORIAS_GASTO) as [TipoGasto, (typeof CATEGORIAS_GASTO)[TipoGasto]][]).map(
+                  ([tipo, info]) => (
+                    <button
+                      key={tipo}
+                      type="button"
+                      onClick={() => {
+                        setTipoGasto(tipo)
+                        setSubcategoria('')
+                      }}
+                      className="px-3 py-2.5 rounded-xl border text-sm font-medium transition text-center"
+                      style={{
+                        background: tipoGasto === tipo ? 'var(--color-primary)' : 'var(--color-surface)',
+                        color: tipoGasto === tipo ? 'white' : 'var(--color-text)',
+                        borderColor: tipoGasto === tipo ? 'var(--color-primary)' : 'var(--color-border)',
+                      }}
+                    >
+                      {info.label}
+                    </button>
+                  ),
+                )}
+              </div>
+            </div>
+            {tipoGasto && (
+              <div className="sm:col-span-4">
+                <label className={labelClass}>Subcategoría</label>
+                <select
+                  value={subcategoria}
+                  onChange={(e) => setSubcategoria(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">Selecciona una subcategoría</option>
+                  {CATEGORIAS_GASTO[tipoGasto].subcategorias.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="sm:col-span-2">
               <label className={labelClass}>Descripción</label>
               <input
@@ -296,7 +394,7 @@ export default function GastosPage() {
                 type="text"
                 required
                 className={inputClass}
-                placeholder="Ej: Compra de empaques"
+                placeholder="Ej: Bolsas kraft para pedidos de mayo"
               />
             </div>
             <div>
@@ -304,29 +402,23 @@ export default function GastosPage() {
               <input name="monto" type="number" min="0" required className={inputClass} placeholder="120000" />
             </div>
             <div>
-              <label className={labelClass}>Categoría</label>
-              <select name="categoria" required className={inputClass} defaultValue="">
-                <option value="" disabled>
-                  Selecciona categoría
-                </option>
-                <option value="Producción">Producción</option>
-                <option value="Empaque">Empaque</option>
-                <option value="Envíos">Envíos</option>
-                <option value="Marketing">Marketing</option>
-                <option value="Plataformas">Plataformas</option>
-                <option value="Otro">Otro</option>
-              </select>
-            </div>
-            <div>
               <label className={labelClass}>Fecha</label>
               <input name="fecha" type="date" required defaultValue={today} className={inputClass} />
+            </div>
+            <div className="sm:col-span-4">
+              <label className={labelClass}>Nota de categoría (opcional)</label>
+              <input
+                name="categoria"
+                type="text"
+                className={inputClass}
+                placeholder="Etiqueta libre además de la subcategoría"
+              />
             </div>
             <div className="sm:col-span-2">
               <label className={labelClass}>Proveedor (opcional)</label>
               {!showProveedorForm ? (
                 <div className="flex gap-2">
                   <select
-                    name="proveedor_id"
                     value={proveedorIdSeleccionado}
                     onChange={(e) => setProveedorIdSeleccionado(e.target.value)}
                     className={inputClass}
@@ -364,6 +456,7 @@ export default function GastosPage() {
                   setShowForm(false)
                   setShowProveedorForm(false)
                   setProveedorIdSeleccionado('')
+                  resetFormularioGasto(setTipoGasto, setSubcategoria)
                 }}
                 className="text-sm text-[#1A1510]/60 hover:text-[#1A1510] px-4 py-2 rounded-lg border border-[#1A1510]/20 transition"
               >
@@ -382,13 +475,17 @@ export default function GastosPage() {
       )}
 
       {gastos.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-12 text-center shadow-sm" style={{ background: 'var(--color-surface)' }}>
+        <div
+          className="bg-white rounded-2xl border border-[#1A1510]/8 p-12 text-center shadow-sm"
+          style={{ background: 'var(--color-surface)' }}
+        >
           <p className="text-[#1A1510]/40 text-sm">No tienes gastos registrados para este mes.</p>
           <button
             onClick={() => {
               setShowForm(true)
               setShowProveedorForm(false)
               setProveedorIdSeleccionado('')
+              resetFormularioGasto(setTipoGasto, setSubcategoria)
             }}
             className="mt-3 text-sm text-[#C4622D] font-medium hover:underline"
           >
@@ -396,63 +493,94 @@ export default function GastosPage() {
           </button>
         </div>
       ) : gastosFiltrados.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-12 text-center shadow-sm" style={{ background: 'var(--color-surface)' }}>
-          <p className="text-[#1A1510]/40 text-sm">No hay gastos en esta categoría para este mes.</p>
-          <button onClick={() => setChipCategoria('todos')} className="mt-2 text-sm text-[#C4622D] font-medium hover:underline">
+        <div
+          className="bg-white rounded-2xl border border-[#1A1510]/8 p-12 text-center shadow-sm"
+          style={{ background: 'var(--color-surface)' }}
+        >
+          <p className="text-[#1A1510]/40 text-sm">No hay gastos de este tipo para este mes.</p>
+          <button onClick={() => setChipTipo('todos')} className="mt-2 text-sm text-[#C4622D] font-medium hover:underline">
             Ver todos
           </button>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-[#1A1510]/8 shadow-sm overflow-hidden" style={{ background: 'var(--color-surface)' }}>
+        <div
+          className="bg-white rounded-2xl border border-[#1A1510]/8 shadow-sm overflow-hidden"
+          style={{ background: 'var(--color-surface)' }}
+        >
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[600px]">
-            <thead>
-              <tr className="border-b border-[#1A1510]/8 bg-[#FAF6F0]" style={{ background: 'var(--color-background)' }}>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
-                  Fecha
-                </th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
-                  Descripción
-                </th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
-                  Categoría
-                </th>
-                <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
-                  Monto
-                </th>
-                <th className="px-5 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {gastosFiltrados.map((gasto, i) => (
-                <tr
-                  key={gasto.id}
-                  className={`border-b border-[#1A1510]/5 hover:bg-[#FAF6F0]/60 transition ${
-                    i === gastosFiltrados.length - 1 ? 'border-b-0' : ''
-                  }`}
-                >
-                  <td className="px-5 py-4 text-[#1A1510]/70">{formatFecha(gasto.fecha)}</td>
-                  <td className="px-5 py-4 font-medium text-[#1A1510]">{gasto.descripcion}</td>
-                  <td className="px-5 py-4">
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${categoriaBadgeClass(gasto.categoria)}`}
-                    >
-                      {gasto.categoria}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-right text-[#1A1510]/85">{formatCOP(gasto.monto)}</td>
-                  <td className="px-5 py-4 text-right">
-                    <button
-                      onClick={() => handleEliminar(gasto.id)}
-                      className="text-xs text-[#1A1510]/40 hover:text-red-500 transition"
-                    >
-                      Eliminar
-                    </button>
-                  </td>
+            <table className="w-full text-sm min-w-[720px]">
+              <thead>
+                <tr className="border-b border-[#1A1510]/8 bg-[#FAF6F0]" style={{ background: 'var(--color-background)' }}>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                    Fecha
+                  </th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                    Descripción
+                  </th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                    Categoría
+                  </th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                    Tipo
+                  </th>
+                  <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                    Monto
+                  </th>
+                  <th className="px-5 py-3" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {gastosFiltrados.map((gasto, i) => (
+                  <tr
+                    key={gasto.id}
+                    className={`border-b border-[#1A1510]/5 hover:bg-[#FAF6F0]/60 transition ${
+                      i === gastosFiltrados.length - 1 ? 'border-b-0' : ''
+                    }`}
+                  >
+                    <td className="px-5 py-4 text-[#1A1510]/70">{formatFecha(gasto.fecha)}</td>
+                    <td className="px-5 py-4">
+                      <p className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
+                        {gasto.descripcion}
+                      </p>
+                      {gasto.subcategoria && (
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-soft)' }}>
+                          {gasto.subcategoria}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-5 py-4">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${categoriaBadgeClass(gasto.categoria)}`}
+                      >
+                        {gasto.categoria}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      {gasto.tipo_gasto && (
+                        <span
+                          className="text-xs px-2 py-0.5 rounded-full font-medium"
+                          style={{
+                            background: badgeTipo[gasto.tipo_gasto].bg,
+                            color: badgeTipo[gasto.tipo_gasto].text,
+                          }}
+                        >
+                          {badgeTipo[gasto.tipo_gasto].label}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-4 text-right text-[#1A1510]/85">{formatCOP(gasto.monto)}</td>
+                    <td className="px-5 py-4 text-right">
+                      <button
+                        onClick={() => handleEliminar(gasto.id)}
+                        className="text-xs text-[#1A1510]/40 hover:text-red-500 transition"
+                      >
+                        Eliminar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
