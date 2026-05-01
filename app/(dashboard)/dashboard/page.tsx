@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
 import { DashboardHomeSkeleton } from '@/components/skeletons/DashboardHomeSkeleton'
+import ProductoSelect from '@/components/ui/ProductoSelect'
 import type { Cliente, MedioPago, Producto, VentaCabecera } from '@/lib/types'
 import { crearVentaMulti } from '@/app/(dashboard)/ventas/actions'
 import { calcularComisionMedioPago, toLocalISODateString, toLocalISOYearMonthString } from '@/lib/utils'
@@ -1067,28 +1068,26 @@ export default function DashboardPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           <div className="sm:col-span-1">
                             <label className="block text-xs text-[var(--color-text-soft)] mb-1">Producto</label>
-                            <select
+                            <ProductoSelect
+                              opciones={productosVenta.map((p) => ({
+                                id: p.id,
+                                label: p.nombre,
+                                sublabel: `Stock: ${p.stock_actual} uds · ${formatCOP(p.precio_venta)}`,
+                              }))}
                               value={linea.producto_id}
-                              onChange={(e) => {
-                                const prod = productosVenta.find((p) => p.id === e.target.value)
+                              onChange={(id) => {
+                                const prod = productosVenta.find((p) => p.id === id)
                                 const nuevas = [...lineas]
                                 nuevas[i] = {
                                   ...nuevas[i],
-                                  producto_id: e.target.value,
+                                  producto_id: id,
                                   precio_venta: prod?.precio_venta ?? 0,
                                   precio_original: prod?.precio_venta ?? 0,
                                 }
                                 setLineas(nuevas)
                               }}
-                              className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
-                            >
-                              <option value="">Selecciona</option>
-                              {productosVenta.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.nombre} — {p.stock_actual} uds
-                                </option>
-                              ))}
-                            </select>
+                              placeholder="Buscar producto..."
+                            />
                           </div>
                           <div>
                             <label className="block text-xs text-[var(--color-text-soft)] mb-1">Cantidad</label>

@@ -7,6 +7,7 @@ import { crearEntradas, eliminarEntrada } from './actions'
 import type { Entrada, Producto, Proveedor } from '@/lib/types'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import ImportCSV from '@/components/ui/ImportCSV'
+import ProductoSelect from '@/components/ui/ProductoSelect'
 import ProveedorInlineForm from '@/components/ui/ProveedorInlineForm'
 import Toast from '@/components/ui/Toast'
 import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
@@ -382,18 +383,18 @@ export default function EntradasPage() {
               >
                 <div className="sm:col-span-5">
                   <label className={labelClass}>Producto</label>
-                  <select
+                  <ProductoSelect
+                    opciones={productos.map((p) => ({
+                      id: p.id,
+                      label: p.nombre,
+                      sublabel: `Stock actual: ${p.stock_actual} uds`,
+                    }))}
                     value={linea.producto_id}
-                    onChange={(e) => actualizarLinea(linea.id, { producto_id: e.target.value })}
-                    className={inputClass}
-                  >
-                    <option value="">Selecciona un producto</option>
-                    {productos.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.nombre}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(id) => {
+                      actualizarLinea(linea.id, { producto_id: id })
+                    }}
+                    placeholder="Buscar producto..."
+                  />
                 </div>
                 <div className="sm:col-span-2">
                   <label className={labelClass}>Cantidad</label>

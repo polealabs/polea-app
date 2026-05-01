@@ -20,6 +20,7 @@ import {
 import Toast from '@/components/ui/Toast'
 import { useToast } from '@/lib/hooks/useToast'
 import ConfirmModal from '@/components/ui/ConfirmModal'
+import ProductoSelect from '@/components/ui/ProductoSelect'
 import { toLocalISODateString, toLocalISOYearMonthString } from '@/lib/utils'
 
 type ConsignacionRow = Consignacion & {
@@ -810,24 +811,23 @@ export default function ConsignacionesPage() {
                   <option key={c.id} value={c.id}>{c.nombre}</option>
                 ))}
               </select>
-              <select
-                required
+              <ProductoSelect
+                opciones={productos.map((p) => ({
+                  id: p.id,
+                  label: p.nombre,
+                  sublabel: `Disponible: ${p.stock_actual} uds · ${formatCOP(p.precio_venta)}`,
+                }))}
                 value={salidaProductoId}
-                onChange={e => {
-                  const prod = productos.find(p => p.id === e.target.value)
-                  setSalidaProductoId(e.target.value)
-                  setSalidaPrecioUnitario(prod?.precio_venta ?? 0)
-                  setSalidaCantidad(1)
+                onChange={(id) => {
+                  const prod = productos.find((p) => p.id === id)
+                  setSalidaProductoId(id)
+                  if (prod) {
+                    setSalidaPrecioUnitario(prod.precio_venta)
+                    setSalidaCantidad(1)
+                  }
                 }}
-                className={inputClass}
-              >
-                <option value="">Producto</option>
-                {productos.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre} · {p.stock_actual} uds disponibles
-                  </option>
-                ))}
-              </select>
+                placeholder="Buscar producto..."
+              />
               {productoSeleccionado && <p className="text-xs text-[#1A1510]/50">Stock disponible: {productoSeleccionado.stock_actual} unidades</p>}
               <input type="number" min={1} max={productoSeleccionado?.stock_actual ?? undefined} value={salidaCantidad} onChange={(e) => setSalidaCantidad(Number(e.target.value))} className={inputClass} placeholder="Cantidad" />
               <div>

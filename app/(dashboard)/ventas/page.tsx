@@ -9,6 +9,7 @@ import { calcularComisionMedioPago, toLocalISODateString } from '@/lib/utils'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import ClienteInlineForm from '@/components/ui/ClienteInlineForm'
 import ImportCSV from '@/components/ui/ImportCSV'
+import ProductoSelect from '@/components/ui/ProductoSelect'
 import Toast from '@/components/ui/Toast'
 import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
 import { descargarCSV } from '@/lib/csv'
@@ -671,18 +672,25 @@ export default function VentasPage() {
                   <div key={i} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start rounded-xl border border-[#EDE5DC] p-4">
                     <div className="md:col-span-4">
                       <label className={labelClass}>Producto</label>
-                      <select
-                        className={inputClass}
+                      <ProductoSelect
+                        opciones={productos
+                          .filter((p) => p.stock_actual > 0 || p.id === l.producto_id)
+                          .map((p) => ({
+                            id: p.id,
+                            label: p.nombre,
+                            sublabel: `Stock: ${p.stock_actual} uds · ${formatCOP(p.precio_venta)}`,
+                          }))}
                         value={l.producto_id}
-                        onChange={(e) => actualizarLinea(i, 'producto_id', e.target.value)}
-                      >
-                        <option value="">Selecciona producto</option>
-                        {productos.map((p) => (
-                          <option key={p.id} value={p.id} disabled={p.stock_actual <= 0}>
-                            {p.nombre} — {p.stock_actual} uds. disponibles
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(id) => {
+                          const prod = productos.find((p) => p.id === id)
+                          actualizarLinea(i, 'producto_id', id)
+                          if (prod) {
+                            actualizarLinea(i, 'precio_venta', prod.precio_venta)
+                            actualizarLinea(i, 'precio_original', prod.precio_venta)
+                          }
+                        }}
+                        placeholder="Buscar producto..."
+                      />
                       {prod && (
                         <p
                           className={`text-xs mt-1.5 font-medium ${
