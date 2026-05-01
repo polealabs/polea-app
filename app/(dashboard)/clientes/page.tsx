@@ -321,6 +321,16 @@ export default function ClientesPage() {
               />
             </div>
             <div>
+              <label className={labelClass}>Dirección (opcional)</label>
+              <input
+                type="text"
+                name="direccion"
+                defaultValue={editando?.direccion ?? ''}
+                placeholder="Ej: Calle 10 # 5-23, Cali"
+                className={inputClass}
+              />
+            </div>
+            <div>
               <label className={labelClass}>Ciudad</label>
               <input
                 name="ciudad"
@@ -395,6 +405,9 @@ export default function ClientesPage() {
                   Teléfono
                 </th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                  Dirección
+                </th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                   Ciudad
                 </th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
@@ -419,6 +432,9 @@ export default function ClientesPage() {
                 >
                   <td className="px-5 py-4 font-medium text-[#1A1510]">{cliente.nombre}</td>
                   <td className="px-5 py-4 text-[#1A1510]/70">{cliente.telefono ?? '—'}</td>
+                  <td className="px-5 py-3.5 text-sm" style={{ color: 'var(--color-text-soft)' }}>
+                    {cliente.direccion || '—'}
+                  </td>
                   <td className="px-5 py-4 text-[#1A1510]/70">{cliente.ciudad ?? '—'}</td>
                   <td className="px-5 py-4 text-[#1A1510]/70">{cliente.correo ?? '—'}</td>
                   <td className="px-5 py-4">

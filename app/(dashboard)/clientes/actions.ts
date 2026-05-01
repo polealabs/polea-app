@@ -24,6 +24,7 @@ export async function crearCliente(formData: FormData) {
     tienda_id: tienda.id,
     nombre: formData.get('nombre') as string,
     telefono: (formData.get('telefono') as string) || null,
+    direccion: (formData.get('direccion') as string)?.trim() || null,
     ciudad: (formData.get('ciudad') as string) || null,
     correo: (formData.get('correo') as string) || null,
     fecha_creacion: fechaCreacion,
@@ -42,6 +43,7 @@ export async function editarCliente(id: string, formData: FormData) {
     .update({
       nombre: formData.get('nombre') as string,
       telefono: (formData.get('telefono') as string) || null,
+      direccion: (formData.get('direccion') as string)?.trim() || null,
       ciudad: (formData.get('ciudad') as string) || null,
       correo: (formData.get('correo') as string) || null,
     })

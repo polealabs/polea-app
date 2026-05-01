@@ -59,6 +59,7 @@ export interface Cliente {
   tienda_id: string
   nombre: string
   telefono?: string
+  direccion?: string
   ciudad?: string
   correo?: string
   fecha_creacion?: string
