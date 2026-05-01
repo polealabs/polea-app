@@ -12,6 +12,7 @@ import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
 import { descargarCSV } from '@/lib/csv'
 import { useToast } from '@/lib/hooks/useToast'
 import { importarClientes } from './actions-import'
+import { toLocalISOYearMonthString } from '@/lib/utils'
 
 type ClienteConCompras = Cliente & { total_compras: number }
 
@@ -46,7 +47,7 @@ export default function ClientesPage() {
   const [showForm, setShowForm] = useState(false)
   const [editando, setEditando] = useState<Cliente | null>(null)
   const [busqueda, setBusqueda] = useState('')
-  const [mesActual, setMesActual] = useState(() => new Date().toISOString().slice(0, 7))
+  const [mesActual, setMesActual] = useState(() => toLocalISOYearMonthString())
   const [filtroMes, setFiltroMes] = useState(false)
   const [chipCliente, setChipCliente] = useState<'todos' | 'recurrentes' | 'activos-mes' | 'sin-compras'>(
     () => (searchParams.get('filtro') === 'recurrentes' ? 'recurrentes' : 'todos'),
@@ -54,7 +55,7 @@ export default function ClientesPage() {
   const [ultimaCompraMap, setUltimaCompraMap] = useState<Map<string, string>>(new Map())
   const [fechasFiltro] = useState(() => ({
     hace35: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    mesActualStr: new Date().toISOString().slice(0, 7),
+    mesActualStr: toLocalISOYearMonthString(),
   }))
   const { toasts, showToast, removeToast } = useToast()
 
