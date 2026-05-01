@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
-import { crearGasto, eliminarGasto } from './actions'
+import { actualizarGasto, crearGasto, eliminarGasto } from './actions'
 import { CATEGORIAS_GASTO, type Gasto, type Proveedor, type TipoGasto } from '@/lib/types'
 import ImportCSV from '@/components/ui/ImportCSV'
 import ProveedorInlineForm from '@/components/ui/ProveedorInlineForm'
@@ -21,6 +21,7 @@ const badgeTipo: Record<TipoGasto, { bg: string; text: string; label: string }> 
   variable: { bg: '#FFF3E0', text: '#E65100', label: 'Variable' },
   fijo: { bg: '#E8F5EE', text: '#1E3A2F', label: 'Fijo' },
   financiero: { bg: '#EEF3FF', text: '#3B5BDB', label: 'Financiero' },
+  compra_inventario: { bg: '#EEF9F1', text: '#256C45', label: 'Compra inventario' },
 }
 
 const LEGACY_CATEGORIAS_VARIABLE = new Set([
@@ -37,6 +38,7 @@ const chipsTipo = [
   { key: 'variable', label: 'Variables' },
   { key: 'fijo', label: 'Fijos' },
   { key: 'financiero', label: 'Financieros' },
+  { key: 'compra_inventario', label: 'Compras inventario' },
 ] as const
 
 function gastoCoincideTipoChip(g: Gasto, key: string): boolean {
@@ -48,6 +50,7 @@ function gastoCoincideTipoChip(g: Gasto, key: string): boolean {
   }
   if (key === 'fijo') return g.tipo_gasto === 'fijo'
   if (key === 'financiero') return g.tipo_gasto === 'financiero'
+  if (key === 'compra_inventario') return g.tipo_gasto === 'compra_inventario'
   return true
 }
 
@@ -103,8 +106,19 @@ function resetFormularioGasto(
   setSubcategoria('')
 }
 
+function esTipoGasto(t: unknown): t is TipoGasto {
+  return t === 'variable' || t === 'fijo' || t === 'financiero' || t === 'compra_inventario'
+}
+
+/** Valor inicial del campo nota de categoría al cargar un gasto para edición */
+function notaCategoriaDesdeGasto(g: Gasto): string {
+  if (g.subcategoria && g.categoria !== g.subcategoria) return g.categoria
+  if (!g.subcategoria) return g.categoria
+  return ''
+}
+
 export default function GastosPage() {
-  const { tienda, loading: tiendaLoading, canViewFinanzas } = useTienda()
+  const { tienda, loading: tiendaLoading, canViewFinanzas, canEdit } = useTienda()
   const [gastos, setGastos] = useState<Gasto[]>([])
   const [proveedores, setProveedores] = useState<Proveedor[]>([])
   const [loading, setLoading] = useState(true)
@@ -119,8 +133,15 @@ export default function GastosPage() {
     return local.toISOString().slice(0, 7)
   })
   const [chipTipo, setChipTipo] = useState<string>('todos')
+  const [editando, setEditando] = useState<Gasto | null>(null)
   const [tipoGasto, setTipoGasto] = useState<TipoGasto | ''>('')
   const [subcategoria, setSubcategoria] = useState('')
+  const [form, setForm] = useState({
+    descripcion: '',
+    monto: '',
+    fecha: '',
+    categoria: '',
+  })
   const today = useMemo(() => {
     const hoy = new Date()
     const local = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000)
@@ -173,17 +194,36 @@ export default function GastosPage() {
     formData.set('proveedor_id', proveedorIdSeleccionado)
     formData.set('tipo_gasto', tipoGasto)
     formData.set('subcategoria', subcategoria)
-    const result = await crearGasto(formData)
-    if (result?.error) {
-      setError(result.error)
-      showToast(result.error, 'error')
-    } else if (tienda) {
-      setShowForm(false)
-      setShowProveedorForm(false)
-      setProveedorIdSeleccionado('')
-      resetFormularioGasto(setTipoGasto, setSubcategoria)
-      await fetchGastos(tienda.id, mesActual)
-      showToast('Gasto registrado')
+
+    if (editando) {
+      const result = await actualizarGasto(editando.id, formData)
+      if (result?.error) {
+        setError(result.error)
+        showToast(result.error, 'error')
+      } else if (tienda) {
+        setShowForm(false)
+        setShowProveedorForm(false)
+        setProveedorIdSeleccionado('')
+        setEditando(null)
+        resetFormularioGasto(setTipoGasto, setSubcategoria)
+        setForm({ descripcion: '', monto: '', fecha: today, categoria: '' })
+        await fetchGastos(tienda.id, mesActual)
+        showToast('Gasto actualizado', 'success')
+      }
+    } else {
+      const result = await crearGasto(formData)
+      if (result?.error) {
+        setError(result.error)
+        showToast(result.error, 'error')
+      } else if (tienda) {
+        setShowForm(false)
+        setShowProveedorForm(false)
+        setProveedorIdSeleccionado('')
+        resetFormularioGasto(setTipoGasto, setSubcategoria)
+        setForm({ descripcion: '', monto: '', fecha: today, categoria: '' })
+        await fetchGastos(tienda.id, mesActual)
+        showToast('Gasto registrado', 'success')
+      }
     }
     setSubmitting(false)
   }
@@ -271,11 +311,13 @@ export default function GastosPage() {
           />
           <button
             onClick={() => {
+              setEditando(null)
               setShowForm(true)
               setError(null)
               setShowProveedorForm(false)
               setProveedorIdSeleccionado('')
               resetFormularioGasto(setTipoGasto, setSubcategoria)
+              setForm({ descripcion: '', monto: '', fecha: today, categoria: '' })
             }}
             className="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-lg"
           >
@@ -337,7 +379,7 @@ export default function GastosPage() {
           className="bg-white rounded-2xl border border-[#1A1510]/8 p-6 mb-6 shadow-sm"
           style={{ background: 'var(--color-surface)' }}
         >
-          <h2 className="text-base font-semibold text-[#1E3A2F] mb-4">Nuevo gasto</h2>
+          <h2 className="text-base font-semibold text-[#1E3A2F] mb-4">{editando ? 'Editar gasto' : 'Nuevo gasto'}</h2>
           <form
             onSubmit={async (e) => {
               e.preventDefault()
@@ -347,15 +389,17 @@ export default function GastosPage() {
           >
             <div className="sm:col-span-4">
               <label className={labelClass}>Tipo de gasto</label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {(Object.entries(CATEGORIAS_GASTO) as [TipoGasto, (typeof CATEGORIAS_GASTO)[TipoGasto]][]).map(
                   ([tipo, info]) => (
                     <button
                       key={tipo}
                       type="button"
                       onClick={() => {
-                        setTipoGasto(tipo)
-                        setSubcategoria('')
+                        setTipoGasto((prevTipo) => {
+                          if (tipo !== prevTipo) setSubcategoria('')
+                          return tipo
+                        })
                       }}
                       className="px-3 py-2.5 rounded-xl border text-sm font-medium transition text-center"
                       style={{
@@ -364,12 +408,27 @@ export default function GastosPage() {
                         borderColor: tipoGasto === tipo ? 'var(--color-primary)' : 'var(--color-border)',
                       }}
                     >
-                      {info.label}
+                      <span className="block">{info.label}</span>
+                      {tipo === 'compra_inventario' && (
+                        <span className="block text-[11px] mt-0.5 opacity-80">Aparece en flujo de caja, no en P&L</span>
+                      )}
                     </button>
                   ),
                 )}
               </div>
             </div>
+            {tipoGasto === 'compra_inventario' && (
+              <div
+                className="sm:col-span-4 rounded-xl p-3 text-xs"
+                style={{ background: 'var(--color-accent-pale)', border: '1px solid var(--color-border)' }}
+              >
+                <p className="font-semibold" style={{ color: 'var(--color-accent)' }}>📦 Compra de inventario</p>
+                <p className="mt-1" style={{ color: 'var(--color-text-soft)' }}>
+                  Esta compra aparecerá en tu Flujo de caja como salida de dinero, pero NO en tu P&amp;L como gasto.
+                  El costo del producto se registra en el P&amp;L cuando se vende (CPV).
+                </p>
+              </div>
+            )}
             {tipoGasto && (
               <div className="sm:col-span-4">
                 <label className={labelClass}>Subcategoría</label>
@@ -395,15 +454,34 @@ export default function GastosPage() {
                 required
                 className={inputClass}
                 placeholder="Ej: Bolsas kraft para pedidos de mayo"
+                value={form.descripcion}
+                onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
               />
             </div>
             <div>
               <label className={labelClass}>Monto COP</label>
-              <input name="monto" type="number" min="0" required className={inputClass} placeholder="120000" />
+              <input
+                name="monto"
+                type="number"
+                min="0"
+                step="1"
+                required
+                className={inputClass}
+                placeholder="120000"
+                value={form.monto}
+                onChange={(e) => setForm((f) => ({ ...f, monto: e.target.value }))}
+              />
             </div>
             <div>
               <label className={labelClass}>Fecha</label>
-              <input name="fecha" type="date" required defaultValue={today} className={inputClass} />
+              <input
+                name="fecha"
+                type="date"
+                required
+                className={inputClass}
+                value={form.fecha}
+                onChange={(e) => setForm((f) => ({ ...f, fecha: e.target.value }))}
+              />
             </div>
             <div className="sm:col-span-4">
               <label className={labelClass}>Nota de categoría (opcional)</label>
@@ -412,6 +490,8 @@ export default function GastosPage() {
                 type="text"
                 className={inputClass}
                 placeholder="Etiqueta libre además de la subcategoría"
+                value={form.categoria}
+                onChange={(e) => setForm((f) => ({ ...f, categoria: e.target.value }))}
               />
             </div>
             <div className="sm:col-span-2">
@@ -454,9 +534,11 @@ export default function GastosPage() {
                 type="button"
                 onClick={() => {
                   setShowForm(false)
+                  setEditando(null)
                   setShowProveedorForm(false)
                   setProveedorIdSeleccionado('')
                   resetFormularioGasto(setTipoGasto, setSubcategoria)
+                  setForm({ descripcion: '', monto: '', fecha: today, categoria: '' })
                 }}
                 className="text-sm text-[#1A1510]/60 hover:text-[#1A1510] px-4 py-2 rounded-lg border border-[#1A1510]/20 transition"
               >
@@ -467,7 +549,7 @@ export default function GastosPage() {
                 disabled={submitting}
                 className="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
               >
-                {submitting ? 'Guardando...' : 'Guardar'}
+                {submitting ? 'Guardando...' : editando ? 'Actualizar' : 'Guardar'}
               </button>
             </div>
           </form>
@@ -482,10 +564,12 @@ export default function GastosPage() {
           <p className="text-[#1A1510]/40 text-sm">No tienes gastos registrados para este mes.</p>
           <button
             onClick={() => {
+              setEditando(null)
               setShowForm(true)
               setShowProveedorForm(false)
               setProveedorIdSeleccionado('')
               resetFormularioGasto(setTipoGasto, setSubcategoria)
+              setForm({ descripcion: '', monto: '', fecha: today, categoria: '' })
             }}
             className="mt-3 text-sm text-[#C4622D] font-medium hover:underline"
           >
@@ -570,12 +654,40 @@ export default function GastosPage() {
                     </td>
                     <td className="px-5 py-4 text-right text-[#1A1510]/85">{formatCOP(gasto.monto)}</td>
                     <td className="px-5 py-4 text-right">
-                      <button
-                        onClick={() => handleEliminar(gasto.id)}
-                        className="text-xs text-[#1A1510]/40 hover:text-red-500 transition"
-                      >
-                        Eliminar
-                      </button>
+                      <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditando(gasto)
+                              setForm({
+                                descripcion: gasto.descripcion,
+                                monto: String(gasto.monto),
+                                fecha: gasto.fecha.slice(0, 10),
+                                categoria: notaCategoriaDesdeGasto(gasto),
+                              })
+                              setTipoGasto(esTipoGasto(gasto.tipo_gasto) ? gasto.tipo_gasto : '')
+                              setSubcategoria(gasto.subcategoria ?? '')
+                              setProveedorIdSeleccionado(gasto.proveedor_id ?? '')
+                              setShowForm(true)
+                              setError(null)
+                              setShowProveedorForm(false)
+                              window.scrollTo({ top: 0, behavior: 'smooth' })
+                            }}
+                            className="text-sm font-medium hover:underline"
+                            style={{ color: 'var(--color-primary)' }}
+                          >
+                            Editar
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleEliminar(gasto.id)}
+                          className="text-xs text-[#1A1510]/40 hover:text-red-500 transition"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

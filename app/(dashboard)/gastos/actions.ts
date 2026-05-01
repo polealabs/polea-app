@@ -38,6 +38,43 @@ export async function crearGasto(formData: FormData) {
   return { ok: true }
 }
 
+export async function actualizarGasto(id: string, formData: FormData) {
+  try {
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return { error: 'No autenticado' }
+
+    const { data: tienda } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
+    if (!tienda) return { error: 'Tienda no encontrada' }
+
+    const tipo_gasto = (formData.get('tipo_gasto') as string)?.trim() || null
+    const subcategoria = (formData.get('subcategoria') as string)?.trim() || null
+    const categoriaLibre = (formData.get('categoria') as string)?.trim() || null
+
+    const { error } = await supabase
+      .from('gastos')
+      .update({
+        descripcion: (formData.get('descripcion') as string)?.trim(),
+        monto: Number(formData.get('monto')),
+        fecha: formData.get('fecha') as string,
+        categoria: categoriaLibre || subcategoria || 'Otro',
+        tipo_gasto: tipo_gasto || null,
+        subcategoria: subcategoria || null,
+        proveedor_id: (formData.get('proveedor_id') as string)?.trim() || null,
+      })
+      .eq('id', id)
+      .eq('tienda_id', tienda.id)
+
+    if (error) return { error: error.message }
+    revalidatePath('/gastos')
+    return { ok: true }
+  } catch (e: unknown) {
+    return { error: e instanceof Error ? e.message : 'Error desconocido' }
+  }
+}
+
 export async function eliminarGasto(id: string) {
   const supabase = await createClient()
   await supabase.from('gastos').delete().eq('id', id)

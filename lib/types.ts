@@ -97,7 +97,7 @@ export interface Venta {
   created_at: string
 }
 
-export type TipoGasto = 'variable' | 'fijo' | 'financiero'
+export type TipoGasto = 'variable' | 'fijo' | 'financiero' | 'compra_inventario'
 
 export const CATEGORIAS_GASTO: Record<TipoGasto, { label: string; subcategorias: string[] }> = {
   variable: {
@@ -126,6 +126,10 @@ export const CATEGORIAS_GASTO: Record<TipoGasto, { label: string; subcategorias:
   financiero: {
     label: 'Gasto financiero',
     subcategorias: ['Intereses de crédito', 'Cuota de préstamo', 'Otro financiero'],
+  },
+  compra_inventario: {
+    label: 'Compra de inventario',
+    subcategorias: ['Materia prima', 'Producto terminado', 'Insumos', 'Otro'],
   },
 }
 

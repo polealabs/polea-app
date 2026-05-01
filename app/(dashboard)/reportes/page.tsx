@@ -111,10 +111,11 @@ export default function ReportesPage() {
     )
   }
 
-  const sinActividad = datos.ventasNetas === 0 && datos.totalGastos === 0
+  const sinActividad = datos.ventasNetas === 0 && datos.totalGastos === 0 && datos.totalComprasInventario === 0
   const top3Productos = datos.top3Productos ?? []
   const top3Clientes = datos.top3Clientes ?? []
-  const flujoNetoMes = datos.ventasNetas - datos.totalComprasMes - datos.totalGastos
+  const totalSalidasInventario = datos.totalComprasMes + datos.totalComprasInventario
+  const flujoNetoMes = datos.ventasNetas - totalSalidasInventario - datos.totalGastos
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
@@ -189,11 +190,13 @@ export default function ReportesPage() {
 
               <div className="bg-white rounded-2xl border border-[#EDE5DC] p-4 shadow-sm">
                 <p className="text-xs text-[#8A7D72] mb-1 flex items-center">
-                  Gastos totales
-                  <Bombillo texto="Todos los gastos del mes: producción, empaque, envíos, marketing, etc." />
+                  Utilidad operacional
+                  <Bombillo texto="Lo que queda después de ventas netas, CPV y todos los gastos operacionales (variables y fijos)." />
                 </p>
-                <p className="text-xl sm:text-2xl font-serif text-[#1E3A2F]">{formatCOP(datos.totalGastos)}</p>
-                <div className="h-1 bg-[#D4A853] rounded-full mt-3" />
+                <p className={`text-xl sm:text-2xl font-serif ${datos.utilidadOperacional >= 0 ? 'text-[#3A7D5A]' : 'text-[#C44040]'}`}>
+                  {formatCOP(datos.utilidadOperacional)}
+                </p>
+                <div className="h-1 rounded-full mt-3" style={{ background: datos.utilidadOperacional >= 0 ? '#3A7D5A' : '#C44040' }} />
               </div>
 
               <div
@@ -269,35 +272,129 @@ export default function ReportesPage() {
                 </p>
               </div>
 
-              <div className="flex items-start justify-between py-2">
-                <div>
-                  <p className="text-sm text-[#4A3F35]">Gastos operacionales</p>
-                  <div className="mt-1 pl-3">
-                    {Object.entries(datos.gastosPorCategoria).map(([categoria, monto]) => (
-                      <p key={categoria} className="text-xs text-[#8A7D72] flex justify-between gap-3">
-                        <span>{categoria}</span>
-                        <span>{formatCOP(monto)}</span>
+              {datos.gastosPorTipo.variable.total > 0 && (
+                <>
+                  <div className="flex items-start justify-between py-2">
+                    <div>
+                      <p className="text-sm text-[#4A3F35] font-medium flex items-center">
+                        Gastos variables
+                        <Bombillo texto="Gastos que varían con el volumen de ventas: empaques, envíos, comisiones, pasarelas de pago, insumos." />
                       </p>
-                    ))}
+                      <div className="mt-1 pl-3 space-y-0.5">
+                        {datos.gastosPorTipo.variable.items.map((item) => (
+                          <div key={item.subcategoria} className="flex justify-between text-xs text-[#8A7D72] gap-3">
+                            <span>{item.subcategoria}</span>
+                            <span>{formatCOP(item.monto)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-sm font-semibold text-[#4A3F35]">- {formatCOP(datos.gastosVariables)}</p>
                   </div>
-                </div>
-                <p className="text-sm font-semibold text-[#4A3F35]">- {formatCOP(datos.totalGastos)}</p>
-              </div>
+                  <div className="border-t border-[#EDE5DC] my-2" />
+                  <div className="flex items-center justify-between py-2">
+                    <p className="text-sm font-bold" style={{ color: datos.utilidadDespuesVariables >= 0 ? '#3A7D5A' : '#C44040' }}>
+                      Utilidad después de variables
+                    </p>
+                    <p className="text-sm font-bold" style={{ color: datos.utilidadDespuesVariables >= 0 ? '#3A7D5A' : '#C44040' }}>
+                      {formatCOP(datos.utilidadDespuesVariables)}
+                    </p>
+                  </div>
+                </>
+              )}
 
-              <div className="border-t-2 border-b border-[#EDE5DC] my-3" />
+              {datos.gastosPorTipo.fijo.total > 0 && (
+                <>
+                  <div className="flex items-start justify-between py-2">
+                    <div>
+                      <p className="text-sm text-[#4A3F35] font-medium flex items-center">
+                        Gastos fijos
+                        <Bombillo texto="Gastos que no cambian con las ventas: arriendo, nómina, suscripciones, publicidad fija." />
+                      </p>
+                      <div className="mt-1 pl-3 space-y-0.5">
+                        {datos.gastosPorTipo.fijo.items.map((item) => (
+                          <div key={item.subcategoria} className="flex justify-between text-xs text-[#8A7D72] gap-3">
+                            <span>{item.subcategoria}</span>
+                            <span>{formatCOP(item.monto)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-sm font-semibold text-[#4A3F35]">- {formatCOP(datos.gastosFijos)}</p>
+                  </div>
+                  <div className="border-t border-[#EDE5DC] my-2" />
+                  <div className="flex items-center justify-between py-2">
+                    <p className="text-sm font-bold" style={{ color: datos.utilidadOperacional >= 0 ? '#3A7D5A' : '#C44040' }}>
+                      Utilidad operacional
+                    </p>
+                    <p className="text-sm font-bold" style={{ color: datos.utilidadOperacional >= 0 ? '#3A7D5A' : '#C44040' }}>
+                      {formatCOP(datos.utilidadOperacional)}
+                    </p>
+                  </div>
+                </>
+              )}
 
-              <div className="flex items-center justify-between py-2">
-                <div className="flex items-center">
-                  <p className={`text-base font-bold ${datos.utilidadOperacional >= 0 ? 'text-[#3A7D5A]' : 'text-[#C44040]'}`}>
-                    Utilidad operacional
+              {datos.gastosPorTipo.financiero.total > 0 && (
+                <>
+                  <div className="flex items-start justify-between py-2">
+                    <div>
+                      <p className="text-sm text-[#4A3F35] font-medium flex items-center">
+                        Gastos financieros
+                        <Bombillo texto="Intereses y cuotas de créditos o préstamos." />
+                      </p>
+                      <div className="mt-1 pl-3 space-y-0.5">
+                        {datos.gastosPorTipo.financiero.items.map((item) => (
+                          <div key={item.subcategoria} className="flex justify-between text-xs text-[#8A7D72] gap-3">
+                            <span>{item.subcategoria}</span>
+                            <span>{formatCOP(item.monto)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-sm font-semibold text-[#4A3F35]">- {formatCOP(datos.gastosFinancieros)}</p>
+                  </div>
+                </>
+              )}
+
+              {datos.gastosPorTipo.sin_clasificar.total > 0 && (
+                <div className="flex items-start justify-between py-2">
+                  <div>
+                    <p className="text-sm text-[#8A7D72] flex items-center">
+                      Otros gastos
+                      <Bombillo texto="Gastos registrados antes de la categorización. Te recomendamos reclasificarlos en el módulo de Gastos." />
+                    </p>
+                    <div className="mt-1 pl-3 space-y-0.5">
+                      {datos.gastosPorTipo.sin_clasificar.items.map((item, idx) => (
+                        <div key={`${item.categoria}-${idx}`} className="flex justify-between text-xs text-[#8A7D72] gap-3">
+                          <span>{item.categoria}</span>
+                          <span>{formatCOP(item.monto)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-sm font-semibold text-[#8A7D72]">
+                    - {formatCOP(datos.gastosPorTipo.sin_clasificar.total)}
                   </p>
                 </div>
-                <p className={`text-base font-bold ${datos.utilidadOperacional >= 0 ? 'text-[#3A7D5A]' : 'text-[#C44040]'}`}>
-                  {formatCOP(datos.utilidadOperacional)}
+              )}
+
+              <div className="border-t-2 border-[#EDE5DC] my-3" />
+
+              <div className="flex items-center justify-between py-2">
+                <p className="text-sm font-bold" style={{ color: datos.utilidadNeta >= 0 ? '#3A7D5A' : '#C44040' }}>
+                  Utilidad antes de impuestos
+                </p>
+                <p className="text-sm font-bold" style={{ color: datos.utilidadNeta >= 0 ? '#3A7D5A' : '#C44040' }}>
+                  {formatCOP(datos.utilidadNeta)}
                 </p>
               </div>
 
-              <div className="border-t border-[#EDE5DC] my-3" />
+              <div className="flex items-center justify-between py-1 opacity-50">
+                <p className="text-xs text-[#8A7D72] italic">Impuestos (no calculado)</p>
+                <p className="text-xs text-[#8A7D72]">—</p>
+              </div>
+
+              <div className="border-t border-[#EDE5DC] my-2" />
 
               <div className="flex items-center justify-between py-2">
                 <div className="flex items-center">
@@ -305,9 +402,9 @@ export default function ReportesPage() {
                     Utilidad neta
                   </p>
                   <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full bg-[#F2F0EC] text-[#5A4F45]">
-                    {datos.margenNeto.toFixed(1)}% margen neto
+                    {datos.margenNeto.toFixed(1)}% margen
                   </span>
-                  <Bombillo texto="Resultado final tras ventas netas, CPV y gastos operacionales." />
+                  <Bombillo texto="Resultado final. En este momento no incluye impuestos — agrega un contador para calcularlos." />
                 </div>
                 <p className={`text-lg font-bold ${datos.utilidadNeta >= 0 ? 'text-[#3A7D5A]' : 'text-[#C44040]'}`}>
                   {formatCOP(datos.utilidadNeta)}
@@ -324,26 +421,84 @@ export default function ReportesPage() {
             </div>
 
             <div className="bg-white rounded-2xl border border-[#EDE5DC] shadow-sm p-6 mt-6 mb-6">
-              <p className="text-xs font-semibold text-[#8A7D72] uppercase tracking-wide mb-4">💵 Flujo de caja</p>
-              <div className="space-y-3">
+              <p className="text-sm font-semibold text-[#1A1510] mb-5 flex items-center flex-wrap gap-1">
+                💵 Flujo de caja del mes
+                <Bombillo texto="Muestra el movimiento real del dinero. A diferencia del P&L, aquí aparecen las compras al proveedor aunque no hayas vendido esa mercancía aún." />
+              </p>
+
+              <p className="text-xs font-semibold text-[#8A7D72] uppercase tracking-wide mb-2">Entradas</p>
+              <div className="space-y-2 mb-4">
                 <div className="flex justify-between text-sm">
-                  <span style={{ color: 'var(--color-text-soft)' }}>Ingresos recibidos (ventas netas)</span>
+                  <span style={{ color: 'var(--color-text-soft)' }}>Cobros por ventas del mes</span>
                   <span className="font-semibold text-[#3A7D5A]">+ {formatCOP(datos.ventasNetas)}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span style={{ color: 'var(--color-text-soft)' }}>Compras al proveedor</span>
-                  <span className="font-semibold text-[#C44040]">- {formatCOP(datos.totalComprasMes)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span style={{ color: 'var(--color-text-soft)' }}>Gastos operacionales</span>
-                  <span className="font-semibold text-[#C44040]">- {formatCOP(datos.totalGastos)}</span>
-                </div>
-                <div className="border-t border-[#EDE5DC] pt-3 flex justify-between">
-                  <span className="font-semibold" style={{ color: 'var(--color-text)' }}>Flujo neto del mes</span>
+              </div>
+
+              <div className="border-t border-[#EDE5DC] my-3" />
+
+              <p className="text-xs font-semibold text-[#8A7D72] uppercase tracking-wide mb-2">Salidas operativas</p>
+              <div className="space-y-2 mb-4">
+                {datos.totalComprasMes > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: 'var(--color-text-soft)' }}>Compras a proveedores (entradas)</span>
+                    <span className="font-semibold text-[#C44040]">- {formatCOP(datos.totalComprasMes)}</span>
+                  </div>
+                )}
+                {datos.totalComprasInventario > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: 'var(--color-text-soft)' }}>Compras de inventario</span>
+                    <span className="font-semibold text-[#C44040]">- {formatCOP(datos.totalComprasInventario)}</span>
+                  </div>
+                )}
+                {datos.gastosVariables > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: 'var(--color-text-soft)' }}>Gastos variables</span>
+                    <span className="font-semibold text-[#C44040]">- {formatCOP(datos.gastosVariables)}</span>
+                  </div>
+                )}
+                {datos.gastosFijos > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: 'var(--color-text-soft)' }}>Gastos fijos</span>
+                    <span className="font-semibold text-[#C44040]">- {formatCOP(datos.gastosFijos)}</span>
+                  </div>
+                )}
+                {datos.gastosPorTipo.sin_clasificar.total > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: 'var(--color-text-soft)' }}>Otros gastos</span>
+                    <span className="font-semibold text-[#C44040]">
+                      - {formatCOP(datos.gastosPorTipo.sin_clasificar.total)}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {datos.gastosFinancieros > 0 && (
+                <>
+                  <div className="border-t border-[#EDE5DC] my-3" />
+                  <p className="text-xs font-semibold text-[#8A7D72] uppercase tracking-wide mb-2">Salidas financieras</p>
+                  <div className="space-y-2 mb-4">
+                    <div className="flex justify-between text-sm">
+                      <span style={{ color: 'var(--color-text-soft)' }}>Gastos financieros</span>
+                      <span className="font-semibold text-[#C44040]">- {formatCOP(datos.gastosFinancieros)}</span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="border-t-2 border-[#EDE5DC] pt-3 mt-2">
+                <div className="flex justify-between">
+                  <span className="font-semibold" style={{ color: 'var(--color-text)' }}>
+                    Flujo neto del mes
+                  </span>
                   <span className={`font-bold font-serif text-lg ${flujoNetoMes >= 0 ? 'text-[#3A7D5A]' : 'text-[#C44040]'}`}>
                     {formatCOP(flujoNetoMes)}
                   </span>
                 </div>
+                <p className="text-xs text-[#8A7D72] mt-1">
+                  {flujoNetoMes >= 0
+                    ? '✓ Más dinero entró del que salió este mes'
+                    : '⚠ Salió más dinero del que entró — revisa compras y gastos'}
+                </p>
               </div>
             </div>
 

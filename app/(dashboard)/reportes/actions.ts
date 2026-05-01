@@ -2,6 +2,13 @@
 
 import { createClient } from '@/lib/supabase/server'
 
+export interface GastosPorTipoReporte {
+  variable: { total: number; items: { subcategoria: string; monto: number }[] }
+  fijo: { total: number; items: { subcategoria: string; monto: number }[] }
+  financiero: { total: number; items: { subcategoria: string; monto: number }[] }
+  sin_clasificar: { total: number; items: { categoria: string; monto: number }[] }
+}
+
 export interface DatosReporte {
   mes: string
   ventasBrutas: number
@@ -9,12 +16,18 @@ export interface DatosReporte {
   ventasNetas: number
   cpvMes: number
   totalComprasMes: number
+  totalComprasInventario: number
   totalUnidadesVendidas: number
   totalComisionesPlataforma: number
   utilidadBruta: number
   margenBruto: number
   gastosPorCategoria: Record<string, number>
   totalGastos: number
+  gastosVariables: number
+  gastosFijos: number
+  gastosFinancieros: number
+  gastosPorTipo: GastosPorTipoReporte
+  utilidadDespuesVariables: number
   utilidadOperacional: number
   utilidadNeta: number
   margenNeto: number
@@ -54,8 +67,25 @@ type ItemVendidoRow = {
 }
 
 type GastoRow = {
-  categoria: string
+  categoria: string | null
+  tipo_gasto: string | null
+  subcategoria: string | null
   monto: number
+}
+
+function agregarSubcategoria(
+  bucket: { total: number; items: { subcategoria: string; monto: number }[] },
+  label: string,
+  monto: number,
+) {
+  const existing = bucket.items.find((i) => i.subcategoria === label)
+  if (existing) existing.monto += monto
+  else bucket.items.push({ subcategoria: label, monto })
+  bucket.total += monto
+}
+
+function esTipoGastoClave(t: string | null): t is 'variable' | 'fijo' | 'financiero' {
+  return t === 'variable' || t === 'fijo' || t === 'financiero'
 }
 
 type EntradaRow = {
@@ -125,7 +155,12 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
         .eq('tienda_id', tienda.id)
         .gte('created_at', `${start}T00:00:00`)
         .lt('created_at', `${end}T00:00:00`),
-      supabase.from('gastos').select('categoria, monto').eq('tienda_id', tienda.id).gte('fecha', start).lt('fecha', end),
+      supabase
+        .from('gastos')
+        .select('categoria, tipo_gasto, subcategoria, monto')
+        .eq('tienda_id', tienda.id)
+        .gte('fecha', start)
+        .lt('fecha', end),
       supabase
         .from('entradas')
         .select('producto_id, cantidad, costo_unitario, fecha')
@@ -173,13 +208,49 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
   const margenBruto = ventasNetas > 0 ? (utilidadBruta / ventasNetas) * 100 : 0
 
   const gastosPorCategoria: Record<string, number> = {}
-  gastosRows.forEach((g) => {
-    gastosPorCategoria[g.categoria] = (gastosPorCategoria[g.categoria] ?? 0) + g.monto
-  })
-  const totalGastos = Object.values(gastosPorCategoria).reduce((s, v) => s + v, 0)
+  const gastosPorTipo: GastosPorTipoReporte = {
+    variable: { total: 0, items: [] },
+    fijo: { total: 0, items: [] },
+    financiero: { total: 0, items: [] },
+    sin_clasificar: { total: 0, items: [] },
+  }
+  let totalComprasInventario = 0
 
-  const utilidadOperacional = utilidadBruta - totalGastos
-  const utilidadNeta = utilidadOperacional
+  gastosRows.forEach((g) => {
+    const monto = Number(g.monto) || 0
+    const label = g.subcategoria?.trim() || g.categoria?.trim() || 'Sin categoría'
+    const tipo = g.tipo_gasto
+
+    // compra_inventario no participa en P&L, solo en flujo de caja.
+    if (tipo === 'compra_inventario') {
+      totalComprasInventario += monto
+      return
+    }
+
+    if (esTipoGastoClave(tipo)) {
+      const cat = g.categoria?.trim() || 'Sin categoría'
+      gastosPorCategoria[cat] = (gastosPorCategoria[cat] ?? 0) + monto
+      agregarSubcategoria(gastosPorTipo[tipo], label, monto)
+    } else {
+      const cat = g.categoria?.trim() || 'Sin categoría'
+      gastosPorCategoria[cat] = (gastosPorCategoria[cat] ?? 0) + monto
+      const existing = gastosPorTipo.sin_clasificar.items.find((i) => i.categoria === label)
+      if (existing) existing.monto += monto
+      else gastosPorTipo.sin_clasificar.items.push({ categoria: label, monto })
+      gastosPorTipo.sin_clasificar.total += monto
+    }
+  })
+
+  const gastosVariables = gastosPorTipo.variable.total
+  const gastosFijos = gastosPorTipo.fijo.total
+  const gastosFinancieros = gastosPorTipo.financiero.total
+  const totalGastos =
+    gastosVariables + gastosFijos + gastosFinancieros + gastosPorTipo.sin_clasificar.total
+
+  const utilidadDespuesVariables = utilidadBruta - gastosVariables
+  const utilidadOperacional = utilidadDespuesVariables - gastosFijos
+  const utilidadNeta =
+    utilidadOperacional - gastosFinancieros - gastosPorTipo.sin_clasificar.total
   const margenNeto = ventasNetas > 0 ? (utilidadNeta / ventasNetas) * 100 : 0
 
   const totalTransacciones = ventasRows.length
@@ -238,12 +309,18 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
     ventasNetas,
     cpvMes,
     totalComprasMes,
+    totalComprasInventario,
     totalUnidadesVendidas,
     totalComisionesPlataforma,
     utilidadBruta,
     margenBruto,
     gastosPorCategoria,
     totalGastos,
+    gastosVariables,
+    gastosFijos,
+    gastosFinancieros,
+    gastosPorTipo,
+    utilidadDespuesVariables,
     utilidadOperacional,
     utilidadNeta,
     margenNeto,
