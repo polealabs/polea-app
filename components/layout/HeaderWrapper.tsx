@@ -11,6 +11,7 @@ const TITULOS: Record<string, string> = {
   '/ventas': 'Ventas',
   '/clientes': 'Clientes',
   '/consignaciones': 'Tiendas Aliadas',
+  '/consignaciones/salida': 'Remisión de salida',
   '/documentos': 'Documentos',
   '/documentos/nuevo': 'Nuevo documento',
   '/gastos': 'Gastos',
@@ -25,6 +26,9 @@ const TITULOS: Record<string, string> = {
 
 export default function HeaderWrapper() {
   const pathname = usePathname()
-  const titulo = TITULOS[pathname] ?? 'Polea'
+  const titulo =
+    TITULOS[pathname] ??
+    Object.entries(TITULOS).find(([base]) => pathname.startsWith(base))?.[1] ??
+    'Polea'
   return <Header titulo={titulo} />
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
@@ -35,6 +36,13 @@ type MovimientoConDetalles = ConsignacionMovimiento & {
   consignataria_id: string
 }
 
+type SalidaReciente = {
+  id: string
+  fecha: string
+  notas?: string | null
+  tiendas_consignatarias?: { nombre?: string } | null
+}
+
 function formatCOP(value: number) {
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
@@ -60,6 +68,7 @@ export default function ConsignacionesPage() {
   const [consignaciones, setConsignaciones] = useState<ConsignacionRow[]>([])
   const [movimientos, setMovimientos] = useState<MovimientoConDetalles[]>([])
   const [productos, setProductos] = useState<Producto[]>([])
+  const [salidas, setSalidas] = useState<SalidaReciente[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'tiendas' | 'inventario' | 'devoluciones' | 'liquidaciones'>('tiendas')
 
@@ -104,6 +113,11 @@ export default function ConsignacionesPage() {
   const [filtroConsignatariaInv, setFiltroConsignatariaInv] = useState('')
   const [mesDevoluciones, setMesDevoluciones] = useState(() => toLocalISOYearMonthString())
   const [mesLiquidaciones, setMesLiquidaciones] = useState(() => toLocalISOYearMonthString())
+  const [mesRemisiones, setMesRemisiones] = useState(() => {
+    const hoy = new Date()
+    const local = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000)
+    return local.toISOString().slice(0, 7)
+  })
   const [filtroTiendaLiq, setFiltroTiendaLiq] = useState<string>('todas')
   const [formData, setFormData] = useState({
     nombre: '',
@@ -118,7 +132,7 @@ export default function ConsignacionesPage() {
     if (!tienda) return
     setLoading(true)
     const supabase = createClient()
-    const [tRes, cRes, mRes, pRes] = await Promise.all([
+    const [tRes, cRes, mRes, pRes, sRes] = await Promise.all([
       supabase.from('tiendas_consignatarias').select('*').eq('tienda_id', tienda.id).order('nombre'),
       supabase
         .from('consignaciones')
@@ -136,15 +150,23 @@ export default function ConsignacionesPage() {
         .eq('tienda_id', tienda.id)
         .gt('stock_actual', 0)
         .order('nombre'),
+      supabase
+        .from('consignacion_salidas')
+        .select('*, tiendas_consignatarias(nombre)')
+        .eq('tienda_id', tienda.id)
+        .order('fecha', { ascending: false })
+        ,
     ])
 
     if (tRes.error) showToast(tRes.error.message, 'error')
     if (cRes.error) showToast(cRes.error.message, 'error')
     if (mRes.error) showToast(mRes.error.message, 'error')
     if (pRes.error) showToast(pRes.error.message, 'error')
+    if (sRes.error) showToast(sRes.error.message, 'error')
 
     setConsignatarias((tRes.data ?? []) as TiendaConsignataria[])
     setProductos((pRes.data ?? []) as Producto[])
+    setSalidas((sRes.data ?? []) as SalidaReciente[])
 
     const movs: MovimientoConDetalles[] = (mRes.data ?? []).map((r: Record<string, unknown>) => {
       const consignacion = r.consignaciones as
@@ -277,6 +299,10 @@ export default function ConsignacionesPage() {
         .filter((m) => m.tipo === 'liquidacion' && m.fecha.startsWith(mesLiquidaciones))
         .filter((m) => filtroTiendaLiq === 'todas' || m.consignataria_id === filtroTiendaLiq),
     [movimientos, mesLiquidaciones, filtroTiendaLiq],
+  )
+  const remisionesFiltradas = useMemo(
+    () => salidas.filter((s) => s.fecha.startsWith(mesRemisiones)),
+    [salidas, mesRemisiones],
   )
 
   const pctConsignacionActiva = useMemo(() => {
@@ -602,6 +628,67 @@ export default function ConsignacionesPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-soft)' }}>
+                Remisiones recientes
+              </p>
+              <input
+                type="month"
+                value={mesRemisiones}
+                onChange={(e) => setMesRemisiones(e.target.value)}
+                className="text-xs px-2 py-1.5 rounded-lg border"
+                style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text)' }}
+              />
+            </div>
+            {remisionesFiltradas.length === 0 ? (
+              <p className="text-sm" style={{ color: 'var(--color-text-soft)' }}>
+                Sin remisiones en este mes.
+              </p>
+            ) : (
+              <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--color-border)' }}>
+                <table className="w-full text-sm">
+                  <thead style={{ background: 'var(--color-background)' }}>
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-soft)' }}>Fecha</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-soft)' }}>Tienda</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-soft)' }}>Notas</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-soft)' }}>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {remisionesFiltradas.map((s) => (
+                      <tr key={s.id} className="border-t" style={{ borderColor: 'var(--color-border)' }}>
+                        <td className="px-4 py-3" style={{ color: 'var(--color-text-soft)' }}>
+                          {new Date(`${s.fecha}T12:00:00`).toLocaleDateString('es-CO', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </td>
+                        <td className="px-4 py-3 font-medium" style={{ color: 'var(--color-text)' }}>
+                          {s.tiendas_consignatarias?.nombre}
+                        </td>
+                        <td className="px-4 py-3 text-xs" style={{ color: 'var(--color-text-soft)' }}>
+                          {s.notas || '—'}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Link
+                            href={`/consignaciones/salida/${s.id}/pdf`}
+                            className="text-xs font-medium hover:underline"
+                            style={{ color: 'var(--color-accent)' }}
+                          >
+                            Ver remisión →
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
