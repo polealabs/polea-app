@@ -13,10 +13,13 @@ export interface DatosReporte {
   mes: string
   ventasBrutas: number
   totalDescuentos: number
+  totalDevoluciones: number
   ventasNetas: number
   cpvMes: number
   totalComprasMes: number
   totalComprasInventario: number
+  saldoInicial: number
+  saldoFinal: number
   totalUnidadesVendidas: number
   totalComisionesPlataforma: number
   utilidadBruta: number
@@ -73,6 +76,12 @@ type GastoRow = {
   monto: number
 }
 
+type DevolucionRow = {
+  precio_original: number
+  cantidad: number
+  resolucion: string | null
+}
+
 function agregarSubcategoria(
   bucket: { total: number; items: { subcategoria: string; monto: number }[] },
   label: string,
@@ -123,6 +132,55 @@ function calcularCPV(
   return cpv
 }
 
+async function calcularSaldoFinalMes(
+  tienda_id: string,
+  mes: string,
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<number> {
+  const [year, month] = mes.split('-').map(Number)
+  const inicio = `${mes}-01`
+  const fin = new Date(year, month, 1).toISOString().split('T')[0]
+
+  const [{ data: ventas }, { data: entradas }, { data: gastos }, { data: devoluciones }] =
+    await Promise.all([
+      supabase
+        .from('ventas_cabecera')
+        .select('total_neto')
+        .eq('tienda_id', tienda_id)
+        .gte('fecha', inicio)
+        .lt('fecha', fin),
+      supabase
+        .from('entradas')
+        .select('cantidad, costo_unitario')
+        .eq('tienda_id', tienda_id)
+        .gte('fecha', inicio)
+        .lt('fecha', fin),
+      supabase
+        .from('gastos')
+        .select('monto, tipo_gasto')
+        .eq('tienda_id', tienda_id)
+        .gte('fecha', inicio)
+        .lt('fecha', fin),
+      supabase
+        .from('devoluciones_venta')
+        .select('precio_original, cantidad, resolucion')
+        .eq('tienda_id', tienda_id)
+        .eq('mes_contable', mes),
+    ])
+
+  const ventasNetas = (ventas ?? []).reduce((s, v) => s + (v.total_neto ?? 0), 0)
+  const comprasEntradas = (entradas ?? []).reduce((s, e) => s + e.cantidad * e.costo_unitario, 0)
+  const totalGastos = (gastos ?? []).reduce((s, g) => s + (g.monto ?? 0), 0)
+  const devs = ((devoluciones ?? []) as DevolucionRow[]).reduce((s, d) => {
+    if (d.resolucion === 'reembolso' || d.resolucion === 'credito') {
+      return s + d.precio_original * d.cantidad
+    }
+    return s
+  }, 0)
+
+  return ventasNetas - comprasEntradas - totalGastos - devs
+}
+
 export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | null> {
   const supabase = await createClient()
   const {
@@ -151,6 +209,7 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
     { data: ventasAnt },
     { data: itemsVendidos },
     { data: entradasCosto },
+    { data: devolucionesData },
   ] =
     await Promise.all([
       supabase
@@ -195,6 +254,11 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
         .eq('tienda_id', tienda.id)
         .eq('productos.tipo', 'Producto terminado')
         .order('fecha', { ascending: false }),
+      supabase
+        .from('devoluciones_venta')
+        .select('precio_original, cantidad, tipo, resolucion, mes_contable')
+        .eq('tienda_id', tienda.id)
+        .eq('mes_contable', mes),
     ])
 
   const ventasRows = (ventas ?? []) as VentaCabeceraRow[]
@@ -204,6 +268,7 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
   const itemsVendidosRows = (itemsVendidos ?? []) as ItemVendidoRow[]
   const entradasCostoRows = (entradasCosto ?? []) as EntradaRow[]
   const ventasAntRows = (ventasAnt ?? []) as { total_neto: number }[]
+  const devolucionesRows = (devolucionesData ?? []) as DevolucionRow[]
 
   const { data: productosConCosto } = await supabase
     .from('productos')
@@ -217,10 +282,17 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
   )
 
   const ventasBrutas = ventasRows.reduce((s, v) => s + v.total_bruto, 0)
-  const ventasNetas = ventasRows.reduce((s, v) => s + v.total_neto, 0)
   const totalDescuentos = itemsRows.reduce((s, i) => s + i.precio_venta * i.cantidad * ((i.descuento ?? 0) / 100), 0)
   const costoTransacciones = ventasRows.reduce((s, v) => s + v.total_costo_transaccion, 0)
   const totalComisionesPlataforma = costoTransacciones
+  const totalDevoluciones = devolucionesRows.reduce((s, d) => {
+    if (d.resolucion === 'reembolso' || d.resolucion === 'credito') {
+      return s + d.precio_original * d.cantidad
+    }
+    return s
+  }, 0)
+  const ventasNetasAntesComision = ventasBrutas - totalDescuentos - totalDevoluciones
+  const ventasNetas = ventasNetasAntesComision - totalComisionesPlataforma
 
   const totalComprasMes = entradasRows.reduce((s, e) => s + e.cantidad * e.costo_unitario, 0)
   const cpvMes = calcularCPV(itemsVendidosRows, entradasCostoRows, costoPorProducto)
@@ -267,6 +339,28 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
   const gastosFinancieros = gastosPorTipo.financiero.total
   const totalGastos =
     gastosVariables + gastosFijos + gastosFinancieros + gastosPorTipo.sin_clasificar.total
+  const flujoNeto = ventasNetas - totalComprasMes - totalComprasInventario - totalGastos
+
+  const [prevYearSaldo, prevMonthSaldo] = (() => {
+    const [y, m] = mes.split('-').map(Number)
+    if (m === 1) return [y - 1, 12]
+    return [y, m - 1]
+  })()
+  const mesPrevio = `${prevYearSaldo}-${String(prevMonthSaldo).padStart(2, '0')}`
+
+  const { data: ventasPrevCheck } = await supabase
+    .from('ventas_cabecera')
+    .select('id')
+    .eq('tienda_id', tienda.id)
+    .gte('fecha', `${mesPrevio}-01`)
+    .lt('fecha', `${mes}-01`)
+    .limit(1)
+
+  const saldoInicial =
+    ventasPrevCheck && ventasPrevCheck.length > 0
+      ? await calcularSaldoFinalMes(tienda.id, mesPrevio, supabase)
+      : 0
+  const saldoFinal = saldoInicial + flujoNeto
 
   const utilidadDespuesVariables = utilidadBruta - gastosVariables
   const utilidadOperacional = utilidadDespuesVariables - gastosFijos
@@ -336,10 +430,13 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
     mes,
     ventasBrutas,
     totalDescuentos,
+    totalDevoluciones,
     ventasNetas,
     cpvMes,
     totalComprasMes,
     totalComprasInventario,
+    saldoInicial,
+    saldoFinal,
     totalUnidadesVendidas,
     totalComisionesPlataforma,
     utilidadBruta,

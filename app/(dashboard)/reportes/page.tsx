@@ -232,6 +232,15 @@ export default function ReportesPage() {
                   <p className="text-sm font-semibold text-[#C4622D]">- {formatCOP(datos.totalDescuentos)}</p>
                 </div>
               )}
+              {datos.totalDevoluciones > 0 && (
+                <div className="flex items-center justify-between py-2">
+                  <p className="text-sm text-[#C44040] flex items-center">
+                    Devoluciones del mes
+                    <Bombillo texto="Ventas devueltas con reembolso o crédito este mes. Las devoluciones por cambio no afectan el total." />
+                  </p>
+                  <p className="text-sm font-semibold text-[#C44040]">- {formatCOP(datos.totalDevoluciones)}</p>
+                </div>
+              )}
               <div className="flex items-center justify-between py-2">
                 <p className="text-sm text-[#4A3F35]">Comisiones de plataforma</p>
                 <p className="text-sm font-semibold text-[#4A3F35]">- {formatCOP(datos.totalComisionesPlataforma)}</p>
@@ -426,6 +435,15 @@ export default function ReportesPage() {
                 <Bombillo texto="Muestra el movimiento real del dinero. A diferencia del P&L, aquí aparecen las compras al proveedor aunque no hayas vendido esa mercancía aún." />
               </p>
 
+              {datos.saldoInicial !== 0 && (
+                <div className="flex justify-between text-sm mb-4 pb-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
+                  <span className="font-medium" style={{ color: 'var(--color-text)' }}>Saldo inicial del mes</span>
+                  <span className="font-semibold" style={{ color: datos.saldoInicial >= 0 ? '#3A7D5A' : '#C44040' }}>
+                    {formatCOP(datos.saldoInicial)}
+                  </span>
+                </div>
+              )}
+
               <p className="text-xs font-semibold text-[#8A7D72] uppercase tracking-wide mb-2">Entradas</p>
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between text-sm">
@@ -498,6 +516,17 @@ export default function ReportesPage() {
                   {flujoNetoMes >= 0
                     ? '✓ Más dinero entró del que salió este mes'
                     : '⚠ Salió más dinero del que entró — revisa compras y gastos'}
+                </p>
+              </div>
+              <div className="border-t-2 pt-3 mt-3" style={{ borderColor: 'var(--color-primary)' }}>
+                <div className="flex justify-between">
+                  <span className="font-bold text-base" style={{ color: 'var(--color-text)' }}>Saldo final del mes</span>
+                  <span className={`font-bold font-serif text-xl ${datos.saldoFinal >= 0 ? 'text-[#3A7D5A]' : 'text-[#C44040]'}`}>
+                    {formatCOP(datos.saldoFinal)}
+                  </span>
+                </div>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-soft)' }}>
+                  Saldo inicial + Flujo neto del mes
                 </p>
               </div>
             </div>
