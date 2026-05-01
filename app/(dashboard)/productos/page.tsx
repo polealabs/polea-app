@@ -7,6 +7,7 @@ import { useTienda } from '@/lib/hooks/useTienda'
 import { crearProducto, editarProducto, eliminarProducto } from './actions'
 import type { Producto } from '@/lib/types'
 import ConfirmModal from '@/components/ui/ConfirmModal'
+import CalculadoraPrecios from '@/components/ui/CalculadoraPrecios'
 import ImportCSV from '@/components/ui/ImportCSV'
 import Toast from '@/components/ui/Toast'
 import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
@@ -26,6 +27,8 @@ const TIPOS: Producto['tipo'][] = [
 ]
 
 type FiltroStock = 'todos' | 'agotado' | 'bajo' | 'sin-movimiento' | 'defectuosos'
+
+const emptyProductoForm = { nombre: '', precio_venta: 0, costo_produccion: 0 }
 
 function formatCOP(n: number) {
   return new Intl.NumberFormat('es-CO', {
@@ -99,7 +102,8 @@ export default function ProductosPage() {
   const [submitting, setSubmitting] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [busqueda, setBusqueda] = useState('')
-  const [costoProduccionInput, setCostoProduccionInput] = useState(0)
+  const [form, setForm] = useState(emptyProductoForm)
+  const [showCalculadora, setShowCalculadora] = useState(false)
   const [filtroActivo, setFiltroActivo] = useState<FiltroStock>('todos')
   const [idsSinMovimiento, setIdsSinMovimiento] = useState<Set<string>>(new Set())
   const [ignorarFiltroQuery, setIgnorarFiltroQuery] = useState(false)
@@ -214,7 +218,7 @@ export default function ProductosPage() {
     } else {
       setShowForm(false)
       setEditando(null)
-      setCostoProduccionInput(0)
+      setForm(emptyProductoForm)
       if (tienda) await fetchProductos(tienda.id)
       showToast(esEdicion ? 'Producto actualizado' : 'Producto creado')
     }
@@ -319,6 +323,23 @@ export default function ProductosPage() {
         />
       )}
 
+      {showCalculadora && (
+        <CalculadoraPrecios
+          onClose={() => setShowCalculadora(false)}
+          onAplicar={(precio, costo) => {
+            setForm((f) => ({
+              ...f,
+              precio_venta: precio,
+              costo_produccion: costo > 0 ? costo : f.costo_produccion,
+            }))
+            setShowCalculadora(false)
+          }}
+          costoInicial={form.costo_produccion ?? 0}
+          industria={tienda?.categoria ?? ''}
+          nombreProducto={form.nombre.trim() || 'Tu producto'}
+        />
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>Productos</h1>
@@ -330,7 +351,7 @@ export default function ProductosPage() {
               setShowForm(true)
               setEditando(null)
               setError(null)
-              setCostoProduccionInput(0)
+              setForm(emptyProductoForm)
             }}
             className="btn-primary text-sm font-semibold px-4 py-2 rounded-lg"
           >
@@ -403,7 +424,8 @@ export default function ProductosPage() {
                 type="text"
                 required
                 placeholder="Ej: Anillo luna"
-                defaultValue={editando?.nombre}
+                value={form.nombre}
+                onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
                 className={inputClass}
               />
             </div>
@@ -433,14 +455,30 @@ export default function ProductosPage() {
               </select>
             </div>
             <div>
-              <label className={labelClass}>Precio de venta (COP)</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className={labelClass}>Precio de venta *</label>
+                <button
+                  type="button"
+                  onClick={() => setShowCalculadora(true)}
+                  className="text-xs font-medium hover:underline"
+                  style={{ color: 'var(--color-accent)' }}
+                >
+                  🧮 Calcular precio
+                </button>
+              </div>
               <input
                 name="precio_venta"
                 type="number"
                 required
-                min="0"
-                placeholder="85000"
-                defaultValue={editando?.precio_venta}
+                min={0}
+                value={form.precio_venta === 0 ? '' : form.precio_venta}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    precio_venta: e.target.value === '' ? 0 : Number(e.target.value),
+                  }))
+                }
+                placeholder="0"
                 className={inputClass}
               />
             </div>
@@ -449,9 +487,12 @@ export default function ProductosPage() {
               <input
                 type="number"
                 name="costo_produccion"
-                value={costoProduccionInput === 0 ? '' : costoProduccionInput}
+                value={form.costo_produccion === 0 ? '' : form.costo_produccion}
                 onChange={(e) =>
-                  setCostoProduccionInput(e.target.value === '' ? 0 : Number(e.target.value))
+                  setForm((f) => ({
+                    ...f,
+                    costo_produccion: e.target.value === '' ? 0 : Number(e.target.value),
+                  }))
                 }
                 placeholder="Costo total de fabricación o adquisición"
                 className={inputClass}
@@ -493,7 +534,8 @@ export default function ProductosPage() {
                   setShowForm(false)
                   setEditando(null)
                   setError(null)
-                  setCostoProduccionInput(0)
+                  setForm(emptyProductoForm)
+                  setShowCalculadora(false)
                 }}
                 className="text-sm text-[#1A1510]/60 hover:text-[#1A1510] px-4 py-2 rounded-lg border border-[#1A1510]/20 transition"
               >
@@ -541,7 +583,7 @@ export default function ProductosPage() {
               onClick={() => {
                 setShowForm(true)
                 setError(null)
-                setCostoProduccionInput(0)
+                setForm(emptyProductoForm)
               }}
               className="mt-3 text-sm text-[#C4622D] font-medium hover:underline"
             >
@@ -654,7 +696,11 @@ export default function ProductosPage() {
                             setEditando(p)
                             setShowForm(false)
                             setError(null)
-                            setCostoProduccionInput(p.costo_produccion ?? 0)
+                            setForm({
+                              nombre: p.nombre,
+                              precio_venta: p.precio_venta,
+                              costo_produccion: p.costo_produccion ?? 0,
+                            })
                           }}
                           className="text-xs text-[#C4622D] hover:underline font-medium"
                         >
