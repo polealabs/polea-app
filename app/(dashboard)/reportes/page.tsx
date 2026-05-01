@@ -542,6 +542,14 @@ export default function ReportesPage() {
                           <div className="text-right">
                             <p className="text-sm font-semibold text-[#1E3A2F]">{formatCOP(prod.total)}</p>
                             <p className="text-xs text-[#8A7D72]">{prod.unidades} uds</p>
+                            {prod.margen !== undefined && (
+                              <p
+                                className="text-xs mt-0.5"
+                                style={{ color: prod.margen >= 0 ? '#3A7D5A' : '#C44040' }}
+                              >
+                                {prod.margen.toFixed(0)}% margen
+                              </p>
+                            )}
                           </div>
                         </div>
                       ))

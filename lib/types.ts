@@ -47,6 +47,7 @@ export interface Producto {
   tipo: 'Producto terminado' | 'Materia prima' | 'Empaque' | 'Material POP'
   foto_url?: string
   precio_venta: number
+  costo_produccion?: number
   stock_actual: number
   stock_minimo: number
   unidades_defectuosas?: number

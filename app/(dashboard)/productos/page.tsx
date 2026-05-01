@@ -99,6 +99,7 @@ export default function ProductosPage() {
   const [submitting, setSubmitting] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [busqueda, setBusqueda] = useState('')
+  const [costoProduccionInput, setCostoProduccionInput] = useState(0)
   const [filtroActivo, setFiltroActivo] = useState<FiltroStock>('todos')
   const [idsSinMovimiento, setIdsSinMovimiento] = useState<Set<string>>(new Set())
   const [ignorarFiltroQuery, setIgnorarFiltroQuery] = useState(false)
@@ -213,6 +214,7 @@ export default function ProductosPage() {
     } else {
       setShowForm(false)
       setEditando(null)
+      setCostoProduccionInput(0)
       if (tienda) await fetchProductos(tienda.id)
       showToast(esEdicion ? 'Producto actualizado' : 'Producto creado')
     }
@@ -328,6 +330,7 @@ export default function ProductosPage() {
               setShowForm(true)
               setEditando(null)
               setError(null)
+              setCostoProduccionInput(0)
             }}
             className="btn-primary text-sm font-semibold px-4 py-2 rounded-lg"
           >
@@ -442,6 +445,24 @@ export default function ProductosPage() {
               />
             </div>
             <div>
+              <label className={labelClass}>Costo del producto (opcional)</label>
+              <input
+                type="number"
+                name="costo_produccion"
+                value={costoProduccionInput === 0 ? '' : costoProduccionInput}
+                onChange={(e) =>
+                  setCostoProduccionInput(e.target.value === '' ? 0 : Number(e.target.value))
+                }
+                placeholder="Costo total de fabricación o adquisición"
+                className={inputClass}
+                min="0"
+              />
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-soft)' }}>
+                El costo que usas para calcular tu margen. Si lo defines aquí, se usará para calcular
+                el CPV en reportes.
+              </p>
+            </div>
+            <div>
               <label className={labelClass}>Stock mínimo</label>
               <input
                 name="stock_minimo"
@@ -472,6 +493,7 @@ export default function ProductosPage() {
                   setShowForm(false)
                   setEditando(null)
                   setError(null)
+                  setCostoProduccionInput(0)
                 }}
                 className="text-sm text-[#1A1510]/60 hover:text-[#1A1510] px-4 py-2 rounded-lg border border-[#1A1510]/20 transition"
               >
@@ -519,6 +541,7 @@ export default function ProductosPage() {
               onClick={() => {
                 setShowForm(true)
                 setError(null)
+                setCostoProduccionInput(0)
               }}
               className="mt-3 text-sm text-[#C4622D] font-medium hover:underline"
             >
@@ -545,6 +568,9 @@ export default function ProductosPage() {
                 </th>
                 <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                   Precio
+                </th>
+                <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                  Costo
                 </th>
                 <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                   Stock
@@ -579,6 +605,23 @@ export default function ProductosPage() {
                     </span>
                   </td>
                   <td className="px-5 py-4 text-right text-[#1A1510]/80">{formatCOP(p.precio_venta)}</td>
+                  <td className="px-5 py-3.5 text-sm text-right" style={{ color: 'var(--color-text-soft)' }}>
+                    {p.costo_produccion ? formatCOP(p.costo_produccion) : '—'}
+                    {p.costo_produccion && p.precio_venta > 0 && (
+                      <p
+                        className="text-xs mt-0.5"
+                        style={{
+                          color: p.precio_venta > p.costo_produccion ? '#3A7D5A' : '#C44040',
+                        }}
+                      >
+                        {(
+                          ((p.precio_venta - p.costo_produccion) / p.precio_venta) *
+                          100
+                        ).toFixed(0)}
+                        % margen
+                      </p>
+                    )}
+                  </td>
                   <td className="px-5 py-4 text-right">
                     <span
                       className={`font-semibold ${
@@ -611,6 +654,7 @@ export default function ProductosPage() {
                             setEditando(p)
                             setShowForm(false)
                             setError(null)
+                            setCostoProduccionInput(p.costo_produccion ?? 0)
                           }}
                           className="text-xs text-[#C4622D] hover:underline font-medium"
                         >

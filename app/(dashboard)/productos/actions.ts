@@ -85,6 +85,7 @@ export async function crearProducto(formData: FormData) {
       sku,
       tipo: formData.get('tipo') as string,
       precio_venta: Number(formData.get('precio_venta')),
+      costo_produccion: Number(formData.get('costo_produccion')) || null,
       stock_minimo: Number(formData.get('stock_minimo')),
     })
     if (error) return { error: error.message }
@@ -113,6 +114,7 @@ export async function editarProducto(id: string, formData: FormData) {
         sku,
         tipo: formData.get('tipo') as string,
         precio_venta: Number(formData.get('precio_venta')),
+        costo_produccion: Number(formData.get('costo_produccion')) || null,
         stock_minimo: Number(formData.get('stock_minimo')),
       })
       .eq('id', id)
