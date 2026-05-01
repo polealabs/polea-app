@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-const CATEGORIAS_VALIDAS = ['Producción', 'Empaque', 'Envíos', 'Marketing', 'Plataformas', 'Otro']
+const CATEGORIAS_VALIDAS = ['Producción', 'Empaque', 'Envíos', 'Marketing y publicidad', 'Otro']
 
 export async function importarProveedores(filas: Record<string, string>[]) {
   const supabase = await createClient()

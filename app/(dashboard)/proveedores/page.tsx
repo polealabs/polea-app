@@ -16,13 +16,13 @@ import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
 const inputClass =
   'w-full px-3 py-2 rounded-lg border border-[#1A1510]/20 bg-white text-[#1A1510] placeholder:text-[#1A1510]/40 focus:outline-none focus:ring-2 focus:ring-[#C4622D]/40 focus:border-[#C4622D] transition text-sm'
 const labelClass = 'block text-xs font-medium text-[#1A1510]/60 mb-1'
-const CATEGORIAS = ['Producción', 'Empaque', 'Envíos', 'Marketing', 'Plataformas', 'Otro']
+const CATEGORIAS = ['Producción', 'Empaque', 'Envíos', 'Marketing y publicidad', 'Otro']
 
 function descargarPlantillaProveedores() {
   descargarCSV('plantilla_proveedores.csv', [
     ['nombre', 'categorias', 'telefono', 'nit', 'ciudad'],
     ['Proveedor Ejemplo S.A.S', 'Producción|Empaque', '3001234567', '900123456-1', 'Cali'],
-    ['Distribuidora XYZ', 'Marketing', '3109876543', '', 'Bogotá'],
+    ['Distribuidora XYZ', 'Marketing y publicidad', '3109876543', '', 'Bogotá'],
     ['Papelería Central', 'Otro', '', '', 'Medellín'],
   ])
 }
@@ -187,7 +187,7 @@ export default function ProveedoresPage() {
           if (res.exitosos > 0 && tienda) await fetchProveedores(tienda.id)
           return res
         }}
-        descripcion="Para múltiples categorías sepáralas con | (ej: Producción|Empaque). Categorías válidas: Producción, Empaque, Envíos, Marketing, Plataformas, Otro"
+        descripcion="Para múltiples categorías sepáralas con | (ej: Producción|Empaque). Categorías válidas: Producción, Empaque, Envíos, Marketing y publicidad, Otro"
       />
 
       <div className="mb-6">
