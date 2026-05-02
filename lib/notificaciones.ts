@@ -2,12 +2,26 @@ import { createClient } from '@/lib/supabase/client'
 
 export interface Notificacion {
   id: string
-  tipo: 'stock_bajo' | 'sin_movimiento' | 'cliente_recurrente' | 'ventas_bajas'
+  tipo:
+    | 'stock_bajo'
+    | 'sin_movimiento'
+    | 'cliente_recurrente'
+    | 'ventas_bajas'
+    | 'pagos_pendientes'
+    | 'cuotas_pendientes'
   titulo: string
   mensaje: string
   leida: boolean
   metadata?: Record<string, unknown>
   created_at: string
+}
+
+function formatCOPNotif(n: number) {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0,
+  }).format(n)
 }
 
 export async function generarNotificaciones(tiendaId: string): Promise<void> {
@@ -171,6 +185,78 @@ export async function generarNotificaciones(tiendaId: string): Promise<void> {
             metadata: { clientes: clientesSinCompra },
           })
         }
+      }
+    }
+  }
+
+  {
+    const hoyStr = hoy.toISOString().split('T')[0]
+    const en7dias = new Date(hoy.getTime() + 7 * 24 * 60 * 60 * 1000)
+    const en7diasStr = en7dias.toISOString().split('T')[0]
+
+    const { data: cuentasPendientes, error: errCuentas } = await supabase
+      .from('cuentas_por_pagar')
+      .select('id, descripcion, monto_total, monto_pagado, fecha_vencimiento')
+      .eq('tienda_id', tiendaId)
+      .in('estado', ['pendiente', 'parcial'])
+      .gte('fecha_vencimiento', hoyStr)
+      .lte('fecha_vencimiento', en7diasStr)
+      .order('fecha_vencimiento')
+
+    if (!errCuentas && cuentasPendientes && cuentasPendientes.length > 0) {
+      const totalPendiente = cuentasPendientes.reduce(
+        (s, c) => s + (Number(c.monto_total) - Number(c.monto_pagado)),
+        0,
+      )
+      const hace24h = new Date(hoy.getTime() - 24 * 60 * 60 * 1000).toISOString()
+      const { data: existePagos } = await supabase
+        .from('notificaciones')
+        .select('id')
+        .eq('tienda_id', tiendaId)
+        .eq('tipo', 'pagos_pendientes')
+        .gte('created_at', hace24h)
+        .limit(1)
+        .maybeSingle()
+
+      if (!existePagos) {
+        notificacionesNuevas.push({
+          tipo: 'pagos_pendientes',
+          titulo: 'Pagos de inventario próximos a vencer',
+          mensaje: `${cuentasPendientes.length} pago(s) pendiente(s) por ${formatCOPNotif(totalPendiente)} en los próximos 7 días.`,
+          leida: false,
+          metadata: { cuenta_ids: cuentasPendientes.map((c) => c.id) },
+        })
+      }
+    }
+
+    const { data: cuotasPendientes, error: errCuotasP } = await supabase
+      .from('cuotas_pago')
+      .select('id, monto, fecha_vencimiento, cuentas_por_pagar(descripcion)')
+      .eq('tienda_id', tiendaId)
+      .eq('estado', 'pendiente')
+      .gte('fecha_vencimiento', hoyStr)
+      .lte('fecha_vencimiento', en7diasStr)
+      .order('fecha_vencimiento')
+
+    if (!errCuotasP && cuotasPendientes && cuotasPendientes.length > 0) {
+      const hace24hC = new Date(hoy.getTime() - 24 * 60 * 60 * 1000).toISOString()
+      const { data: existeCuotas } = await supabase
+        .from('notificaciones')
+        .select('id')
+        .eq('tienda_id', tiendaId)
+        .eq('tipo', 'cuotas_pendientes')
+        .gte('created_at', hace24hC)
+        .limit(1)
+        .maybeSingle()
+
+      if (!existeCuotas) {
+        notificacionesNuevas.push({
+          tipo: 'cuotas_pendientes',
+          titulo: 'Cuotas de compras por vencer',
+          mensaje: `${cuotasPendientes.length} cuota(s) vencen en los próximos 7 días.`,
+          leida: false,
+          metadata: { cuota_ids: cuotasPendientes.map((c) => c.id) },
+        })
       }
     }
   }

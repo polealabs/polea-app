@@ -74,6 +74,40 @@ export interface Entrada {
   cantidad: number
   costo_unitario: number
   fecha: string
+  notas?: string
+  created_at: string
+}
+
+export type TipoPago = 'contado' | 'contado_pendiente' | 'cuotas'
+export type FrecuenciaCuota = 'semanal' | 'quincenal' | 'mensual'
+export type EstadoCuentaPagar = 'pendiente' | 'parcial' | 'pagada'
+
+export interface CuentaPorPagar {
+  id: string
+  tienda_id: string
+  proveedor_id?: string
+  entrada_id?: string
+  descripcion: string
+  monto_total: number
+  monto_pagado: number
+  fecha_vencimiento?: string
+  tipo_pago: TipoPago
+  numero_cuotas: number
+  frecuencia_cuotas?: FrecuenciaCuota
+  estado: EstadoCuentaPagar
+  notas?: string
+  created_at: string
+}
+
+export interface CuotaPago {
+  id: string
+  tienda_id: string
+  cuenta_id: string
+  numero_cuota: number
+  monto: number
+  fecha_vencimiento: string
+  fecha_pago?: string
+  estado: 'pendiente' | 'pagada'
   created_at: string
 }
 

@@ -36,6 +36,10 @@ function iconoTipo(tipo: Notificacion['tipo']) {
       return '👥'
     case 'ventas_bajas':
       return '📉'
+    case 'pagos_pendientes':
+      return '💳'
+    case 'cuotas_pendientes':
+      return '📅'
     default:
       return '🔔'
   }
@@ -51,6 +55,9 @@ function destinoTipo(tipo: Notificacion['tipo']) {
       return '/clientes'
     case 'ventas_bajas':
       return '/reportes'
+    case 'pagos_pendientes':
+    case 'cuotas_pendientes':
+      return '/entradas?tab=por-pagar'
     default:
       return '/dashboard'
   }
