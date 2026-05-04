@@ -35,7 +35,13 @@ export default function LoginPage() {
           <p className="text-[#1A1510]/60 mt-2 text-sm">Inicia sesión en tu cuenta</p>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-[#1A1510]/8 p-8">
-          <form action={handleSubmit} className="space-y-5">
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault()
+              await handleSubmit(new FormData(e.currentTarget))
+            }}
+            className="space-y-5"
+          >
             <div>
               <label className="block text-sm font-medium text-[#1A1510] mb-1.5">
                 Correo electrónico
