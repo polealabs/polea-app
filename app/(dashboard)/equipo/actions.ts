@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { enviarEmailInvitacion } from '@/lib/email'
 import { revalidatePath } from 'next/cache'
 import { randomBytes } from 'crypto'
 
@@ -55,8 +56,37 @@ export async function invitarMiembro(formData: FormData) {
     })
 
     if (error) return { error: error.message }
+
+    const { data: perfilOwner } = await supabase
+      .from('perfiles')
+      .select('nombre')
+      .eq('id', user_id)
+      .maybeSingle()
+
+    const { data: tiendaData } = await supabase.from('tiendas').select('nombre').eq('id', tienda_id).maybeSingle()
+
+    const rolLabels: Record<string, string> = {
+      admin: 'Administrador',
+      vendedor: 'Vendedor',
+      readonly: 'Solo lectura',
+    }
+
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://polea-app.vercel.app'
+    const linkInvitacion = `${baseUrl}/invitacion/${token}`
+
+    const emailResult = await enviarEmailInvitacion({
+      emailDestino: email,
+      nombreOwner: perfilOwner?.nombre || 'El dueño de la tienda',
+      nombreTienda: tiendaData?.nombre || 'la tienda',
+      rolLabel: rolLabels[rol] || rol,
+      linkInvitacion,
+    })
+    if ('error' in emailResult && emailResult.error) {
+      console.error('Email no enviado:', emailResult.error)
+    }
+
     revalidatePath('/equipo')
-    return { ok: true, token }
+    return { ok: true, token, link: linkInvitacion }
   } catch (e: unknown) {
     return { error: e instanceof Error ? e.message : 'Error desconocido' }
   }
