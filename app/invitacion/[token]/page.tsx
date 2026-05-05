@@ -54,16 +54,7 @@ export default function InvitacionPage() {
 
     const { data } = await supabase
       .from('invitaciones')
-      .select(
-        `
-        email, rol, aceptada, expires_at,
-        tiendas (
-          nombre,
-          owner_id,
-          perfiles:owner_id (nombre)
-        )
-      `,
-      )
+      .select('email, rol, aceptada, expires_at, tienda_id, tiendas(nombre, owner_id)')
       .eq('token', token)
       .maybeSingle()
 
@@ -85,13 +76,15 @@ export default function InvitacionPage() {
       return
     }
 
-    const tienda = data.tiendas as {
-      nombre?: string
-      owner_id?: string
-      perfiles?: { nombre?: string } | null
-    } | null
-    const ownerNombre = tienda?.perfiles?.nombre ?? 'El dueño de la tienda'
+    const tienda = data.tiendas as { nombre?: string; owner_id?: string } | null
     const tiendaNombre = tienda?.nombre ?? 'la tienda'
+    const ownerId = tienda?.owner_id
+
+    let ownerNombre = 'El equipo de'
+    if (ownerId) {
+      const { data: perfil } = await supabase.from('perfiles').select('nombre').eq('id', ownerId).maybeSingle()
+      if (perfil?.nombre) ownerNombre = perfil.nombre
+    }
 
     const datosInv: DatosInvitacion = {
       email: data.email,
