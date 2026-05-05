@@ -25,20 +25,26 @@ export default function InvitacionPage() {
 
     const timeoutId = window.setTimeout(() => {
       void (async () => {
-        const result = await aceptarInvitacion(token)
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+
+        let result = await aceptarInvitacion(token)
+
+        if (result?.error?.includes('Debes iniciar sesión')) {
+          await new Promise((resolve) => setTimeout(resolve, 1500))
+          result = await aceptarInvitacion(token)
+        }
+
         if (result?.ok) {
           setEstado('exito')
           setMensaje('¡Bienvenido al equipo! Ya tienes acceso a la tienda.')
           return
         }
-
         const err = result?.error ?? 'No se pudo procesar la invitación.'
         if (err.includes('Debes iniciar sesión')) {
           setEstado('login-requerido')
           setMensaje(err)
           return
         }
-
         setEstado('error')
         setMensaje(err)
       })()
