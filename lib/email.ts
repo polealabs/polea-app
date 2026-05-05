@@ -1,4 +1,6 @@
-import { createAdminClient } from './supabase/admin'
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function enviarEmailInvitacion(payload: {
   emailDestino: string
@@ -9,8 +11,6 @@ export async function enviarEmailInvitacion(payload: {
 }) {
   const { emailDestino, nombreOwner, nombreTienda, rolLabel, linkInvitacion } = payload
 
-  // Referencia para el template «Invite user» en Supabase Dashboard (el envío usa inviteUserByEmail + ese template).
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- solo documentación; el HTML activo está en el dashboard
   const html = `
 <!DOCTYPE html>
 <html lang="es">
@@ -38,8 +38,8 @@ export async function enviarEmailInvitacion(payload: {
               </p>
               <div style="background-color:#FAF6F0;border:1px solid #EDE5DC;border-radius:12px;padding:16px 20px;margin-bottom:24px;">
                 <p style="margin:0;font-size:13px;color:#8A7D72;">Tienda</p>
-                <p style="margin:4px 0 0;font-size:15px;font-weight:600;color:#1A1510;">${nombreTienda}</p>
-                <p style="margin:8px 0 0;font-size:13px;color:#8A7D72;">Tu rol</p>
+                <p style="margin:4px 0 12px;font-size:15px;font-weight:600;color:#1A1510;">${nombreTienda}</p>
+                <p style="margin:0;font-size:13px;color:#8A7D72;">Tu rol</p>
                 <p style="margin:4px 0 0;font-size:15px;font-weight:600;color:#1A1510;">${rolLabel}</p>
               </div>
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 24px;">
@@ -52,18 +52,16 @@ export async function enviarEmailInvitacion(payload: {
                   </td>
                 </tr>
               </table>
-              <p style="margin:0 0 8px;font-size:13px;color:#8A7D72;line-height:1.5;">
-                O copia este link en tu navegador:
-              </p>
-              <p style="margin:0;font-size:12px;color:#C4622D;word-break:break-all;">${linkInvitacion}</p>
-              <p style="margin:24px 0 0;font-size:13px;color:#8A7D72;line-height:1.5;">
+              <p style="margin:0 0 8px;font-size:13px;color:#8A7D72;line-height:1.5;">O copia este link en tu navegador:</p>
+              <p style="margin:0 0 24px;font-size:12px;color:#C4622D;word-break:break-all;">${linkInvitacion}</p>
+              <p style="margin:0;font-size:13px;color:#8A7D72;line-height:1.5;">
                 Si no esperabas esta invitación, puedes ignorar este mensaje.
               </p>
             </td>
           </tr>
           <tr>
             <td style="background-color:#FAF6F0;padding:20px 24px;text-align:center;border-radius:0 0 12px 12px;border:1px solid #EDE5DC;border-top:none;">
-              <p style="margin:0;font-size:11px;color:#8A7D72;line-height:1.5;">© Polea · Este es un correo automático, por favor no respondas.</p>
+              <p style="margin:0;font-size:11px;color:#8A7D72;">© Polea · Este es un correo automático, por favor no respondas.</p>
             </td>
           </tr>
         </table>
@@ -71,24 +69,24 @@ export async function enviarEmailInvitacion(payload: {
     </tr>
   </table>
 </body>
-</html>
-`
-
-  const adminClient = createAdminClient()
+</html>`
 
   try {
-    const { error } = await adminClient.auth.admin.inviteUserByEmail(emailDestino, {
-      redirectTo: linkInvitacion,
+    const { error } = await resend.emails.send({
+      from: 'Polea <onboarding@resend.dev>',
+      to: emailDestino,
+      subject: `${nombreOwner} te invita a colaborar en ${nombreTienda}`,
+      html,
     })
 
     if (error) {
-      console.error('Error enviando email de invitación:', error.message)
+      console.error('Resend error:', error)
       return { error: error.message }
     }
 
-    return { ok: true as const }
+    return { ok: true }
   } catch (e: unknown) {
-    console.error('Error en enviarEmailInvitacion:', e)
+    console.error('Error enviando email:', e)
     return { error: e instanceof Error ? e.message : 'Error desconocido' }
   }
 }

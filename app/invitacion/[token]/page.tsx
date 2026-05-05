@@ -38,6 +38,8 @@ export default function InvitacionPage() {
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [reenvioTimer, setReenvioTimer] = useState(0)
+  const [reenviando, setReenviando] = useState(false)
 
   useEffect(() => {
     if (!token) {
@@ -48,6 +50,25 @@ export default function InvitacionPage() {
     void cargarInvitacion()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- cargar solo al montar / cambiar token
   }, [token])
+
+  useEffect(() => {
+    if (reenvioTimer <= 0) return
+    const interval = setInterval(() => {
+      setReenvioTimer((v) => v - 1)
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [reenvioTimer])
+
+  async function reenviarConfirmacion() {
+    setReenviando(true)
+    const supabase = createClient()
+    await supabase.auth.resend({
+      type: 'signup',
+      email,
+    })
+    setReenvioTimer(60)
+    setReenviando(false)
+  }
 
   async function cargarInvitacion() {
     const supabase = createClient()
@@ -388,6 +409,20 @@ export default function InvitacionPage() {
               <div className="bg-[#FAF6F0] border border-[#EDE5DC] rounded-xl p-4 text-xs text-[#8A7D72] text-left">
                 <p className="font-semibold text-[#4A3F35] mb-1">¿No ves el correo?</p>
                 <p>Revisa tu carpeta de spam o correo no deseado. El correo viene de noreply@mail.app.supabase.io</p>
+              </div>
+              <div className="mt-4 text-center">
+                {reenvioTimer > 0 ? (
+                  <p className="text-xs text-[#8A7D72]">Puedes reenviar en {reenvioTimer} segundos</p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void reenviarConfirmacion()}
+                    disabled={reenviando}
+                    className="text-xs font-medium text-[#C4622D] hover:underline disabled:opacity-50"
+                  >
+                    {reenviando ? 'Reenviando...' : '¿No llegó? Reenviar email de confirmación'}
+                  </button>
+                )}
               </div>
             </div>
           )}
