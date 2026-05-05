@@ -130,8 +130,6 @@ export async function aceptarInvitacion(token: string) {
       .eq('aceptada', false)
       .maybeSingle()
 
-    console.log('aceptarInvitacion - user:', user?.email, 'inv email:', inv?.email)
-
     if (!inv) return { error: 'Invitación inválida o ya fue usada' }
     if (new Date(inv.expires_at) < new Date()) return { error: 'La invitación expiró' }
     if (inv.email !== user.email) return { error: `Esta invitación es para ${inv.email}` }
