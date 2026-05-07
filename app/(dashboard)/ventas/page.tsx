@@ -15,7 +15,7 @@ import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
 import { descargarCSV } from '@/lib/csv'
 import { useToast } from '@/lib/hooks/useToast'
 import { importarVentas } from './actions-import'
-import type { Cliente, DevolucionVenta, MedioPago, Producto, VentaCabecera } from '@/lib/types'
+import type { Cliente, DevolucionVenta, MedioPago, Producto, ProductoVariante, VentaCabecera } from '@/lib/types'
 
 type DevolucionConNombre = DevolucionVenta & {
   productos_original?: { nombre?: string } | { nombre?: string }[] | null
@@ -58,6 +58,9 @@ type VentaCabeceraRaw = VentaCabecera & {
 
 type LineaFormulario = {
   producto_id: string
+  variante_id?: string
+  variante_nombre?: string
+  variantes_disponibles?: ProductoVariante[]
   cantidad: number
   precio_venta: number
   precio_original: number
@@ -297,6 +300,9 @@ export default function VentasPage() {
           return {
             ...l,
             producto_id: valor as string,
+            variante_id: '',
+            variante_nombre: '',
+            variantes_disponibles: [],
             precio_venta: prod?.precio_venta ?? 0,
             precio_original: prod?.precio_venta ?? 0,
           }
@@ -304,6 +310,17 @@ export default function VentasPage() {
         return { ...l, [campo]: valor }
       }),
     )
+  }
+
+  async function cargarVariantes(productoId: string) {
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('producto_variantes')
+      .select('*')
+      .eq('producto_id', productoId)
+      .eq('activa', true)
+      .order('nombre')
+    return (data ?? []) as ProductoVariante[]
   }
 
   async function handleSubmit() {
@@ -327,6 +344,7 @@ export default function VentasPage() {
       fecha,
       lineas: lineas.map((l) => ({
         producto_id: l.producto_id,
+        variante_id: l.variante_id || undefined,
         cantidad: l.cantidad,
         precio_venta: l.precio_venta,
         descuento: l.descuento ?? 0,
@@ -678,7 +696,9 @@ export default function VentasPage() {
                           .map((p) => ({
                             id: p.id,
                             label: p.nombre,
-                            sublabel: `Stock: ${p.stock_actual} uds · ${formatCOP(p.precio_venta)}`,
+                            sublabel: p.tiene_variantes
+                              ? `Con variantes · ${formatCOP(p.precio_venta)} base`
+                              : `Stock: ${p.stock_actual} uds · ${formatCOP(p.precio_venta)}`,
                           }))}
                         value={l.producto_id}
                         onChange={(id) => {
@@ -688,9 +708,50 @@ export default function VentasPage() {
                             actualizarLinea(i, 'precio_venta', prod.precio_venta)
                             actualizarLinea(i, 'precio_original', prod.precio_venta)
                           }
+                          void cargarVariantes(id).then((vars) => {
+                            setLineas((prev) =>
+                              prev.map((linea, idx) =>
+                                idx === i
+                                  ? {
+                                      ...linea,
+                                      variantes_disponibles: vars,
+                                      variante_id: '',
+                                      variante_nombre: '',
+                                    }
+                                  : linea,
+                              ),
+                            )
+                          })
                         }}
                         placeholder="Buscar producto..."
                       />
+                      {(l.variantes_disponibles?.length ?? 0) > 0 && (
+                        <select
+                          value={l.variante_id ?? ''}
+                          onChange={(e) => {
+                            const variante = l.variantes_disponibles?.find((v) => v.id === e.target.value)
+                            actualizarLinea(i, 'variante_id', e.target.value)
+                            actualizarLinea(i, 'variante_nombre', variante?.nombre ?? '')
+                            if (variante?.precio_venta) {
+                              actualizarLinea(i, 'precio_venta', variante.precio_venta)
+                              actualizarLinea(i, 'precio_original', variante.precio_venta)
+                            }
+                          }}
+                          className="w-full px-3 py-2 rounded-lg border text-sm mt-1"
+                          style={{
+                            borderColor: 'var(--color-border)',
+                            background: 'var(--color-surface)',
+                            color: 'var(--color-text)',
+                          }}
+                        >
+                          <option value="">Selecciona una variante</option>
+                          {(l.variantes_disponibles ?? []).map((v: ProductoVariante) => (
+                            <option key={v.id} value={v.id}>
+                              {v.nombre} — Stock: {v.stock_actual}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                       {prod && (
                         <p
                           className={`text-xs mt-1.5 font-medium ${
@@ -701,7 +762,11 @@ export default function VentasPage() {
                                 : 'text-[#1E3A2F]/70'
                           }`}
                         >
-                          Stock en almacén: {prod.stock_actual} uds.
+                          Stock en almacén:{' '}
+                          {l.variante_id && l.variantes_disponibles
+                            ? (l.variantes_disponibles.find((v) => v.id === l.variante_id)?.stock_actual ?? 0)
+                            : prod.stock_actual}{' '}
+                          uds.
                           {maxLinea !== null && maxLinea < prod.stock_actual && (
                             <span className="text-[#1A1510]/55 font-normal">
                               {' '}

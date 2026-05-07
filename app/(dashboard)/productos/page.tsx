@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
 import { crearProducto, editarProducto, eliminarProducto } from './actions'
@@ -91,6 +91,7 @@ function tipoBadgeClass(tipo: Producto['tipo']) {
 }
 
 export default function ProductosPage() {
+  const router = useRouter()
   const { tienda, loading: tiendaLoading, canEdit, canDelete } = useTienda()
   const searchParams = useSearchParams()
   const [productos, setProductos] = useState<Producto[]>([])
@@ -106,6 +107,7 @@ export default function ProductosPage() {
   const [showCalculadora, setShowCalculadora] = useState(false)
   const [filtroActivo, setFiltroActivo] = useState<FiltroStock>('todos')
   const [idsSinMovimiento, setIdsSinMovimiento] = useState<Set<string>>(new Set())
+  const [variantesPorProducto, setVariantesPorProducto] = useState<Map<string, number>>(new Map())
   const [ignorarFiltroQuery, setIgnorarFiltroQuery] = useState(false)
   const { toasts, showToast, removeToast } = useToast()
 
@@ -118,6 +120,18 @@ export default function ProductosPage() {
       .order('created_at', { ascending: false })
     const productos = productosData ?? []
     setProductos(productos)
+
+    const { data: variantesCount } = await supabase
+      .from('producto_variantes')
+      .select('producto_id')
+      .eq('tienda_id', tiendaId)
+      .eq('activa', true)
+
+    const mapaVariantes = new Map<string, number>()
+    ;(variantesCount ?? []).forEach((v) => {
+      mapaVariantes.set(v.producto_id, (mapaVariantes.get(v.producto_id) ?? 0) + 1)
+    })
+    setVariantesPorProducto(mapaVariantes)
 
     const hace30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     const { data: ventasRecientes } = await supabase
@@ -617,6 +631,9 @@ export default function ProductosPage() {
                 <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                   Stock
                 </th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                  Variantes
+                </th>
                 <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                   Defectuosos
                 </th>
@@ -665,17 +682,32 @@ export default function ProductosPage() {
                     )}
                   </td>
                   <td className="px-5 py-4 text-right">
-                    <span
-                      className={`font-semibold ${
-                        p.stock_actual < 0 || p.stock_actual === 0
-                          ? 'text-[#C44040]'
-                          : p.stock_actual <= p.stock_minimo
-                            ? 'text-[#D4A853]'
-                            : 'text-[#1E3A2F]'
-                      }`}
-                    >
-                      {p.stock_actual}
-                    </span>
+                    {(variantesPorProducto.get(p.id) ?? 0) > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/productos/${p.id}/variantes`)}
+                        className="font-semibold hover:underline text-[#1E3A2F]"
+                      >
+                        {variantesPorProducto.get(p.id)} variantes
+                      </button>
+                    ) : (
+                      <span
+                        className={`font-semibold ${
+                          p.stock_actual < 0 || p.stock_actual === 0
+                            ? 'text-[#C44040]'
+                            : p.stock_actual <= p.stock_minimo
+                              ? 'text-[#D4A853]'
+                              : 'text-[#1E3A2F]'
+                        }`}
+                      >
+                        {p.stock_actual}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-5 py-4 text-xs text-[#8A7D72]">
+                    {(variantesPorProducto.get(p.id) ?? 0) > 0
+                      ? `${variantesPorProducto.get(p.id)} activas`
+                      : 'Sin variantes'}
                   </td>
                   <td className="px-5 py-3.5 text-sm text-center">
                     {(p.unidades_defectuosas ?? 0) > 0 ? (
@@ -690,6 +722,15 @@ export default function ProductosPage() {
                   <td className="px-5 py-4">{stockEstadoBadge(p)}</td>
                   <td className="px-5 py-4 text-right">
                     <div className="flex gap-3 justify-end">
+                      {canEdit && (
+                        <button
+                          onClick={() => router.push(`/productos/${p.id}/variantes`)}
+                          className="text-xs font-medium hover:underline"
+                          style={{ color: 'var(--color-accent)' }}
+                        >
+                          Variantes {variantesPorProducto.get(p.id) ? `(${variantesPorProducto.get(p.id)})` : ''}
+                        </button>
+                      )}
                       {canEdit && (
                         <button
                           onClick={() => {

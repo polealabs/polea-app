@@ -16,7 +16,7 @@ import {
   registrarEntradaCompleta,
   registrarPagoCuenta,
 } from './actions'
-import type { CuentaPorPagar, CuotaPago, Entrada, Producto, Proveedor } from '@/lib/types'
+import type { CuentaPorPagar, CuotaPago, Entrada, Producto, ProductoVariante, Proveedor } from '@/lib/types'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import ImportCSV from '@/components/ui/ImportCSV'
 import ProductoSelect from '@/components/ui/ProductoSelect'
@@ -167,6 +167,8 @@ function EntradasPageContent() {
 
   const [modoProducto, setModoProducto] = useState<'existente' | 'nuevo'>('existente')
   const [productoId, setProductoId] = useState('')
+  const [varianteId, setVarianteId] = useState('')
+  const [variantesDisponibles, setVariantesDisponibles] = useState<ProductoVariante[]>([])
   const [nuevoNombre, setNuevoNombre] = useState('')
   const [nuevoPrecioVenta, setNuevoPrecioVenta] = useState(0)
   const [nuevoCosto, setNuevoCosto] = useState(0)
@@ -286,6 +288,8 @@ function EntradasPageContent() {
   function resetFormularioUnificado() {
     setModoProducto('existente')
     setProductoId('')
+    setVarianteId('')
+    setVariantesDisponibles([])
     setNuevoNombre('')
     setNuevoPrecioVenta(0)
     setNuevoCosto(0)
@@ -400,8 +404,10 @@ function EntradasPageContent() {
       fecha_primera_cuota: tipoPago === 'cuotas' ? fechaPrimeraCuota || fechaRecepcion : undefined,
     }
 
-    if (modoProducto === 'existente') payload.producto_id = productoId
-    else {
+    if (modoProducto === 'existente') {
+      payload.producto_id = productoId
+      if (varianteId) payload.variante_id = varianteId
+    } else {
       payload.nuevo_producto = {
         nombre: nuevoNombre.trim(),
         precio_venta: nuevoPrecioVenta,
@@ -527,6 +533,17 @@ function EntradasPageContent() {
     busqueda.trim() === ''
       ? entradas
       : entradas.filter((e) => e.producto_nombre.toLowerCase().includes(busqueda.toLowerCase()))
+
+  async function cargarVariantes(productoIdSel: string) {
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('producto_variantes')
+      .select('*')
+      .eq('producto_id', productoIdSel)
+      .eq('activa', true)
+      .order('nombre')
+    return (data ?? []) as ProductoVariante[]
+  }
 
   const togglePagoClass = (active: boolean) =>
     `flex-1 text-xs font-semibold px-3 py-2.5 rounded-xl border transition text-center ${
@@ -799,9 +816,27 @@ function EntradasPageContent() {
                     sublabel: `Stock actual: ${p.stock_actual} uds`,
                   }))}
                   value={productoId}
-                  onChange={setProductoId}
+                  onChange={(idSel) => {
+                    setProductoId(idSel)
+                    setVarianteId('')
+                    void cargarVariantes(idSel).then((vars) => setVariantesDisponibles(vars))
+                  }}
                   placeholder="Buscar producto..."
                 />
+                {variantesDisponibles.length > 0 && (
+                  <select
+                    value={varianteId}
+                    onChange={(e) => setVarianteId(e.target.value)}
+                    className={inputClass + ' mt-2'}
+                  >
+                    <option value="">Selecciona una variante</option>
+                    {variantesDisponibles.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.nombre} — Stock: {v.stock_actual}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             )}
             {modoProducto === 'existente' && productos.length === 0 && (

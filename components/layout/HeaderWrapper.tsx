@@ -26,6 +26,9 @@ const TITULOS: Record<string, string> = {
 
 export default function HeaderWrapper() {
   const pathname = usePathname()
+  if (pathname.includes('/variantes')) {
+    return <Header titulo="Variantes del producto" />
+  }
   const titulo =
     TITULOS[pathname] ??
     Object.entries(TITULOS).find(([base]) => pathname.startsWith(base))?.[1] ??

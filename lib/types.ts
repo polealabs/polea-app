@@ -50,7 +50,31 @@ export interface Producto {
   costo_produccion?: number
   stock_actual: number
   stock_minimo: number
+  tiene_variantes?: boolean
   unidades_defectuosas?: number
+  created_at: string
+}
+
+export interface ProductoAtributo {
+  id: string
+  tienda_id: string
+  producto_id: string
+  nombre: string
+  created_at: string
+}
+
+export interface ProductoVariante {
+  id: string
+  tienda_id: string
+  producto_id: string
+  nombre: string
+  atributos: Record<string, string>
+  precio_venta?: number
+  costo_produccion?: number
+  stock_actual: number
+  stock_minimo: number
+  sku?: string
+  activa: boolean
   created_at: string
 }
 
@@ -202,6 +226,8 @@ export interface VentaItem {
   cabecera_id: string
   tienda_id: string
   producto_id: string
+  variante_id?: string
+  variante_nombre?: string
   cantidad: number
   precio_venta: number
   descuento: number

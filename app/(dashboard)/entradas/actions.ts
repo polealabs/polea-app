@@ -65,6 +65,7 @@ export async function eliminarEntrada(id: string) {
 
 export async function registrarEntradaCompleta(payload: {
   producto_id?: string
+  variante_id?: string
   nuevo_producto?: {
     nombre: string
     precio_venta: number
@@ -122,6 +123,23 @@ export async function registrarEntradaCompleta(payload: {
       .select()
       .single()
     if (errEntrada) return { error: errEntrada.message }
+
+    if (payload.variante_id) {
+      const { data: variante } = await supabase
+        .from('producto_variantes')
+        .select('stock_actual')
+        .eq('id', payload.variante_id)
+        .single()
+
+      if (variante) {
+        await supabase
+          .from('producto_variantes')
+          .update({
+            stock_actual: variante.stock_actual + payload.cantidad,
+          })
+          .eq('id', payload.variante_id)
+      }
+    }
 
     const montoTotal = payload.cantidad * payload.costo_unitario
     const frecuencia = payload.frecuencia_cuotas ?? 'mensual'

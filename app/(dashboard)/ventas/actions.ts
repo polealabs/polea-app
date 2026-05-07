@@ -21,6 +21,7 @@ async function getTiendaId() {
 
 export type LineaVenta = {
   producto_id: string
+  variante_id?: string
   cantidad: number
   precio_venta: number
   descuento: number // porcentaje (0-100)
@@ -127,6 +128,7 @@ export async function crearVentaMulti(payload: {
       cabecera_id: cabecera.id,
       tienda_id,
       producto_id: l.producto_id,
+      variante_id: l.variante_id || null,
       cantidad: l.cantidad,
       precio_venta: l.precio_venta,
       descuento: l.descuento ?? 0,
