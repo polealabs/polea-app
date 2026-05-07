@@ -16,8 +16,13 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "POLEA",
-  description: "SaaS administrativo para tiendas pequenas colombianas.",
+  title: 'Polea',
+  description: 'Tu tienda, clara',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({

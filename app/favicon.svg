@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Fondo redondeado -->
+  <rect width="32" height="32" rx="8" fill="#1E3A2F"/>
+  <!-- Rueda exterior -->
+  <circle cx="16" cy="14" r="9" fill="none" stroke="#FAF6F0" stroke-width="2.5"/>
+  <!-- Rueda interior -->
+  <circle cx="16" cy="14" r="4" fill="none" stroke="#FAF6F0" stroke-width="2"/>
+  <!-- Punto central -->
+  <circle cx="16" cy="14" r="1.5" fill="#C4622D"/>
+  <!-- Cuerda -->
+  <line x1="16" y1="23" x2="16" y2="29" stroke="#C4622D" stroke-width="2.5" stroke-linecap="round"/>
+</svg>
