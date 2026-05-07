@@ -79,18 +79,22 @@ export async function crearProducto(formData: FormData) {
     const duplicado = await assertNombreYSKUUnicos(supabase, tienda_id, nombre, sku)
     if (duplicado) return duplicado
 
-    const { error } = await supabase.from('productos').insert({
-      tienda_id,
-      nombre,
-      sku,
-      tipo: formData.get('tipo') as string,
-      precio_venta: Number(formData.get('precio_venta')),
-      costo_produccion: Number(formData.get('costo_produccion')) || null,
-      stock_minimo: Number(formData.get('stock_minimo')),
-    })
+    const { data, error } = await supabase
+      .from('productos')
+      .insert({
+        tienda_id,
+        nombre,
+        sku,
+        tipo: formData.get('tipo') as string,
+        precio_venta: Number(formData.get('precio_venta')),
+        costo_produccion: Number(formData.get('costo_produccion')) || null,
+        stock_minimo: Number(formData.get('stock_minimo')),
+      })
+      .select('id')
+      .single()
     if (error) return { error: error.message }
     revalidatePath('/productos')
-    return { success: true }
+    return { ok: true, id: data.id }
   } catch (e: unknown) {
     return { error: e instanceof Error ? e.message : 'Error desconocido' }
   }

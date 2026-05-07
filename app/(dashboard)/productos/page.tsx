@@ -40,11 +40,22 @@ function formatCOP(n: number) {
 
 function descargarPlantillaProductos() {
   descargarCSV('plantilla_productos.csv', [
-    ['nombre', 'precio_venta', 'stock_inicial', 'stock_minimo', 'sku', 'tipo'],
-    ['Aretes luna plateados', '85000', '10', '3', 'ARG-001', 'Producto terminado'],
-    ['Collar sol dorado', '120000', '5', '2', 'COL-002', 'Producto terminado'],
-    ['Empaque kraft pequeño', '800', '50', '10', '', 'Empaque'],
-    ['Resina epoxi 500ml', '35000', '3', '1', '', 'Materia prima'],
+    [
+      'nombre',
+      'precio_venta',
+      'tipo',
+      'sku',
+      'costo_produccion',
+      'stock_actual',
+      'stock_minimo',
+      'variante_nombre',
+      'variante_precio',
+      'variante_stock',
+    ],
+    ['Camiseta Oversize', '80000', 'Producto terminado', '', '', '', '', 'Negro / S', '80000', '5'],
+    ['Camiseta Oversize', '80000', 'Producto terminado', '', '', '', '', 'Negro / M', '80000', '3'],
+    ['Camiseta Oversize', '80000', 'Producto terminado', '', '', '', '', 'Blanco / S', '80000', '2'],
+    ['Collar Luna', '150000', 'Producto terminado', 'COL001', '120000', '10', '2', '', '', ''],
   ])
 }
 
@@ -105,11 +116,45 @@ export default function ProductosPage() {
   const [busqueda, setBusqueda] = useState('')
   const [form, setForm] = useState(emptyProductoForm)
   const [showCalculadora, setShowCalculadora] = useState(false)
+  const [tieneVariantes, setTieneVariantes] = useState(false)
+  const [variantesAtributos, setVariantesAtributos] = useState<{ nombre: string; valores: string[] }[]>([])
+  const [variantesGeneradas, setVariantesGeneradas] = useState<
+    { nombre: string; atributos: Record<string, string>; precio_venta: number; stock_actual: number }[]
+  >([])
+  const [nuevoAttrNombre, setNuevoAttrNombre] = useState('')
+  const [nuevoAttrValores, setNuevoAttrValores] = useState('')
   const [filtroActivo, setFiltroActivo] = useState<FiltroStock>('todos')
   const [idsSinMovimiento, setIdsSinMovimiento] = useState<Set<string>>(new Set())
   const [variantesPorProducto, setVariantesPorProducto] = useState<Map<string, number>>(new Map())
   const [ignorarFiltroQuery, setIgnorarFiltroQuery] = useState(false)
   const { toasts, showToast, removeToast } = useToast()
+
+  function generarCombinaciones(attrs: { nombre: string; valores: string[] }[]): Record<string, string>[] {
+    if (attrs.length === 0) return []
+    let result: Record<string, string>[] = [{}]
+    for (const attr of attrs) {
+      const nuevas: Record<string, string>[] = []
+      for (const combo of result) {
+        for (const valor of attr.valores) {
+          nuevas.push({ ...combo, [attr.nombre]: valor })
+        }
+      }
+      result = nuevas
+    }
+    return result
+  }
+
+  function recalcularVariantes(attrs: { nombre: string; valores: string[] }[], precioBase: number) {
+    const combos = generarCombinaciones(attrs)
+    setVariantesGeneradas(
+      combos.map((combo) => ({
+        nombre: Object.values(combo).join(' / '),
+        atributos: combo,
+        precio_venta: precioBase,
+        stock_actual: 0,
+      })),
+    )
+  }
 
   const fetchProductos = useCallback(async (tiendaId: string) => {
     const supabase = createClient()
@@ -230,9 +275,30 @@ export default function ProductosPage() {
       showToast(result.error, 'error')
       if ('warning' in result && result.warning === true) setFeedbackVariant('warning')
     } else {
+      const nuevoProductoId = !editando && result && 'id' in result ? result.id : null
+      if (!editando && tieneVariantes && variantesGeneradas.length > 0 && nuevoProductoId && tienda) {
+        const supabase = createClient()
+        await supabase.from('producto_variantes').insert(
+          variantesGeneradas.map((v) => ({
+            tienda_id: tienda.id,
+            producto_id: nuevoProductoId,
+            nombre: v.nombre,
+            atributos: v.atributos,
+            precio_venta: v.precio_venta,
+            stock_actual: v.stock_actual,
+            stock_minimo: 0,
+            activa: true,
+          })),
+        )
+      }
       setShowForm(false)
       setEditando(null)
       setForm(emptyProductoForm)
+      setTieneVariantes(false)
+      setVariantesAtributos([])
+      setVariantesGeneradas([])
+      setNuevoAttrNombre('')
+      setNuevoAttrValores('')
       if (tienda) await fetchProductos(tienda.id)
       showToast(esEdicion ? 'Producto actualizado' : 'Producto creado')
     }
@@ -324,7 +390,7 @@ export default function ProductosPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-5xl mx-auto" style={{ background: 'var(--color-background)' }}>
+    <div className="p-4 md:p-6 w-full max-w-none mx-auto" style={{ background: 'var(--color-background)' }}>
       {canDelete && (
         <ConfirmModal
           open={confirmDelete !== null}
@@ -366,6 +432,11 @@ export default function ProductosPage() {
               setEditando(null)
               setError(null)
               setForm(emptyProductoForm)
+              setTieneVariantes(false)
+              setVariantesAtributos([])
+              setVariantesGeneradas([])
+              setNuevoAttrNombre('')
+              setNuevoAttrValores('')
             }}
             className="btn-primary text-sm font-semibold px-4 py-2 rounded-lg"
           >
@@ -385,7 +456,7 @@ export default function ProductosPage() {
             if (res.exitosos > 0 && tienda) await fetchProductos(tienda.id)
             return res
           }}
-          descripcion="Tipos válidos: Producto terminado, Materia prima, Empaque, Material POP. Si omites tipo se asigna 'Producto terminado'."
+          descripcion="CSV: nombre, precio_venta, tipo (opcional), sku (opcional), costo (opcional), stock_actual (vacío si tiene variantes), stock_minimo (opcional), variante_nombre (opcional), variante_precio (opcional), variante_stock (opcional). Agrupa variantes del mismo producto en filas consecutivas con el mismo nombre."
         />
       )}
 
@@ -487,14 +558,177 @@ export default function ProductosPage() {
                 min={0}
                 value={form.precio_venta === 0 ? '' : form.precio_venta}
                 onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    precio_venta: e.target.value === '' ? 0 : Number(e.target.value),
-                  }))
+                  setForm((f) => {
+                    const precio = e.target.value === '' ? 0 : Number(e.target.value)
+                    if (tieneVariantes && variantesAtributos.length > 0) {
+                      recalcularVariantes(variantesAtributos, precio)
+                    }
+                    return {
+                      ...f,
+                      precio_venta: precio,
+                    }
+                  })
                 }
                 placeholder="0"
                 className={inputClass}
               />
+            </div>
+            <div className="sm:col-span-3">
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const siguiente = !tieneVariantes
+                    setTieneVariantes(siguiente)
+                    if (!siguiente) {
+                      setVariantesAtributos([])
+                      setVariantesGeneradas([])
+                    }
+                  }}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${tieneVariantes ? 'bg-[#1E3A2F]' : 'bg-gray-300'}`}
+                >
+                  <span
+                    className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${tieneVariantes ? 'translate-x-5' : 'translate-x-0.5'}`}
+                  />
+                </button>
+                <label className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
+                  Este producto tiene variantes (tallas, colores, tamaños, etc.)
+                </label>
+              </div>
+
+              {tieneVariantes && (
+                <div
+                  className="rounded-xl border p-4 space-y-4 mt-3"
+                  style={{ borderColor: 'var(--color-border)', background: 'var(--color-background)' }}
+                >
+                  {variantesAtributos.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {variantesAtributos.map((attr) => (
+                        <div
+                          key={attr.nombre}
+                          className="text-xs px-3 py-1.5 rounded-full font-medium"
+                          style={{ background: 'var(--color-accent-pale)', color: 'var(--color-accent)' }}
+                        >
+                          {attr.nombre}: {attr.valores.join(', ')}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-soft)' }}>
+                        Atributo (ej: Talla, Color)
+                      </label>
+                      <input
+                        type="text"
+                        value={nuevoAttrNombre}
+                        onChange={(e) => setNuevoAttrNombre(e.target.value)}
+                        placeholder="Talla"
+                        className="w-full px-3 py-2 rounded-lg border text-sm"
+                        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text)' }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-soft)' }}>
+                        Valores separados por coma
+                      </label>
+                      <input
+                        type="text"
+                        value={nuevoAttrValores}
+                        onChange={(e) => setNuevoAttrValores(e.target.value)}
+                        placeholder="S, M, L, XL"
+                        className="w-full px-3 py-2 rounded-lg border text-sm"
+                        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text)' }}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!nuevoAttrNombre.trim() || !nuevoAttrValores.trim()) return
+                      const valores = nuevoAttrValores
+                        .split(',')
+                        .map((v) => v.trim())
+                        .filter(Boolean)
+                      const nuevos = [...variantesAtributos, { nombre: nuevoAttrNombre.trim(), valores }]
+                      setVariantesAtributos(nuevos)
+                      recalcularVariantes(nuevos, form.precio_venta)
+                      setNuevoAttrNombre('')
+                      setNuevoAttrValores('')
+                    }}
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg transition"
+                    style={{ background: 'var(--color-accent)', color: 'white' }}
+                  >
+                    + Agregar atributo
+                  </button>
+
+                  {variantesGeneradas.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-soft)' }}>
+                        {variantesGeneradas.length} variantes generadas
+                      </p>
+                      <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--color-border)' }}>
+                        <table className="w-full text-sm">
+                          <thead style={{ background: 'var(--color-background)' }}>
+                            <tr>
+                              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: 'var(--color-text-soft)' }}>
+                                Variante
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: 'var(--color-text-soft)' }}>
+                                Precio
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: 'var(--color-text-soft)' }}>
+                                Stock inicial
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {variantesGeneradas.map((v, i) => (
+                              <tr key={v.nombre} className="border-t" style={{ borderColor: 'var(--color-border)' }}>
+                                <td className="px-3 py-2 text-sm font-medium" style={{ color: 'var(--color-text)' }}>
+                                  {v.nombre}
+                                </td>
+                                <td className="px-3 py-2">
+                                  <input
+                                    type="number"
+                                    value={v.precio_venta === 0 ? '' : v.precio_venta}
+                                    onChange={(e) =>
+                                      setVariantesGeneradas((prev) =>
+                                        prev.map((vv, j) =>
+                                          j === i ? { ...vv, precio_venta: Number(e.target.value) } : vv,
+                                        ),
+                                      )
+                                    }
+                                    className="w-28 px-2 py-1 rounded-lg border text-xs"
+                                    style={{ borderColor: 'var(--color-border)' }}
+                                  />
+                                </td>
+                                <td className="px-3 py-2">
+                                  <input
+                                    type="number"
+                                    value={v.stock_actual === 0 ? '' : v.stock_actual}
+                                    onChange={(e) =>
+                                      setVariantesGeneradas((prev) =>
+                                        prev.map((vv, j) =>
+                                          j === i ? { ...vv, stock_actual: Number(e.target.value) } : vv,
+                                        ),
+                                      )
+                                    }
+                                    className="w-20 px-2 py-1 rounded-lg border text-xs"
+                                    style={{ borderColor: 'var(--color-border)' }}
+                                  />
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div>
               <label className={labelClass}>Costo del producto (opcional)</label>
@@ -549,6 +783,11 @@ export default function ProductosPage() {
                   setEditando(null)
                   setError(null)
                   setForm(emptyProductoForm)
+                  setTieneVariantes(false)
+                  setVariantesAtributos([])
+                  setVariantesGeneradas([])
+                  setNuevoAttrNombre('')
+                  setNuevoAttrValores('')
                   setShowCalculadora(false)
                 }}
                 className="text-sm text-[#1A1510]/60 hover:text-[#1A1510] px-4 py-2 rounded-lg border border-[#1A1510]/20 transition"
@@ -598,6 +837,11 @@ export default function ProductosPage() {
                 setShowForm(true)
                 setError(null)
                 setForm(emptyProductoForm)
+                setTieneVariantes(false)
+                setVariantesAtributos([])
+                setVariantesGeneradas([])
+                setNuevoAttrNombre('')
+                setNuevoAttrValores('')
               }}
               className="mt-3 text-sm text-[#C4622D] font-medium hover:underline"
             >
@@ -610,40 +854,37 @@ export default function ProductosPage() {
       ) : (
         <div className="bg-white rounded-2xl border border-[#1A1510]/8 shadow-sm overflow-hidden" style={{ background: 'var(--color-surface)' }}>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[600px]">
+            <table className="w-full table-auto text-sm min-w-[980px] xl:min-w-0">
             <thead>
               <tr className="border-b border-[#1A1510]/8 bg-[#FAF6F0]" style={{ background: 'var(--color-background)' }}>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
-                  Producto
+                  Nombre / SKU
                 </th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
-                  SKU
-                </th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                <th className="w-32 text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                   Tipo
                 </th>
-                <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
-                  Precio
-                </th>
-                <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                <th className="w-28 text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                   Costo
                 </th>
-                <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                <th className="w-28 text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                  Precio
+                </th>
+                <th className="w-24 text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                   Stock
                 </th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
-                  Variantes
+                <th className="w-20 text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                  Mín
                 </th>
-                <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                <th className="w-24 text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                   Defectuosos
                 </th>
-                <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
-                  Mínimo
+                <th className="w-24 text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                  Variantes
                 </th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                   Estado
                 </th>
-                <th className="px-5 py-3" />
+                <th className="w-44 px-5 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -654,8 +895,10 @@ export default function ProductosPage() {
                     i === productosFiltrados.length - 1 ? 'border-b-0' : ''
                   }`}
                 >
-                  <td className="px-5 py-4 font-medium text-[#1A1510]">{p.nombre}</td>
-                  <td className="px-5 py-4 text-[#1A1510]/70">{p.sku?.trim() ? p.sku : '—'}</td>
+                  <td className="px-5 py-4">
+                    <p className="font-medium text-[#1A1510]">{p.nombre}</p>
+                    <p className="text-xs text-[#1A1510]/60 mt-0.5">SKU: {p.sku?.trim() ? p.sku : '—'}</p>
+                  </td>
                   <td className="px-5 py-4 text-center">
                     <span
                       className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${tipoBadgeClass(p.tipo)}`}
@@ -663,7 +906,6 @@ export default function ProductosPage() {
                       {p.tipo}
                     </span>
                   </td>
-                  <td className="px-5 py-4 text-right text-[#1A1510]/80">{formatCOP(p.precio_venta)}</td>
                   <td className="px-5 py-3.5 text-sm text-right" style={{ color: 'var(--color-text-soft)' }}>
                     {p.costo_produccion ? formatCOP(p.costo_produccion) : '—'}
                     {p.costo_produccion && p.precio_venta > 0 && (
@@ -681,6 +923,7 @@ export default function ProductosPage() {
                       </p>
                     )}
                   </td>
+                  <td className="px-5 py-4 text-right text-[#1A1510]/80">{formatCOP(p.precio_venta)}</td>
                   <td className="px-5 py-4 text-right">
                     {(variantesPorProducto.get(p.id) ?? 0) > 0 ? (
                       <button
@@ -704,11 +947,7 @@ export default function ProductosPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-5 py-4 text-xs text-[#8A7D72]">
-                    {(variantesPorProducto.get(p.id) ?? 0) > 0
-                      ? `${variantesPorProducto.get(p.id)} activas`
-                      : 'Sin variantes'}
-                  </td>
+                  <td className="px-5 py-4 text-right text-[#1A1510]/50">{p.stock_minimo}</td>
                   <td className="px-5 py-3.5 text-sm text-center">
                     {(p.unidades_defectuosas ?? 0) > 0 ? (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">
@@ -718,7 +957,11 @@ export default function ProductosPage() {
                       <span style={{ color: 'var(--color-text-faint)' }}>—</span>
                     )}
                   </td>
-                  <td className="px-5 py-4 text-right text-[#1A1510]/50">{p.stock_minimo}</td>
+                  <td className="px-5 py-4 text-xs text-[#8A7D72]">
+                    {(variantesPorProducto.get(p.id) ?? 0) > 0
+                      ? `${variantesPorProducto.get(p.id)} activas`
+                      : 'Sin variantes'}
+                  </td>
                   <td className="px-5 py-4">{stockEstadoBadge(p)}</td>
                   <td className="px-5 py-4 text-right">
                     <div className="flex gap-3 justify-end">
@@ -737,6 +980,11 @@ export default function ProductosPage() {
                             setEditando(p)
                             setShowForm(false)
                             setError(null)
+                            setTieneVariantes(false)
+                            setVariantesAtributos([])
+                            setVariantesGeneradas([])
+                            setNuevoAttrNombre('')
+                            setNuevoAttrValores('')
                             setForm({
                               nombre: p.nombre,
                               precio_venta: p.precio_venta,

@@ -17,15 +17,20 @@ export async function importarProductos(filas: Record<string, string>[]) {
 
   const errores: { fila: number; mensaje: string }[] = []
   let exitosos = 0
+  const productoIdMap = new Map<string, string>()
 
   for (let i = 0; i < filas.length; i++) {
     const fila = filas[i]
     const nombre = fila['nombre']?.trim()
     const precio_venta = Number(fila['precio_venta'])
-    const stock_actual = Number(fila['stock_inicial'] ?? '0')
+    const stock_actual = Number(fila['stock_actual'] ?? '0')
     const stock_minimo = Number(fila['stock_minimo'] ?? '0')
     const tipo = fila['tipo']?.trim() || 'Producto terminado'
     const sku = fila['sku']?.trim() || null
+    const costo_produccion = Number(fila['costo_produccion'] ?? '0')
+    const variante_nombre = fila['variante_nombre']?.trim()
+    const variante_precio = Number(fila['variante_precio'] ?? '0')
+    const variante_stock = Number(fila['variante_stock'] ?? '0')
 
     if (!nombre) {
       errores.push({ fila: i + 2, mensaje: 'El campo "nombre" es obligatorio' })
@@ -43,25 +48,59 @@ export async function importarProductos(filas: Record<string, string>[]) {
       continue
     }
 
-    const { error } = await supabase.from('productos').insert({
-      tienda_id: tienda.id,
-      nombre,
-      sku,
-      tipo,
-      precio_venta,
-      stock_actual: isNaN(stock_actual) ? 0 : stock_actual,
-      stock_minimo: isNaN(stock_minimo) ? 0 : stock_minimo,
-    })
-
-    if (error) {
-      if (error.code === '23505') {
-        errores.push({ fila: i + 2, mensaje: `El producto "${nombre}" ya existe en tu catálogo` })
-      } else {
-        errores.push({ fila: i + 2, mensaje: `No se pudo guardar el producto "${nombre}". Intenta de nuevo.` })
-      }
+    let productoId: string
+    if (productoIdMap.has(nombre)) {
+      productoId = productoIdMap.get(nombre)!
     } else {
-      exitosos++
+      const { data: prod, error } = await supabase
+        .from('productos')
+        .insert({
+          tienda_id: tienda.id,
+          nombre,
+          sku,
+          tipo,
+          precio_venta,
+          costo_produccion: isNaN(costo_produccion) || costo_produccion <= 0 ? null : costo_produccion,
+          stock_actual: variante_nombre ? 0 : isNaN(stock_actual) ? 0 : stock_actual,
+          stock_minimo: isNaN(stock_minimo) ? 0 : stock_minimo,
+          tiene_variantes: Boolean(variante_nombre),
+        })
+        .select('id')
+        .single()
+
+      if (error) {
+        if (error.code === '23505') {
+          errores.push({ fila: i + 2, mensaje: `El producto "${nombre}" ya existe en tu catálogo` })
+        } else {
+          errores.push({ fila: i + 2, mensaje: `No se pudo guardar el producto "${nombre}". Intenta de nuevo.` })
+        }
+        continue
+      }
+      productoId = prod.id
+      productoIdMap.set(nombre, productoId)
     }
+
+    if (variante_nombre) {
+      const { error: errVar } = await supabase.from('producto_variantes').insert({
+        tienda_id: tienda.id,
+        producto_id: productoId,
+        nombre: variante_nombre,
+        atributos: {},
+        precio_venta: !isNaN(variante_precio) && variante_precio > 0 ? variante_precio : precio_venta || 0,
+        stock_actual: !isNaN(variante_stock) ? variante_stock : 0,
+        stock_minimo: 0,
+        activa: true,
+      })
+      if (errVar) {
+        errores.push({
+          fila: i + 2,
+          mensaje: `No se pudo guardar la variante "${variante_nombre}" del producto "${nombre}".`,
+        })
+        continue
+      }
+      await supabase.from('productos').update({ tiene_variantes: true, stock_actual: 0 }).eq('id', productoId)
+    }
+    exitosos++
   }
 
   if (exitosos > 0) {
