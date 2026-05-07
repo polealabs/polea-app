@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 
 const WA_URL = 'https://wa.me/573014140381'
@@ -312,6 +312,8 @@ export default function Home() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [cardActiva, setCardActiva] = useState(0)
   const [scrolled, setScrolled] = useState(false)
+  const [scrollDeg, setScrollDeg] = useState(0)
+  const heroRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -334,6 +336,14 @@ export default function Home() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  useEffect(() => {
+    function handleScroll() {
+      setScrollDeg(window.scrollY * 0.3)
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
   return (
     <div className="min-h-screen bg-white">
       {/* 1. NAVBAR */}
@@ -346,13 +356,20 @@ export default function Home() {
           }`}
         >
           <div className="w-full h-full flex items-center justify-between px-8 md:px-16">
-            <div className="flex flex-col">
-              <span className="font-serif text-3xl font-bold text-[#1E3A2F] tracking-tight leading-none">
-                POLEA
-              </span>
-              <span className="text-[10px] text-[#8A7D72] uppercase tracking-widest mt-0.5 hidden sm:block">
-                Tu tienda, clara
-              </span>
+            <div className="flex items-center gap-3">
+              <svg width="28" height="28" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                <rect width="32" height="32" rx="8" fill="#1E3A2F" />
+                <circle cx="16" cy="14" r="9" fill="none" stroke="#FAF6F0" strokeWidth="2.5" />
+                <circle cx="16" cy="14" r="4" fill="none" stroke="#FAF6F0" strokeWidth="2" />
+                <circle cx="16" cy="14" r="1.5" fill="#C4622D" />
+                <line x1="16" y1="23" x2="16" y2="29" stroke="#C4622D" strokeWidth="2.5" strokeLinecap="round" />
+              </svg>
+              <div>
+                <p className="font-serif text-xl font-bold text-[#1E3A2F] leading-none">POLEA</p>
+                <p className="text-[10px] text-[#8A7D72] uppercase tracking-widest leading-none mt-0.5">
+                  Tu tienda, clara
+                </p>
+              </div>
             </div>
 
             <div className="hidden md:flex items-center gap-8">
@@ -453,7 +470,8 @@ export default function Home() {
 
       {/* 2. HERO */}
       <section
-        className="min-h-screen flex items-center pt-16 relative overflow-hidden"
+        ref={heroRef}
+        className="min-h-screen flex items-center pt-8 relative overflow-hidden"
         style={{ background: '#FAF6F0' }}
       >
         <div
@@ -469,33 +487,7 @@ export default function Home() {
           style={{ background: 'radial-gradient(circle, #D4A85333 0%, transparent 70%)' }}
         />
 
-        <div className="absolute left-0 top-0 bottom-0 w-40 flex-col justify-center gap-5 pl-4 pr-2 opacity-25 pointer-events-none hidden lg:flex">
-          {['$6.1M', '+23%', '328', '$520K'].map((val, i) => (
-            <div
-              key={val}
-              className="flex items-center gap-2"
-              style={{ animation: `fadeInLeft 0.6s ease ${0.5 + i * 0.2}s both` }}
-            >
-              <div className="h-px flex-1" style={{ background: 'linear-gradient(to right, transparent, #C4622D44)' }} />
-              <span className="font-serif text-xs text-[#C4622D] whitespace-nowrap">{val}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="absolute right-0 top-0 bottom-0 w-40 flex-col justify-center gap-5 pr-4 pl-2 opacity-25 pointer-events-none hidden lg:flex">
-          {['WhatsApp', 'Instagram', 'Wompi', 'Bold'].map((val, i) => (
-            <div
-              key={val}
-              className="flex items-center gap-2"
-              style={{ animation: `fadeInRight 0.6s ease ${0.5 + i * 0.2}s both` }}
-            >
-              <span className="font-serif text-xs text-[#1E3A2F] whitespace-nowrap">{val}</span>
-              <div className="h-px flex-1" style={{ background: 'linear-gradient(to left, transparent, #1E3A2F44)' }} />
-            </div>
-          ))}
-        </div>
-
-        <div className="w-full max-w-5xl mx-auto px-8 grid grid-cols-1 md:grid-cols-2 gap-12 items-center py-28 relative z-10">
+        <div className="w-full max-w-6xl mx-auto px-8 grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-16 items-center py-28 relative z-10">
           <div style={{ animation: 'fadeInLeft 0.8s ease forwards' }}>
             <div
               className="inline-flex items-center gap-2 bg-white border border-[#EDE5DC] rounded-full px-5 py-2 text-sm text-[#4A3F35] font-medium mb-6 shadow-sm"
@@ -538,21 +530,55 @@ export default function Home() {
               </a>
             </div>
 
-            <div className="flex gap-8 mt-8" style={{ animation: 'fadeInUp 0.8s ease 0.7s both' }}>
-              {[
-                { valor: '+300', label: 'productos en inventario' },
-                { valor: '$7M+', label: 'en ventas registradas' },
-                { valor: '5', label: 'canales de venta' },
-              ].map((stat) => (
-                <div key={stat.label}>
-                  <p className="font-serif text-2xl font-medium text-[#1E3A2F]">{stat.valor}</p>
-                  <p className="text-xs text-[#8A7D72] mt-0.5">{stat.label}</p>
-                </div>
-              ))}
-            </div>
           </div>
 
           <div className="relative" style={{ animation: 'fadeInRight 0.8s ease 0.2s both', overflow: 'visible' }}>
+            <div className="absolute top-0 right-0 pointer-events-none opacity-[0.06] hidden xl:block -z-10">
+              <svg width="360" height="360" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+                <style>{`
+                  .polea-rope-left {
+                    animation: polea-rope-up 8s ease-in-out infinite;
+                  }
+                  .polea-rope-right {
+                    animation: polea-rope-down 8s ease-in-out infinite;
+                  }
+                  @keyframes polea-rope-up {
+                    0%, 100% { transform: translateY(0px); }
+                    50% { transform: translateY(-12px); }
+                  }
+                  @keyframes polea-rope-down {
+                    0%, 100% { transform: translateY(0px); }
+                    50% { transform: translateY(12px); }
+                  }
+                `}</style>
+                <rect x="75" y="8" width="30" height="10" rx="3" fill="#1E3A2F" />
+                <rect x="87" y="18" width="6" height="18" rx="3" fill="#1E3A2F" />
+                <g className="polea-rope-left">
+                  <line x1="46" y1="90" x2="46" y2="165" stroke="#C4622D" strokeWidth="3" strokeLinecap="round" />
+                </g>
+                <g className="polea-rope-right">
+                  <line
+                    x1="134"
+                    y1="90"
+                    x2="134"
+                    y2="150"
+                    stroke="#C4622D"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeDasharray="6 3"
+                  />
+                </g>
+                <g style={{ transformOrigin: '90px 90px', transform: `rotate(${scrollDeg}deg)` }}>
+                  <circle cx="90" cy="90" r="44" fill="none" stroke="#1E3A2F" strokeWidth="8" />
+                  <line x1="90" y1="47" x2="90" y2="133" stroke="#1E3A2F" strokeWidth="3" opacity="0.5" />
+                  <line x1="47" y1="90" x2="133" y2="90" stroke="#1E3A2F" strokeWidth="3" opacity="0.5" />
+                  <line x1="59" y1="59" x2="121" y2="121" stroke="#1E3A2F" strokeWidth="3" opacity="0.35" />
+                  <line x1="121" y1="59" x2="59" y2="121" stroke="#1E3A2F" strokeWidth="3" opacity="0.35" />
+                  <circle cx="90" cy="90" r="18" fill="none" stroke="#1E3A2F" strokeWidth="6" />
+                  <circle cx="90" cy="90" r="5" fill="#C4622D" />
+                </g>
+              </svg>
+            </div>
             <div className="absolute inset-0 bg-[#C4622D]/10 rounded-3xl blur-3xl scale-110" />
 
             <div className="relative animate-float">
