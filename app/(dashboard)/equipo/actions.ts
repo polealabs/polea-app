@@ -45,18 +45,6 @@ export async function invitarMiembro(formData: FormData) {
     const yaRegistrado = Boolean(userExistente)
     void yaRegistrado
 
-    const token = randomBytes(32).toString('hex')
-
-    const { error } = await supabase.from('invitaciones').insert({
-      tienda_id,
-      email,
-      rol,
-      token,
-      invitado_por: user_id,
-    })
-
-    if (error) return { error: error.message }
-
     const { data: perfilOwner } = await supabase
       .from('perfiles')
       .select('nombre')
@@ -64,6 +52,21 @@ export async function invitarMiembro(formData: FormData) {
       .maybeSingle()
 
     const { data: tiendaData } = await supabase.from('tiendas').select('nombre').eq('id', tienda_id).maybeSingle()
+
+    const token = randomBytes(32).toString('hex')
+
+    const { error: errInv } = await supabase.from('invitaciones').insert({
+      tienda_id,
+      email,
+      rol,
+      token,
+      invitado_por: user_id,
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      nombre_tienda: tiendaData?.nombre ?? null,
+      nombre_owner: perfilOwner?.nombre ?? null,
+    })
+
+    if (errInv) return { error: errInv.message }
 
     const rolLabels: Record<string, string> = {
       admin: 'Administrador',
