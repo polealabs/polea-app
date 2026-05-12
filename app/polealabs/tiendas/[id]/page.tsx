@@ -1,10 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 export default async function AdminTiendaDetalle({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const [{ data: tienda }, { data: ventas }, { data: miembros }] = await Promise.all([
     supabase.from('tiendas').select('*').eq('id', id).maybeSingle(),

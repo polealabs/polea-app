@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 type TiendaNombreEmbed = { nombre?: string } | { nombre?: string }[] | null
 
@@ -9,7 +9,7 @@ function nombreDesdeTiendas(tiendas: TiendaNombreEmbed): string {
 }
 
 export default async function AdminUsuarios() {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: perfiles } = await supabase
     .from('perfiles')
