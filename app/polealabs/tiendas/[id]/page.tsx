@@ -21,6 +21,7 @@ export default async function AdminTiendaDetalle({ params }: { params: Promise<{
   })
 
   const totalVentas = (ventas ?? []).reduce((s, v) => s + (v.total_neto ?? 0), 0)
+  const totalEquipo = 1 + (miembros?.length ?? 0)
 
   function formatCOP(n: number) {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n)
@@ -41,7 +42,7 @@ export default async function AdminTiendaDetalle({ params }: { params: Promise<{
           { label: 'Ciudad', valor: tienda.ciudad || '—' },
           { label: 'Industria', valor: tienda.categoria || '—' },
           { label: 'Total ventas', valor: formatCOP(totalVentas) },
-          { label: 'Miembros del equipo', valor: String(miembros?.length ?? 0) },
+          { label: 'Miembros del equipo', valor: String(totalEquipo) },
         ].map((item) => (
           <div
             key={item.label}

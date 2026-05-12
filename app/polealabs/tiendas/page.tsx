@@ -40,8 +40,11 @@ export default async function AdminTiendas() {
   })
 
   const miembrosMap = new Map<string, number>()
+  ;(tiendas ?? []).forEach((t) => {
+    miembrosMap.set(t.id, 1)
+  })
   ;(miembrosPorTienda.data ?? []).forEach((m) => {
-    miembrosMap.set(m.tienda_id, (miembrosMap.get(m.tienda_id) ?? 0) + 1)
+    miembrosMap.set(m.tienda_id, (miembrosMap.get(m.tienda_id) ?? 1) + 1)
   })
 
   const perfilesMap = new Map((perfiles.data ?? []).map((p) => [p.id, p.nombre]))
