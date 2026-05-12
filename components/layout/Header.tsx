@@ -131,8 +131,8 @@ export default function Header({ titulo }: Props) {
   }
 
   async function handleAbrirNotificacion(notif: Notificacion) {
-    if (!notif.leida) {
-      await marcarLeida(notif.id)
+    if (!notif.leida && tienda) {
+      await marcarLeida(notif.id, tienda.id)
       setNotificaciones((prev) => prev.map((n) => (n.id === notif.id ? { ...n, leida: true } : n)))
     }
     setShowNotif(false)

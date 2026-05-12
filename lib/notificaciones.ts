@@ -70,7 +70,11 @@ export async function generarNotificaciones(tiendaId: string): Promise<void> {
   }
 
   if (prefs.alerta_sin_movimiento) {
-    const haceNDias = new Date(hoy.getTime() - prefs.dias_sin_movimiento * 24 * 60 * 60 * 1000)
+    const diasSinMovimiento =
+      typeof prefs.dias_sin_movimiento === 'number' && prefs.dias_sin_movimiento > 0
+        ? prefs.dias_sin_movimiento
+        : 30
+    const haceNDias = new Date(hoy.getTime() - diasSinMovimiento * 24 * 60 * 60 * 1000)
       .toISOString()
       .split('T')[0]
 
@@ -105,7 +109,7 @@ export async function generarNotificaciones(tiendaId: string): Promise<void> {
         notificacionesNuevas.push({
           tipo: 'sin_movimiento',
           titulo: `${sinMovimiento.length} producto${sinMovimiento.length > 1 ? 's' : ''} sin ventas en ${
-            prefs.dias_sin_movimiento
+            diasSinMovimiento
           } días`,
           mensaje: `${sinMovimiento
             .slice(0, 3)
@@ -310,15 +314,22 @@ export async function generarNotificaciones(tiendaId: string): Promise<void> {
   }
 
   if (notificacionesNuevas.length > 0) {
-    await supabase
+    const { error: errInsert } = await supabase
       .from('notificaciones')
       .insert(notificacionesNuevas.map((n) => ({ ...n, tienda_id: tiendaId })))
+    if (errInsert) {
+      console.error('Error insertando notificaciones:', errInsert.message)
+    }
   }
 }
 
-export async function marcarLeida(notificacionId: string): Promise<void> {
+export async function marcarLeida(notificacionId: string, tiendaId: string): Promise<void> {
   const supabase = createClient()
-  await supabase.from('notificaciones').update({ leida: true }).eq('id', notificacionId)
+  await supabase
+    .from('notificaciones')
+    .update({ leida: true })
+    .eq('id', notificacionId)
+    .eq('tienda_id', tiendaId)
 }
 
 export async function marcarTodasLeidas(tiendaId: string): Promise<void> {

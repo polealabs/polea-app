@@ -54,13 +54,14 @@ export async function registrarDevolucion(payload: {
         .single()
 
       if (prod) {
-        await supabase
+        const { error: errStock } = await supabase
           .from('productos')
           .update({
             stock_actual: Math.max(0, prod.stock_actual - payload.cantidad),
             unidades_defectuosas: (prod.unidades_defectuosas ?? 0) + payload.cantidad,
           })
           .eq('id', payload.producto_original_id)
+        if (errStock) console.error('Error actualizando stock:', errStock.message)
       }
     }
 
@@ -72,12 +73,13 @@ export async function registrarDevolucion(payload: {
         .single()
 
       if (prodOriginal) {
-        await supabase
+        const { error: errStock } = await supabase
           .from('productos')
           .update({
             stock_actual: prodOriginal.stock_actual + payload.cantidad,
           })
           .eq('id', payload.producto_original_id)
+        if (errStock) console.error('Error actualizando stock:', errStock.message)
       }
 
       if (payload.resolucion === 'cambio_otro' && payload.producto_cambio_id) {
@@ -88,12 +90,13 @@ export async function registrarDevolucion(payload: {
           .single()
 
         if (prodCambio) {
-          await supabase
+          const { error: errStock } = await supabase
             .from('productos')
             .update({
               stock_actual: Math.max(0, prodCambio.stock_actual - payload.cantidad),
             })
             .eq('id', payload.producto_cambio_id)
+          if (errStock) console.error('Error actualizando stock:', errStock.message)
         }
       }
     }

@@ -119,7 +119,7 @@ export async function importarProductos(filas: Record<string, string>[]) {
       if (errVar) {
         errores.push({
           fila: i + 2,
-          mensaje: `No se pudo guardar la variante "${variante_nombre}" del producto "${nombre}".`,
+          mensaje: `No se pudo guardar la variante "${variante_nombre}" del producto "${nombre}": ${errVar.message}`,
         })
         continue
       }

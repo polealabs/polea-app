@@ -60,6 +60,7 @@ type VentaItemRow = {
   precio_venta: number
   descuento: number
   neto: number
+  variante_id?: string | null
   productos?: { nombre?: string } | { nombre?: string }[] | null
 }
 
@@ -201,29 +202,32 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
   const prevStart = `${prevMonthStr}-01`
   const prevEnd = new Date(year, month - 1, 1).toISOString().split('T')[0]
 
+  const { data: ventas } = await supabase
+    .from('ventas_cabecera')
+    .select('id, total_bruto, total_neto, total_costo_transaccion, cliente_id, fecha')
+    .eq('tienda_id', tienda.id)
+    .gte('fecha', start)
+    .lt('fecha', end)
+
+  const ventaIds = (ventas ?? []).map((v) => v.id)
+  let items: VentaItemRow[] = []
+  if (ventaIds.length > 0) {
+    const { data: itemsData } = await supabase
+      .from('venta_items')
+      .select('producto_id, cantidad, precio_venta, descuento, neto, variante_id, productos(nombre)')
+      .eq('tienda_id', tienda.id)
+      .in('cabecera_id', ventaIds)
+    items = (itemsData ?? []) as VentaItemRow[]
+  }
+
   const [
-    { data: ventas },
-    { data: items },
     { data: gastos },
     { data: entradas },
     { data: ventasAnt },
     { data: itemsVendidos },
     { data: entradasCosto },
     { data: devolucionesData },
-  ] =
-    await Promise.all([
-      supabase
-        .from('ventas_cabecera')
-        .select('id, total_bruto, total_neto, total_costo_transaccion, cliente_id, fecha')
-        .eq('tienda_id', tienda.id)
-        .gte('fecha', start)
-        .lt('fecha', end),
-      supabase
-        .from('venta_items')
-        .select('producto_id, cantidad, precio_venta, descuento, neto, productos(nombre)')
-        .eq('tienda_id', tienda.id)
-        .gte('created_at', `${start}T00:00:00`)
-        .lt('created_at', `${end}T00:00:00`),
+  ] = await Promise.all([
       supabase
         .from('gastos')
         .select('categoria, tipo_gasto, subcategoria, monto')

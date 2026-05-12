@@ -3,6 +3,17 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
+async function getTienda() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('No autenticado')
+  const { data } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
+  if (!data) throw new Error('Tienda no encontrada')
+  return { tienda_id: data.id, supabase }
+}
+
 export async function crearGasto(formData: FormData) {
   const supabase = await createClient()
   const {
@@ -76,7 +87,17 @@ export async function actualizarGasto(id: string, formData: FormData) {
 }
 
 export async function eliminarGasto(id: string) {
-  const supabase = await createClient()
-  await supabase.from('gastos').delete().eq('id', id)
-  revalidatePath('/gastos')
+  try {
+    const { tienda_id, supabase } = await getTienda()
+    const { error } = await supabase
+      .from('gastos')
+      .delete()
+      .eq('id', id)
+      .eq('tienda_id', tienda_id)
+    if (error) return { error: error.message }
+    revalidatePath('/gastos')
+    return { ok: true as const }
+  } catch (e: unknown) {
+    return { error: e instanceof Error ? e.message : 'Error desconocido' }
+  }
 }

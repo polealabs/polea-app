@@ -79,6 +79,7 @@ export async function registrarSalidaMultiple(payload: {
   notas?: string
   items: {
     producto_id: string
+    variante_id?: string
     cantidad: number
     precio_unitario: number
   }[]
@@ -95,8 +96,19 @@ export async function registrarSalidaMultiple(payload: {
         .eq('tienda_id', tienda_id)
         .single()
       if (!prod) return { error: 'Producto no encontrado' }
-      if (prod.stock_actual < item.cantidad) {
-        return { error: `Stock insuficiente para ${prod.nombre}. Disponible: ${prod.stock_actual} uds` }
+
+      let stockDisponible = prod.stock_actual
+      if (item.variante_id) {
+        const { data: variante } = await supabase
+          .from('producto_variantes')
+          .select('stock_actual, nombre')
+          .eq('id', item.variante_id)
+          .eq('tienda_id', tienda_id)
+          .single()
+        if (variante) stockDisponible = variante.stock_actual
+      }
+      if (stockDisponible < item.cantidad) {
+        return { error: `Stock insuficiente para ${prod.nombre}. Disponible: ${stockDisponible} uds` }
       }
     }
 

@@ -83,9 +83,9 @@ function formatFecha(fecha: string) {
   })
 }
 
-/** Máximo de unidades permitidas en la línea `lineIndex` (resto del mismo producto en otras líneas descontado del stock). */
+/** Máximo de unidades permitidas en la línea `lineIndex` (resto del mismo producto/variante en otras líneas descontado del stock). */
 function maxCantidadPorLinea(
-  lineas: { producto_id: string; cantidad: number }[],
+  lineas: LineaFormulario[],
   lineIndex: number,
   productos: Producto[],
 ) {
@@ -93,12 +93,20 @@ function maxCantidadPorLinea(
   if (!l?.producto_id) return null
   const p = productos.find((x) => x.id === l.producto_id)
   if (!p) return null
+  const stockDisponible = l.variante_id
+    ? (l.variantes_disponibles?.find((v) => v.id === l.variante_id)?.stock_actual ?? 0)
+    : (p.stock_actual ?? 0)
   const usadoOtras = lineas.reduce((s, ol, j) => {
     if (j === lineIndex || ol.producto_id !== l.producto_id) return s
+    if (l.variante_id) {
+      if (ol.variante_id !== l.variante_id) return s
+    } else if (ol.variante_id) {
+      return s
+    }
     const c = Number(ol.cantidad)
     return s + (Number.isFinite(c) ? Math.max(0, c) : 0)
   }, 0)
-  return Math.max(0, p.stock_actual - usadoOtras)
+  return Math.max(0, stockDisponible - usadoOtras)
 }
 
 function descargarPlantillaVentas() {
@@ -130,6 +138,9 @@ function canalBadgeClass(canal: VentaCabecera['canal']) {
 export default function VentasPage() {
   const { tienda, loading: tiendaLoading, canEdit, canDelete } = useTienda()
   const [productos, setProductos] = useState<Producto[]>([])
+  const [variantesPorProducto, setVariantesPorProducto] = useState<Map<string, ProductoVariante[]>>(
+    () => new Map(),
+  )
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [ventas, setVentas] = useState<VentaConDetalles[]>([])
   const [loading, setLoading] = useState(true)
@@ -243,12 +254,26 @@ export default function VentasPage() {
   const fetchData = useCallback(async () => {
     if (!tienda) return
     const supabase = createClient()
-    const [{ data: productosData }, { data: clientesData }, { data: mediosData }] = await Promise.all([
-      supabase.from('productos').select('*').eq('tienda_id', tienda.id).neq('estado', 'archivado').order('nombre'),
-      supabase.from('clientes').select('*').eq('tienda_id', tienda.id).order('nombre'),
-      supabase.from('medios_pago').select('*').eq('tienda_id', tienda.id).eq('activo', true).order('nombre'),
-    ])
+    const [{ data: productosData }, { data: clientesData }, { data: mediosData }, { data: todasVariantes }] =
+      await Promise.all([
+        supabase.from('productos').select('*').eq('tienda_id', tienda.id).neq('estado', 'archivado').order('nombre'),
+        supabase.from('clientes').select('*').eq('tienda_id', tienda.id).order('nombre'),
+        supabase.from('medios_pago').select('*').eq('tienda_id', tienda.id).eq('activo', true).order('nombre'),
+        supabase
+          .from('producto_variantes')
+          .select('*')
+          .eq('tienda_id', tienda.id)
+          .eq('activa', true),
+      ])
     setProductos(productosData ?? [])
+    const mapVar = new Map<string, ProductoVariante[]>()
+    ;(todasVariantes ?? []).forEach((v) => {
+      const row = v as ProductoVariante
+      const arr = mapVar.get(row.producto_id) ?? []
+      arr.push(row)
+      mapVar.set(row.producto_id, arr)
+    })
+    setVariantesPorProducto(mapVar)
     setClientes(clientesData ?? [])
     setMediosPago((mediosData ?? []) as MedioPago[])
     await fetchVentas()
@@ -408,18 +433,21 @@ export default function VentasPage() {
     if (!l.producto_id) return null
     const p = productos.find((x) => x.id === l.producto_id)
     if (!p) return null
+    const stockDisponible = l.variante_id
+      ? (l.variantes_disponibles?.find((v) => v.id === l.variante_id)?.stock_actual ?? 0)
+      : (p.stock_actual ?? 0)
     const max = maxCantidadPorLinea(lineas, i, productos)
     const c = Number(l.cantidad)
     const cant = Number.isFinite(c) ? c : 0
     if (max == null) return null
-    if (p.stock_actual <= 0) {
+    if (stockDisponible <= 0) {
       return 'Sin stock: no se puede vender este producto hasta tener existencias.'
     }
     if (max === 0 && cant >= 1) {
       return 'No quedan unidades para esta línea: el stock ya está asignado en otras líneas del mismo producto.'
     }
     if (cant > max) {
-      return `Cantidad mayor al disponible: máximo ${max} uds. en esta línea (stock en almacén: ${p.stock_actual}).`
+      return `Cantidad mayor al disponible: máximo ${max} uds. en esta línea (stock en almacén: ${stockDisponible}).`
     }
     return null
   })
@@ -427,7 +455,11 @@ export default function VentasPage() {
   const hayConflictoStock = advertenciasStockPorLinea.some((m) => m != null)
 
   const maxFecha = toLocalISODateString()
-  const hayProductoConStock = productos.some((p) => p.stock_actual > 0)
+  const hayProductoConStock = productos.some(
+    (p) =>
+      p.stock_actual > 0 ||
+      ((variantesPorProducto.get(p.id) ?? []).some((v) => v.stock_actual > 0)),
+  )
   const ventasFiltradas = ventas.filter((v) => {
     const matchCanal = filtroCanalStr === '' || v.canal === filtroCanalStr
     const medioLabel = v.medio_pago_nombre ?? v.plataforma_pago
