@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
@@ -28,7 +28,23 @@ const TIPOS: Producto['tipo'][] = [
 
 type FiltroStock = 'todos' | 'agotado' | 'bajo' | 'sin-movimiento' | 'defectuosos' | 'archivados'
 
-const emptyProductoForm = { nombre: '', precio_venta: 0, costo_produccion: 0 }
+type ProductoFormState = {
+  nombre: string
+  sku: string
+  tipo: Producto['tipo']
+  precio_venta: number
+  costo_produccion: number
+  stock_minimo: number
+}
+
+const emptyProductoForm: ProductoFormState = {
+  nombre: '',
+  sku: '',
+  tipo: 'Producto terminado',
+  precio_venta: 0,
+  costo_produccion: 0,
+  stock_minimo: 0,
+}
 
 function formatCOP(n: number) {
   return new Intl.NumberFormat('es-CO', {
@@ -236,8 +252,32 @@ export default function ProductosPage() {
         ? 'agotado'
         : filtroActivo
 
+  function validarDuplicadosProducto(nombre: string, sku: string | null, excludeId?: string): string | null {
+    const nombreNorm = nombre.trim().replace(/\s+/g, ' ')
+    const nombreDup = productos.some(
+      (prod) =>
+        prod.id !== excludeId &&
+        prod.estado !== 'archivado' &&
+        prod.nombre.trim().replace(/\s+/g, ' ').toLowerCase() === nombreNorm.toLowerCase(),
+    )
+    const skuDup =
+      sku !== null &&
+      productos.some(
+        (prod) =>
+          prod.id !== excludeId &&
+          prod.estado !== 'archivado' &&
+          (prod.sku?.trim() ?? '') !== '' &&
+          (prod.sku?.trim() ?? '') === sku,
+      )
+    if (nombreDup && skuDup) {
+      return 'Ya tienes otros productos con ese nombre y con ese SKU. Usa un nombre y un SKU distintos.'
+    }
+    if (nombreDup) return 'Ya existe un producto con ese nombre en tu tienda.'
+    if (skuDup) return 'Ya existe un producto con ese SKU en tu tienda.'
+    return null
+  }
+
   async function handleSubmit(formData: FormData) {
-    const esEdicion = Boolean(editando)
     setSubmitting(true)
     setError(null)
     setFeedbackVariant('error')
@@ -247,62 +287,24 @@ export default function ProductosPage() {
       .replace(/\s+/g, ' ')
     const skuRaw = String(formData.get('sku') ?? '').trim()
     const sku = skuRaw === '' ? null : skuRaw
-    const excludeId = editando?.id
 
-    const nombreDup = productos.some(
-      (p) =>
-        p.id !== excludeId &&
-        p.estado !== 'archivado' &&
-        p.nombre
-          .trim()
-          .replace(/\s+/g, ' ')
-          .toLowerCase() === nombre.toLowerCase(),
-    )
-    const skuDup =
-      sku !== null &&
-      productos.some(
-        (p) =>
-          p.id !== excludeId &&
-          p.estado !== 'archivado' &&
-          (p.sku?.trim() ?? '') !== '' &&
-          (p.sku?.trim() ?? '') === sku,
-      )
-
-    if (nombreDup && skuDup) {
-      const mensaje = 'Ya tienes otros productos con ese nombre y con ese SKU. Usa un nombre y un SKU distintos.'
-      setError(mensaje)
-      showToast(mensaje, 'error')
-      setFeedbackVariant('warning')
-      setSubmitting(false)
-      return
-    }
-    if (nombreDup) {
-      const mensaje = 'Ya existe un producto con ese nombre en tu tienda.'
-      setError(mensaje)
-      showToast(mensaje, 'error')
-      setFeedbackVariant('warning')
-      setSubmitting(false)
-      return
-    }
-    if (skuDup) {
-      const mensaje = 'Ya existe un producto con ese SKU en tu tienda.'
-      setError(mensaje)
-      showToast(mensaje, 'error')
+    const dupMsg = validarDuplicadosProducto(nombre, sku, undefined)
+    if (dupMsg) {
+      setError(dupMsg)
+      showToast(dupMsg, 'error')
       setFeedbackVariant('warning')
       setSubmitting(false)
       return
     }
 
-    const result = editando
-      ? await editarProducto(editando.id, formData)
-      : await crearProducto(formData)
+    const result = await crearProducto(formData)
     if (result && 'error' in result && result.error) {
       setError(result.error)
       showToast(result.error, 'error')
       if ('warning' in result && result.warning === true) setFeedbackVariant('warning')
     } else {
-      const nuevoProductoId = !editando && result && 'id' in result ? result.id : null
-      if (!editando && tieneVariantes && variantesGeneradas.length > 0 && nuevoProductoId && tienda) {
+      const nuevoProductoId = result && 'id' in result ? result.id : null
+      if (tieneVariantes && variantesGeneradas.length > 0 && nuevoProductoId && tienda) {
         const supabase = createClient()
         await supabase.from('producto_variantes').insert(
           variantesGeneradas.map((v) => ({
@@ -326,9 +328,32 @@ export default function ProductosPage() {
       setNuevoAttrNombre('')
       setNuevoAttrValores('')
       if (tienda) await fetchProductos(tienda.id)
-      showToast(esEdicion ? 'Producto actualizado' : 'Producto creado')
+      showToast('Producto creado')
     }
     setSubmitting(false)
+  }
+
+  function abrirEdicion(prod: Producto) {
+    setEditando(prod)
+    setForm({
+      nombre: prod.nombre,
+      sku: prod.sku ?? '',
+      tipo: prod.tipo,
+      precio_venta: prod.precio_venta,
+      costo_produccion: prod.costo_produccion ?? 0,
+      stock_minimo: prod.stock_minimo,
+    })
+    setShowForm(false)
+    setError(null)
+    setFeedbackVariant('error')
+    setTieneVariantes(false)
+    setVariantesAtributos([])
+    setVariantesGeneradas([])
+    setNuevoAttrNombre('')
+    setNuevoAttrValores('')
+    setTimeout(() => {
+      document.getElementById(`edit-row-${prod.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 50)
   }
 
   async function confirmarEliminar() {
@@ -542,11 +567,9 @@ export default function ProductosPage() {
         )}
       </div>
 
-      {canEdit && (showForm || editando) && (
+      {canEdit && showForm && !editando && (
         <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-6 mb-6 shadow-sm" style={{ background: 'var(--color-surface)' }}>
-          <h2 className="text-base font-semibold text-[#1E3A2F] mb-4">
-            {editando ? 'Editar producto' : 'Nuevo producto'}
-          </h2>
+          <h2 className="text-base font-semibold text-[#1E3A2F] mb-4">Nuevo producto</h2>
           <form action={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <label className={labelClass}>Nombre</label>
@@ -566,7 +589,8 @@ export default function ProductosPage() {
                 name="sku"
                 type="text"
                 placeholder="Ej: VZ-001"
-                defaultValue={editando?.sku}
+                value={form.sku}
+                onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))}
                 className={inputClass}
               />
             </div>
@@ -576,7 +600,8 @@ export default function ProductosPage() {
                 name="tipo"
                 required
                 className={inputClass}
-                defaultValue={editando?.tipo ?? 'Producto terminado'}
+                value={form.tipo}
+                onChange={(e) => setForm((f) => ({ ...f, tipo: e.target.value as Producto['tipo'] }))}
               >
                 {TIPOS.map((t) => (
                   <option key={t} value={t}>
@@ -805,7 +830,13 @@ export default function ProductosPage() {
                 required
                 min="0"
                 placeholder="3"
-                defaultValue={editando?.stock_minimo}
+                value={form.stock_minimo === 0 ? '' : form.stock_minimo}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    stock_minimo: e.target.value === '' ? 0 : Number(e.target.value),
+                  }))
+                }
                 className={inputClass}
               />
             </div>
@@ -881,6 +912,7 @@ export default function ProductosPage() {
             <button
               onClick={() => {
                 setShowForm(true)
+                setEditando(null)
                 setError(null)
                 setForm(emptyProductoForm)
                 setTieneVariantes(false)
@@ -935,12 +967,12 @@ export default function ProductosPage() {
             </thead>
             <tbody>
               {productosFiltrados.map((p, i) => (
-                <tr
-                  key={p.id}
-                  className={`border-b border-[#1A1510]/5 hover:bg-[#FAF6F0]/60 transition ${
-                    i === productosFiltrados.length - 1 ? 'border-b-0' : ''
-                  }`}
-                >
+                <Fragment key={p.id}>
+                  <tr
+                    className={`border-b border-[#1A1510]/5 hover:bg-[#FAF6F0]/60 transition ${
+                      i === productosFiltrados.length - 1 ? 'border-b-0' : ''
+                    }`}
+                  >
                   <td className="px-5 py-4">
                     <p className="font-medium text-[#1A1510] inline-flex flex-wrap items-center gap-x-1 gap-y-0.5">
                       {p.nombre}
@@ -1043,21 +1075,8 @@ export default function ProductosPage() {
                       )}
                       {canEdit && (
                         <button
-                          onClick={() => {
-                            setEditando(p)
-                            setShowForm(false)
-                            setError(null)
-                            setTieneVariantes(false)
-                            setVariantesAtributos([])
-                            setVariantesGeneradas([])
-                            setNuevoAttrNombre('')
-                            setNuevoAttrValores('')
-                            setForm({
-                              nombre: p.nombre,
-                              precio_venta: p.precio_venta,
-                              costo_produccion: p.costo_produccion ?? 0,
-                            })
-                          }}
+                          type="button"
+                          onClick={() => abrirEdicion(p)}
                           className="text-xs text-[#C4622D] hover:underline font-medium"
                         >
                           Editar
@@ -1074,6 +1093,248 @@ export default function ProductosPage() {
                     </div>
                   </td>
                 </tr>
+                {editando?.id === p.id && (
+                  <tr id={`edit-row-${p.id}`}>
+                    <td colSpan={10} className="p-0">
+                      <div
+                        className="p-6 border-b"
+                        style={{ background: 'var(--color-accent-pale)', borderColor: 'var(--color-border)' }}
+                      >
+                        <p className="text-sm font-semibold mb-4" style={{ color: 'var(--color-text)' }}>
+                          Editando: {p.nombre}
+                        </p>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                          <div className="col-span-2">
+                            <label
+                              className="block text-xs font-medium mb-1"
+                              style={{ color: 'var(--color-text-soft)' }}
+                            >
+                              Nombre
+                            </label>
+                            <input
+                              type="text"
+                              value={form.nombre}
+                              onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
+                              className="w-full px-3 py-2 rounded-lg border text-sm"
+                              style={{
+                                borderColor: 'var(--color-border)',
+                                background: 'var(--color-surface)',
+                                color: 'var(--color-text)',
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label
+                              className="block text-xs font-medium mb-1"
+                              style={{ color: 'var(--color-text-soft)' }}
+                            >
+                              SKU
+                            </label>
+                            <input
+                              type="text"
+                              value={form.sku ?? ''}
+                              onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))}
+                              className="w-full px-3 py-2 rounded-lg border text-sm"
+                              style={{
+                                borderColor: 'var(--color-border)',
+                                background: 'var(--color-surface)',
+                                color: 'var(--color-text)',
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label
+                              className="block text-xs font-medium mb-1"
+                              style={{ color: 'var(--color-text-soft)' }}
+                            >
+                              Tipo
+                            </label>
+                            <select
+                              value={form.tipo}
+                              onChange={(e) =>
+                                setForm((f) => ({ ...f, tipo: e.target.value as Producto['tipo'] }))
+                              }
+                              className="w-full px-3 py-2 rounded-lg border text-sm"
+                              style={{
+                                borderColor: 'var(--color-border)',
+                                background: 'var(--color-surface)',
+                                color: 'var(--color-text)',
+                              }}
+                            >
+                              {TIPOS.map((t) => (
+                                <option key={t} value={t}>
+                                  {t}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label
+                              className="block text-xs font-medium mb-1"
+                              style={{ color: 'var(--color-text-soft)' }}
+                            >
+                              Precio de venta
+                            </label>
+                            <input
+                              type="number"
+                              value={form.precio_venta === 0 ? '' : form.precio_venta}
+                              onChange={(e) =>
+                                setForm((f) => ({
+                                  ...f,
+                                  precio_venta: e.target.value === '' ? 0 : Number(e.target.value),
+                                }))
+                              }
+                              className="w-full px-3 py-2 rounded-lg border text-sm"
+                              style={{
+                                borderColor: 'var(--color-border)',
+                                background: 'var(--color-surface)',
+                                color: 'var(--color-text)',
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label
+                              className="block text-xs font-medium mb-1"
+                              style={{ color: 'var(--color-text-soft)' }}
+                            >
+                              Costo del producto
+                            </label>
+                            <input
+                              type="number"
+                              value={form.costo_produccion === 0 ? '' : (form.costo_produccion ?? '')}
+                              onChange={(e) =>
+                                setForm((f) => ({
+                                  ...f,
+                                  costo_produccion: e.target.value === '' ? 0 : Number(e.target.value),
+                                }))
+                              }
+                              className="w-full px-3 py-2 rounded-lg border text-sm"
+                              style={{
+                                borderColor: 'var(--color-border)',
+                                background: 'var(--color-surface)',
+                                color: 'var(--color-text)',
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label
+                              className="block text-xs font-medium mb-1"
+                              style={{ color: 'var(--color-text-soft)' }}
+                            >
+                              Stock mínimo
+                            </label>
+                            <input
+                              type="number"
+                              value={form.stock_minimo === 0 ? '' : form.stock_minimo}
+                              onChange={(e) =>
+                                setForm((f) => ({
+                                  ...f,
+                                  stock_minimo: e.target.value === '' ? 0 : Number(e.target.value),
+                                }))
+                              }
+                              className="w-full px-3 py-2 rounded-lg border text-sm"
+                              style={{
+                                borderColor: 'var(--color-border)',
+                                background: 'var(--color-surface)',
+                                color: 'var(--color-text)',
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {error && (
+                          <p
+                            role="alert"
+                            className={
+                              feedbackVariant === 'warning'
+                                ? 'text-sm text-amber-950 bg-amber-50 border border-amber-200 px-4 py-2.5 rounded-lg mt-4'
+                                : 'text-sm text-red-600 bg-red-50 px-4 py-2.5 rounded-lg mt-4'
+                            }
+                          >
+                            {error}
+                          </p>
+                        )}
+
+                        <div className="flex gap-3 justify-end mt-4">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditando(null)
+                              setError(null)
+                              setFeedbackVariant('error')
+                            }}
+                            className="text-sm px-4 py-2 rounded-lg border transition"
+                            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-soft)' }}
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            disabled={submitting}
+                            onClick={async () => {
+                              const idEd = editando?.id
+                              if (!idEd) return
+                              setSubmitting(true)
+                              setError(null)
+                              setFeedbackVariant('error')
+                              const nombre = form.nombre.trim().replace(/\s+/g, ' ')
+                              const skuRaw = (form.sku ?? '').trim()
+                              const sku = skuRaw === '' ? null : skuRaw
+                              const dupMsg = validarDuplicadosProducto(nombre, sku, idEd)
+                              if (dupMsg) {
+                                setError(dupMsg)
+                                showToast(dupMsg, 'error')
+                                setFeedbackVariant('warning')
+                                setSubmitting(false)
+                                return
+                              }
+                              const formData = new FormData()
+                              formData.set('nombre', form.nombre)
+                              formData.set('sku', form.sku ?? '')
+                              formData.set('tipo', form.tipo)
+                              formData.set('precio_venta', String(form.precio_venta))
+                              formData.set('costo_produccion', String(form.costo_produccion ?? ''))
+                              formData.set('stock_minimo', String(form.stock_minimo))
+                              const result = await editarProducto(idEd, formData)
+                              if (result && 'error' in result && result.error) {
+                                setError(result.error)
+                                showToast(result.error, 'error')
+                                if ('warning' in result && result.warning === true) {
+                                  setFeedbackVariant('warning')
+                                }
+                              } else {
+                                setProductos((prev) =>
+                                  prev.map((prod) =>
+                                    prod.id === idEd
+                                      ? {
+                                          ...prod,
+                                          nombre: form.nombre,
+                                          sku: form.sku.trim() || undefined,
+                                          tipo: form.tipo,
+                                          precio_venta: form.precio_venta,
+                                          costo_produccion: form.costo_produccion || undefined,
+                                          stock_minimo: form.stock_minimo,
+                                        }
+                                      : prod,
+                                  ),
+                                )
+                                setEditando(null)
+                                setError(null)
+                                showToast('Producto actualizado', 'success')
+                              }
+                              setSubmitting(false)
+                            }}
+                            className="text-sm px-4 py-2 rounded-lg font-semibold transition disabled:opacity-50"
+                            style={{ background: 'var(--color-accent)', color: 'white' }}
+                          >
+                            {submitting ? 'Guardando...' : 'Guardar cambios'}
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
               ))}
             </tbody>
           </table>
