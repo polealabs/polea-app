@@ -26,7 +26,7 @@ const TIPOS: Producto['tipo'][] = [
   'Material POP',
 ]
 
-type FiltroStock = 'todos' | 'agotado' | 'bajo' | 'sin-movimiento' | 'defectuosos'
+type FiltroStock = 'todos' | 'agotado' | 'bajo' | 'sin-movimiento' | 'defectuosos' | 'archivados'
 
 const emptyProductoForm = { nombre: '', precio_venta: 0, costo_produccion: 0 }
 
@@ -188,12 +188,34 @@ export default function ProductosPage() {
     const idsConMovimiento = new Set((ventasRecientes ?? []).map((v) => v.producto_id))
     const sinMov = new Set(
       productos
-        .filter((p) => p.stock_actual > 0 && !idsConMovimiento.has(p.id))
+        .filter(
+          (p) =>
+            p.estado !== 'archivado' && p.stock_actual > 0 && !idsConMovimiento.has(p.id),
+        )
         .map((p) => p.id),
     )
     setIdsSinMovimiento(sinMov)
     setLoading(false)
   }, [])
+
+  const cambiarEstadoProducto = useCallback(
+    async (id: string, nuevoEstado: 'activo' | 'archivado') => {
+      if (!tienda) return
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('productos')
+        .update({ estado: nuevoEstado })
+        .eq('id', id)
+        .eq('tienda_id', tienda.id)
+      if (error) {
+        showToast(error.message, 'error')
+        return
+      }
+      setProductos((prev) => prev.map((p) => (p.id === id ? { ...p, estado: nuevoEstado } : p)))
+      showToast(nuevoEstado === 'archivado' ? 'Producto archivado' : 'Producto activado', 'success')
+    },
+    [tienda, showToast],
+  )
 
   useEffect(() => {
     if (!tienda) return
@@ -313,14 +335,18 @@ export default function ProductosPage() {
     showToast('Producto eliminado')
   }
 
-  const totalDefectuosos = productos.filter((p) => (p.unidades_defectuosas ?? 0) > 0).length
+  const totalDefectuosos = productos.filter(
+    (p) => p.estado !== 'archivado' && (p.unidades_defectuosas ?? 0) > 0,
+  ).length
 
   const conteos = {
-    todos: productos.length,
-    agotado: productos.filter((p) => p.stock_actual <= 0).length,
-    bajo: productos.filter((p) => p.stock_actual > 0 && p.stock_actual <= p.stock_minimo).length,
-    'sin-movimiento': idsSinMovimiento.size,
+    todos: productos.filter((p) => p.estado !== 'archivado').length,
+    agotado: productos.filter((p) => p.estado !== 'archivado' && p.stock_actual <= 0).length,
+    bajo: productos.filter((p) => p.estado !== 'archivado' && p.stock_actual > 0 && p.stock_actual <= p.stock_minimo)
+      .length,
+    'sin-movimiento': productos.filter((p) => p.estado !== 'archivado' && idsSinMovimiento.has(p.id)).length,
     defectuosos: totalDefectuosos,
+    archivados: productos.filter((p) => p.estado === 'archivado').length,
   }
 
   const chips = [
@@ -354,20 +380,36 @@ export default function ProductosPage() {
       color: 'border-[#EDE5DC] text-[#4A3F35] bg-white',
       activeColor: 'border-[#C44040] bg-[#FDEAEA] text-[#C44040]',
     },
+    {
+      key: 'archivados' as const,
+      label: 'Archivados',
+      color: 'border-[#EDE5DC] text-[#4A3F35] bg-white',
+      activeColor: 'border-[#9CA3AF] bg-gray-100 text-gray-600',
+    },
   ]
 
   const productosPorFiltro = (() => {
     switch (filtroActivoReal) {
       case 'agotado':
-        return productos.filter((p) => p.stock_actual <= 0)
-      case 'bajo':
-        return productos.filter((p) => p.stock_actual > 0 && p.stock_actual <= p.stock_minimo)
-      case 'sin-movimiento':
-        return productos.filter((p) => idsSinMovimiento.has(p.id))
-      case 'defectuosos':
-        return productos.filter((p) => (p.unidades_defectuosas ?? 0) > 0)
-      default:
         return productos
+          .filter((p) => p.stock_actual <= 0)
+          .filter((p) => p.estado !== 'archivado')
+      case 'bajo':
+        return productos
+          .filter((p) => p.stock_actual > 0 && p.stock_actual <= p.stock_minimo)
+          .filter((p) => p.estado !== 'archivado')
+      case 'sin-movimiento':
+        return productos
+          .filter((p) => idsSinMovimiento.has(p.id))
+          .filter((p) => p.estado !== 'archivado')
+      case 'defectuosos':
+        return productos
+          .filter((p) => (p.unidades_defectuosas ?? 0) > 0)
+          .filter((p) => p.estado !== 'archivado')
+      case 'archivados':
+        return productos.filter((p) => p.estado === 'archivado')
+      default:
+        return productos.filter((p) => p.estado !== 'archivado')
     }
   })()
 
@@ -896,7 +938,14 @@ export default function ProductosPage() {
                   }`}
                 >
                   <td className="px-5 py-4">
-                    <p className="font-medium text-[#1A1510]">{p.nombre}</p>
+                    <p className="font-medium text-[#1A1510] inline-flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                      {p.nombre}
+                      {p.estado === 'archivado' && (
+                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium ml-1">
+                          Archivado
+                        </span>
+                      )}
+                    </p>
                     <p className="text-xs text-[#1A1510]/60 mt-0.5">SKU: {p.sku?.trim() ? p.sku : '—'}</p>
                   </td>
                   <td className="px-5 py-4 text-center">
@@ -965,6 +1014,20 @@ export default function ProductosPage() {
                   <td className="px-5 py-4">{stockEstadoBadge(p)}</td>
                   <td className="px-5 py-4 text-right">
                     <div className="flex gap-3 justify-end">
+                      {canEdit && (
+                        <button
+                          onClick={() =>
+                            void cambiarEstadoProducto(
+                              p.id,
+                              p.estado === 'archivado' ? 'activo' : 'archivado',
+                            )
+                          }
+                          className="text-xs font-medium hover:underline"
+                          style={{ color: p.estado === 'archivado' ? '#3A7D5A' : '#8A7D72' }}
+                        >
+                          {p.estado === 'archivado' ? 'Activar' : 'Archivar'}
+                        </button>
+                      )}
                       {canEdit && (
                         <button
                           onClick={() => router.push(`/productos/${p.id}/variantes`)}

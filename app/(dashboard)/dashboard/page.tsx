@@ -229,7 +229,7 @@ export default function DashboardPage() {
           .select('total_neto')
           .eq('tienda_id', tiendaId)
           .gte('fecha', `${mesActual}-01`),
-        supabase.from('productos').select('*').eq('tienda_id', tiendaId),
+        supabase.from('productos').select('*').eq('tienda_id', tiendaId).neq('estado', 'archivado'),
         supabase
           .from('ventas_cabecera')
           .select(
@@ -493,7 +493,13 @@ export default function DashboardPage() {
     if (!showVentaModal || !tienda) return
     const supabase = createClient()
     void Promise.all([
-      supabase.from('productos').select('*').eq('tienda_id', tienda.id).gt('stock_actual', 0).order('nombre'),
+      supabase
+        .from('productos')
+        .select('*')
+        .eq('tienda_id', tienda.id)
+        .neq('estado', 'archivado')
+        .gt('stock_actual', 0)
+        .order('nombre'),
       supabase.from('clientes').select('*').eq('tienda_id', tienda.id).order('nombre'),
       supabase.from('medios_pago').select('*').eq('tienda_id', tienda.id).eq('activo', true).order('nombre'),
     ]).then(([{ data: prods }, { data: cls }, { data: medios }]) => {

@@ -148,6 +148,7 @@ export default function ConsignacionesPage() {
         .from('productos')
         .select('id, nombre, precio_venta, stock_actual')
         .eq('tienda_id', tienda.id)
+        .neq('estado', 'archivado')
         .gt('stock_actual', 0)
         .order('nombre'),
       supabase

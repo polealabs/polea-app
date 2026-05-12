@@ -38,6 +38,7 @@ export async function generarNotificaciones(tiendaId: string): Promise<void> {
       .from('productos')
       .select('id, nombre, stock_actual, stock_minimo')
       .eq('tienda_id', tiendaId)
+      .neq('estado', 'archivado')
 
     const productosStockBajo = (productos ?? []).filter((p) => p.stock_actual <= p.stock_minimo)
     if (productosStockBajo.length > 0) {
@@ -77,6 +78,7 @@ export async function generarNotificaciones(tiendaId: string): Promise<void> {
       .from('productos')
       .select('id, nombre, stock_actual')
       .eq('tienda_id', tiendaId)
+      .neq('estado', 'archivado')
       .gt('stock_actual', 0)
 
     const { data: ventasRecientes } = await supabase

@@ -244,7 +244,7 @@ export default function VentasPage() {
     if (!tienda) return
     const supabase = createClient()
     const [{ data: productosData }, { data: clientesData }, { data: mediosData }] = await Promise.all([
-      supabase.from('productos').select('*').eq('tienda_id', tienda.id).order('nombre'),
+      supabase.from('productos').select('*').eq('tienda_id', tienda.id).neq('estado', 'archivado').order('nombre'),
       supabase.from('clientes').select('*').eq('tienda_id', tienda.id).order('nombre'),
       supabase.from('medios_pago').select('*').eq('tienda_id', tienda.id).eq('activo', true).order('nombre'),
     ])

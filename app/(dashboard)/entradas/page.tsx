@@ -219,7 +219,7 @@ function EntradasPageContent() {
     const end = nextMonth.toISOString().slice(0, 10)
 
     const [{ data: productosData }, { data: entradasData }, { data: provData }] = await Promise.all([
-      supabase.from('productos').select('*').eq('tienda_id', tiendaId).order('nombre'),
+      supabase.from('productos').select('*').eq('tienda_id', tiendaId).neq('estado', 'archivado').order('nombre'),
       supabase
         .from('entradas')
         .select('*, productos(nombre, tipo)')

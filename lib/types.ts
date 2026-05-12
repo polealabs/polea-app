@@ -43,6 +43,7 @@ export interface Producto {
   id: string
   tienda_id: string
   nombre: string
+  estado?: 'activo' | 'archivado'
   sku?: string
   tipo: 'Producto terminado' | 'Materia prima' | 'Empaque' | 'Material POP'
   foto_url?: string

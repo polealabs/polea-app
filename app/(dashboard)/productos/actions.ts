@@ -111,6 +111,7 @@ export async function editarProducto(id: string, formData: FormData) {
     const duplicado = await assertNombreYSKUUnicos(supabase, tienda_id, nombre, sku, id)
     if (duplicado) return duplicado
 
+    const estadoRaw = (formData.get('estado') as string) || undefined
     const { error } = await supabase
       .from('productos')
       .update({
@@ -120,6 +121,7 @@ export async function editarProducto(id: string, formData: FormData) {
         precio_venta: Number(formData.get('precio_venta')),
         costo_produccion: Number(formData.get('costo_produccion')) || null,
         stock_minimo: Number(formData.get('stock_minimo')),
+        ...(estadoRaw ? { estado: estadoRaw } : {}),
       })
       .eq('id', id)
       .eq('tienda_id', tienda_id)
