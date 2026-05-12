@@ -28,7 +28,8 @@ export async function importarClientes(filas: Record<string, string>[]) {
       nombre,
       telefono: fila['telefono']?.trim() || null,
       ciudad: fila['ciudad']?.trim() || null,
-      correo: fila['correo']?.trim() || null,
+      correo: fila['correo']?.trim() || fila['email']?.trim() || null,
+      direccion: fila['direccion']?.trim() || null,
     })
     if (error) {
       errores.push({

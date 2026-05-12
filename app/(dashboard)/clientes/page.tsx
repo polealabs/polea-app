@@ -30,10 +30,10 @@ function formatFecha(fecha: string) {
 
 function descargarPlantillaClientes() {
   descargarCSV('plantilla_clientes.csv', [
-    ['nombre', 'telefono', 'ciudad', 'correo'],
-    ['María García', '3001234567', 'Cali', 'maria@gmail.com'],
-    ['Laura Rodríguez', '3109876543', 'Bogotá', ''],
-    ['Sandra Mejía', '3204567890', 'Medellín', 'sandra@correo.com'],
+    ['nombre', 'email', 'telefono', 'ciudad', 'direccion'],
+    ['Juan Pérez', 'juan@email.com', '3001234567', 'Cali', 'Calle 10 # 5-23'],
+    ['María García', 'maria@gmail.com', '3001234568', 'Cali', ''],
+    ['Laura Rodríguez', '', '3109876543', 'Bogotá', 'Carrera 7 # 40-12'],
   ])
 }
 
@@ -265,7 +265,7 @@ export default function ClientesPage() {
           if (res.exitosos > 0 && tienda) await fetchClientes(tienda.id, mesActual, filtroMes)
           return res
         }}
-        descripcion="Solo nombre es obligatorio. Teléfono, ciudad y correo son opcionales."
+        descripcion="Solo nombre es obligatorio. Email (o columna correo), teléfono, ciudad y direccion (opcional) son opcionales."
       />
 
       <div className="mb-6">
