@@ -6,6 +6,7 @@ import { useRef, useState } from 'react'
 interface ResultadoImport {
   exitosos: number
   errores: { fila: number; mensaje: string }[]
+  mensaje?: string
 }
 
 interface ImportCSVProps {
@@ -139,6 +140,9 @@ export default function ImportCSV({ onDescargarPlantilla, onProcesar, descripcio
           )}
           {resultado.errores.length > 0 && (
             <div className="px-4 py-3 bg-[#FDEAEA] rounded-lg">
+              {resultado.mensaje && (
+                <p className="text-sm font-semibold text-[#C44040] mb-2">{resultado.mensaje}</p>
+              )}
               <p className="text-sm font-semibold text-[#C44040] mb-1.5">
                 {resultado.errores.length === 1 && resultado.errores[0].fila === 0
                   ? 'Error al cargar el archivo:'

@@ -5,6 +5,21 @@ import { revalidatePath } from 'next/cache'
 
 const CATEGORIAS_VALIDAS = ['Producción', 'Empaque', 'Envíos', 'Marketing y publicidad', 'Otro']
 
+const MENSAJE_ABORTO = (n: number) =>
+  `Se encontraron ${n} error(es). No se importó ningún registro. Corrige los errores y vuelve a intentarlo.`
+
+type FilaProveedorValida = {
+  fila: number
+  insert: {
+    tienda_id: string
+    nombre: string
+    categorias: string[]
+    telefono: string | null
+    nit: string | null
+    ciudad: string | null
+  }
+}
+
 export async function importarProveedores(filas: Record<string, string>[]) {
   const supabase = await createClient()
   const {
@@ -16,7 +31,7 @@ export async function importarProveedores(filas: Record<string, string>[]) {
   if (!tienda) return { exitosos: 0, errores: [{ fila: 0, mensaje: 'Tienda no encontrada' }] }
 
   const errores: { fila: number; mensaje: string }[] = []
-  let exitosos = 0
+  const filasValidas: FilaProveedorValida[] = []
 
   for (let i = 0; i < filas.length; i++) {
     const fila = filas[i]
@@ -28,7 +43,6 @@ export async function importarProveedores(filas: Record<string, string>[]) {
       continue
     }
 
-    // categorias viene como string separado por | ej: "Producción|Empaque"
     const categoriasRaw = fila['categorias']?.trim() || ''
     const categorias = categoriasRaw
       .split('|')
@@ -49,25 +63,42 @@ export async function importarProveedores(filas: Record<string, string>[]) {
       continue
     }
 
-    const { error } = await supabase.from('proveedores').insert({
-      tienda_id: tienda.id,
-      nombre,
-      categorias,
-      telefono: fila['telefono']?.trim() || null,
-      nit: fila['nit']?.trim() || null,
-      ciudad: fila['ciudad']?.trim() || null,
+    filasValidas.push({
+      fila: numFila,
+      insert: {
+        tienda_id: tienda.id,
+        nombre,
+        categorias,
+        telefono: fila['telefono']?.trim() || null,
+        nit: fila['nit']?.trim() || null,
+        ciudad: fila['ciudad']?.trim() || null,
+      },
     })
+  }
 
-    if (error) {
-      errores.push({
-        fila: numFila,
-        mensaje: `No se pudo guardar el proveedor "${nombre}". Intenta de nuevo.`,
-      })
-      continue
+  if (errores.length > 0) {
+    return {
+      exitosos: 0,
+      errores,
+      mensaje: MENSAJE_ABORTO(errores.length),
     }
-    exitosos++
+  }
+
+  let exitosos = 0
+  const erroresPaso2: { fila: number; mensaje: string }[] = []
+
+  for (const fv of filasValidas) {
+    const { error } = await supabase.from('proveedores').insert(fv.insert)
+    if (error) {
+      erroresPaso2.push({
+        fila: fv.fila,
+        mensaje: error.message || `No se pudo guardar el proveedor "${fv.insert.nombre}". Intenta de nuevo.`,
+      })
+    } else {
+      exitosos++
+    }
   }
 
   if (exitosos > 0) revalidatePath('/proveedores')
-  return { exitosos, errores }
+  return { exitosos, errores: erroresPaso2 }
 }

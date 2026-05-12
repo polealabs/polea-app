@@ -6,6 +6,20 @@ import { normalizarFecha } from '@/lib/csv'
 
 const CATEGORIAS_VALIDAS = ['Producción', 'Empaque', 'Envíos', 'Marketing', 'Plataformas', 'Otro']
 
+const MENSAJE_ABORTO = (n: number) =>
+  `Se encontraron ${n} error(es). No se importó ningún registro. Corrige los errores y vuelve a intentarlo.`
+
+type FilaGastoValida = {
+  fila: number
+  insert: {
+    tienda_id: string
+    descripcion: string
+    monto: number
+    categoria: string
+    fecha: string
+  }
+}
+
 export async function importarGastos(filas: Record<string, string>[]) {
   const supabase = await createClient()
   const {
@@ -17,7 +31,7 @@ export async function importarGastos(filas: Record<string, string>[]) {
   if (!tienda) return { exitosos: 0, errores: [{ fila: 0, mensaje: 'Tienda no encontrada' }] }
 
   const errores: { fila: number; mensaje: string }[] = []
-  let exitosos = 0
+  const filasValidas: FilaGastoValida[] = []
 
   for (let i = 0; i < filas.length; i++) {
     const numFila = i + 2
@@ -50,16 +64,36 @@ export async function importarGastos(filas: Record<string, string>[]) {
       continue
     }
 
-    const { error } = await supabase.from('gastos').insert({
-      tienda_id: tienda.id,
-      descripcion,
-      monto,
-      categoria,
-      fecha: fechaNorm,
+    filasValidas.push({
+      fila: numFila,
+      insert: {
+        tienda_id: tienda.id,
+        descripcion,
+        monto,
+        categoria,
+        fecha: fechaNorm,
+      },
     })
+  }
 
+  if (errores.length > 0) {
+    return {
+      exitosos: 0,
+      errores,
+      mensaje: MENSAJE_ABORTO(errores.length),
+    }
+  }
+
+  let exitosos = 0
+  const erroresPaso2: { fila: number; mensaje: string }[] = []
+
+  for (const fv of filasValidas) {
+    const { error } = await supabase.from('gastos').insert(fv.insert)
     if (error) {
-      errores.push({ fila: numFila, mensaje: 'No se pudo guardar el gasto. Intenta de nuevo.' })
+      erroresPaso2.push({
+        fila: fv.fila,
+        mensaje: error.message || 'No se pudo guardar el gasto. Intenta de nuevo.',
+      })
     } else {
       exitosos++
     }
@@ -69,5 +103,5 @@ export async function importarGastos(filas: Record<string, string>[]) {
     revalidatePath('/gastos')
     revalidatePath('/dashboard')
   }
-  return { exitosos, errores }
+  return { exitosos, errores: erroresPaso2 }
 }

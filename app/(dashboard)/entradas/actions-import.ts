@@ -4,6 +4,24 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { normalizarFecha } from '@/lib/csv'
 
+const MENSAJE_ABORTO = (n: number) =>
+  `Se encontraron ${n} error(es). No se importó ningún registro. Corrige los errores y vuelve a intentarlo.`
+
+type FilaEntradaValida = {
+  fila: number
+  insert: {
+    tienda_id: string
+    producto_id: string
+    variante_id: string | null
+    cantidad: number
+    costo_unitario: number
+    fecha: string
+    proveedor_id: string | null
+    notas: string | null
+  }
+  bumpVarianteStock: boolean
+}
+
 export async function importarEntradas(filas: Record<string, string>[]) {
   const supabase = await createClient()
   const {
@@ -20,7 +38,7 @@ export async function importarEntradas(filas: Record<string, string>[]) {
   const mapProveedores = new Map((proveedores ?? []).map((p) => [p.nombre.toLowerCase().trim(), p.id]))
 
   const errores: { fila: number; mensaje: string }[] = []
-  let exitosos = 0
+  const filasValidas: FilaEntradaValida[] = []
 
   for (let i = 0; i < filas.length; i++) {
     const numFila = i + 2
@@ -94,9 +112,9 @@ export async function importarEntradas(filas: Record<string, string>[]) {
       proveedor_id = idProv
     }
 
-    const { data: entradaInsertada, error } = await supabase
-      .from('entradas')
-      .insert({
+    filasValidas.push({
+      fila: numFila,
+      insert: {
         tienda_id: tienda.id,
         producto_id,
         variante_id: variante_id || null,
@@ -105,30 +123,54 @@ export async function importarEntradas(filas: Record<string, string>[]) {
         fecha: fechaNorm,
         proveedor_id,
         notas: notasRaw || null,
-      })
+      },
+      bumpVarianteStock: Boolean(variante_id),
+    })
+  }
+
+  if (errores.length > 0) {
+    return {
+      exitosos: 0,
+      errores,
+      mensaje: MENSAJE_ABORTO(errores.length),
+    }
+  }
+
+  let exitosos = 0
+  const erroresPaso2: { fila: number; mensaje: string }[] = []
+
+  for (const fv of filasValidas) {
+    const { data: entradaInsertada, error } = await supabase
+      .from('entradas')
+      .insert(fv.insert)
       .select('id')
       .single()
 
     if (error) {
-      errores.push({ fila: numFila, mensaje: 'No se pudo guardar la entrada. Intenta de nuevo.' })
-    } else {
-      if (variante_id && entradaInsertada) {
-        const { data: variante } = await supabase
-          .from('producto_variantes')
-          .select('stock_actual')
-          .eq('id', variante_id)
-          .single()
-        if (variante) {
-          await supabase
-            .from('producto_variantes')
-            .update({
-              stock_actual: variante.stock_actual + cantidad,
-            })
-            .eq('id', variante_id)
-        }
-      }
-      exitosos++
+      erroresPaso2.push({
+        fila: fv.fila,
+        mensaje: error.message || 'No se pudo guardar la entrada. Intenta de nuevo.',
+      })
+      continue
     }
+
+    if (fv.bumpVarianteStock && fv.insert.variante_id && entradaInsertada) {
+      const vid = fv.insert.variante_id
+      const { data: variante } = await supabase
+        .from('producto_variantes')
+        .select('stock_actual')
+        .eq('id', vid)
+        .single()
+      if (variante) {
+        await supabase
+          .from('producto_variantes')
+          .update({
+            stock_actual: variante.stock_actual + fv.insert.cantidad,
+          })
+          .eq('id', vid)
+      }
+    }
+    exitosos++
   }
 
   if (exitosos > 0) {
@@ -136,5 +178,5 @@ export async function importarEntradas(filas: Record<string, string>[]) {
     revalidatePath('/productos')
     revalidatePath('/dashboard')
   }
-  return { exitosos, errores }
+  return { exitosos, errores: erroresPaso2 }
 }

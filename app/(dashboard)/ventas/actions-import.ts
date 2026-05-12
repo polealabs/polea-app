@@ -16,6 +16,37 @@ const PLATAFORMAS_VALIDAS = [
   'Contraentrega',
 ]
 
+const MENSAJE_ABORTO = (n: number) =>
+  `Se encontraron ${n} error(es). No se importó ningún registro. Corrige los errores y vuelve a intentarlo.`
+
+type LineaVentaCalculada = {
+  fila: number
+  producto_id: string
+  variante_id: string | null
+  cantidad: number
+  precio_venta: number
+  descuento: number
+  costo_transaccion: number
+  neto: number
+}
+
+type GrupoVentaValido = {
+  filasGrupo: number[]
+  cabecera: {
+    tienda_id: string
+    cliente_id: string | null
+    canal: string
+    plataforma_pago: string
+    fecha: string
+    total_bruto: number
+    total_costo_transaccion: number
+    total_neto: number
+  }
+  items: Omit<LineaVentaCalculada, 'fila'>[]
+  /** Una fila CSV por ítem (para reportar errores de insert de ítems) */
+  filasPorItem: number[]
+}
+
 export async function importarVentas(filas: Record<string, string>[]) {
   const supabase = await createClient()
   const {
@@ -33,7 +64,7 @@ export async function importarVentas(filas: Record<string, string>[]) {
   const mapClientes = new Map((clientes ?? []).map((c) => [c.nombre.toLowerCase().trim(), c.id]))
 
   const errores: { fila: number; mensaje: string }[] = []
-  let exitosos = 0
+  const gruposValidos: GrupoVentaValido[] = []
 
   const grupos = new Map<string, { fila: number; datos: Record<string, string> }[]>()
   for (let i = 0; i < filas.length; i++) {
@@ -79,15 +110,7 @@ export async function importarVentas(filas: Record<string, string>[]) {
 
     const cliente_id = clienteNombre ? (mapClientes.get(clienteNombre.toLowerCase()) ?? null) : null
 
-    const lineasCalculadas: {
-      producto_id: string
-      variante_id: string | null
-      cantidad: number
-      precio_venta: number
-      descuento: number
-      costo_transaccion: number
-      neto: number
-    }[] = []
+    const lineasCalculadas: LineaVentaCalculada[] = []
     let hayErrorLinea = false
 
     for (const { fila: numFila, datos } of lineas) {
@@ -152,9 +175,10 @@ export async function importarVentas(filas: Record<string, string>[]) {
         precio_venta,
         cantidad,
         descuento,
-        plataforma
+        plataforma,
       )
       lineasCalculadas.push({
+        fila: numFila,
         producto_id,
         variante_id: variante_id || null,
         cantidad,
@@ -171,9 +195,9 @@ export async function importarVentas(filas: Record<string, string>[]) {
     const total_costo_transaccion = lineasCalculadas.reduce((s, l) => s + l.costo_transaccion, 0)
     const total_neto = lineasCalculadas.reduce((s, l) => s + l.neto, 0)
 
-    const { data: cabecera, error: errCab } = await supabase
-      .from('ventas_cabecera')
-      .insert({
+    gruposValidos.push({
+      filasGrupo: lineas.map((l) => l.fila),
+      cabecera: {
         tienda_id: tienda.id,
         cliente_id,
         canal,
@@ -182,28 +206,59 @@ export async function importarVentas(filas: Record<string, string>[]) {
         total_bruto,
         total_costo_transaccion,
         total_neto,
-      })
+      },
+      items: lineasCalculadas.map((l) => ({
+        producto_id: l.producto_id,
+        variante_id: l.variante_id,
+        cantidad: l.cantidad,
+        precio_venta: l.precio_venta,
+        descuento: l.descuento,
+        costo_transaccion: l.costo_transaccion,
+        neto: l.neto,
+      })),
+      filasPorItem: lineasCalculadas.map((l) => l.fila),
+    })
+  }
+
+  if (errores.length > 0) {
+    return {
+      exitosos: 0,
+      errores,
+      mensaje: MENSAJE_ABORTO(errores.length),
+    }
+  }
+
+  let exitosos = 0
+  const erroresPaso2: { fila: number; mensaje: string }[] = []
+
+  for (const g of gruposValidos) {
+    const { data: cabecera, error: errCab } = await supabase
+      .from('ventas_cabecera')
+      .insert(g.cabecera)
       .select('id')
       .single()
 
     if (errCab) {
-      lineas.forEach((l) =>
-        errores.push({ fila: l.fila, mensaje: 'No se pudo crear la venta. Intenta de nuevo.' }),
+      g.filasGrupo.forEach((fila) =>
+        erroresPaso2.push({
+          fila,
+          mensaje: errCab.message || 'No se pudo crear la venta. Intenta de nuevo.',
+        }),
       )
       continue
     }
 
-    const items = lineasCalculadas.map((l) => ({
+    const items = g.items.map((l) => ({
       ...l,
       cabecera_id: cabecera.id,
       tienda_id: tienda.id,
     }))
     const { error: errItems } = await supabase.from('venta_items').insert(items)
     if (errItems) {
-      lineas.forEach((l) =>
-        errores.push({
-          fila: l.fila,
-          mensaje: 'La venta se creó pero falló al guardar los productos. Contacta soporte.',
+      g.filasPorItem.forEach((fila) =>
+        erroresPaso2.push({
+          fila,
+          mensaje: errItems.message || 'La venta se creó pero falló al guardar los productos. Contacta soporte.',
         }),
       )
       continue
@@ -217,5 +272,5 @@ export async function importarVentas(filas: Record<string, string>[]) {
     revalidatePath('/productos')
     revalidatePath('/dashboard')
   }
-  return { exitosos, errores }
+  return { exitosos, errores: erroresPaso2 }
 }
