@@ -252,6 +252,7 @@ export default function ProductosPage() {
     const nombreDup = productos.some(
       (p) =>
         p.id !== excludeId &&
+        p.estado !== 'archivado' &&
         p.nombre
           .trim()
           .replace(/\s+/g, ' ')
@@ -261,7 +262,10 @@ export default function ProductosPage() {
       sku !== null &&
       productos.some(
         (p) =>
-          p.id !== excludeId && (p.sku?.trim() ?? '') !== '' && (p.sku?.trim() ?? '') === sku,
+          p.id !== excludeId &&
+          p.estado !== 'archivado' &&
+          (p.sku?.trim() ?? '') !== '' &&
+          (p.sku?.trim() ?? '') === sku,
       )
 
     if (nombreDup && skuDup) {

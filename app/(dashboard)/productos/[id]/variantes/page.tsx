@@ -34,18 +34,27 @@ export default function VariantesProductoPage() {
   const cargarTodo = useCallback(async () => {
     if (!id) return
     setLoading(true)
+    setError(null)
 
-    const { data: prod } = await supabase.from('productos').select('*').eq('id', id).single()
+    const { data: prod, error: errProd } = await supabase.from('productos').select('*').eq('id', id).single()
+    if (errProd || !prod) {
+      setError('No se pudo cargar el producto')
+      setLoading(false)
+      return
+    }
     setProducto(prod as ProductoBasico)
 
-    await supabase.from('producto_atributos').select('*').eq('producto_id', id).order('created_at')
-
-    const { data: vars } = await supabase
+    const { data: vars, error: errVars } = await supabase
       .from('producto_variantes')
       .select('*')
       .eq('producto_id', id)
       .eq('activa', true)
       .order('nombre')
+    if (errVars) {
+      setError('No se pudieron cargar las variantes: ' + errVars.message)
+      setLoading(false)
+      return
+    }
 
     const varsList = (vars ?? []) as ProductoVariante[]
     setVariantes(varsList)
@@ -106,11 +115,16 @@ export default function VariantesProductoPage() {
     const nuevosAtributosState = [...atributos, { nombre: nuevoAtributo.trim(), valores }]
     const combinaciones = generarCombinaciones(nuevosAtributosState)
 
-    await supabase.from('producto_atributos').upsert({
+    const { error: errAttr } = await supabase.from('producto_atributos').upsert({
       tienda_id: tienda.id,
       producto_id: id,
       nombre: nuevoAtributo.trim(),
     })
+    if (errAttr) {
+      setError('Error guardando atributo: ' + errAttr.message)
+      setGuardando(false)
+      return
+    }
 
     const variantesExistentes = new Set(variantes.map((v) => JSON.stringify(v.atributos)))
     const variantesNuevas = combinaciones.filter((combo) => !variantesExistentes.has(JSON.stringify(combo)))

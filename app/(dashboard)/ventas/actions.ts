@@ -46,11 +46,15 @@ export async function crearVentaMulti(payload: {
       .from('productos')
       .select('id, nombre, stock_actual')
       .eq('tienda_id', tienda_id)
+      .neq('estado', 'archivado')
       .in('id', ids)
 
     if (errStock) return { error: errStock.message }
     if (!prodsStock || prodsStock.length !== ids.length) {
-      return { error: 'Uno o más productos no existen o no pertenecen a tu tienda' }
+      return {
+        error:
+          'Uno o más productos no existen, están archivados o no pertenecen a tu tienda. No se pueden vender productos archivados.',
+      }
     }
 
     const byId = new Map(prodsStock.map((p) => [p.id, p]))

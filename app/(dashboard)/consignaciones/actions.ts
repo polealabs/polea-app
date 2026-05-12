@@ -64,7 +64,12 @@ export async function editarConsignataria(id: string, formData: FormData) {
 export async function eliminarConsignataria(id: string) {
   try {
     const { tienda_id, supabase } = await getTienda()
-    await supabase.from('tiendas_consignatarias').delete().eq('id', id).eq('tienda_id', tienda_id)
+    const { error } = await supabase
+      .from('tiendas_consignatarias')
+      .delete()
+      .eq('id', id)
+      .eq('tienda_id', tienda_id)
+    if (error) return { error: error.message }
     revalidatePath('/consignaciones')
     return { ok: true }
   } catch (e: unknown) {

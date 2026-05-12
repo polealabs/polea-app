@@ -34,7 +34,7 @@ export async function importarClientes(filas: Record<string, string>[]) {
     if (error) {
       errores.push({
         fila: i + 2,
-        mensaje: `No se pudo guardar el cliente "${fila['nombre']}". Intenta de nuevo.`,
+        mensaje: `No se pudo guardar "${nombre}": ${error.message}`,
       })
     } else {
       exitosos++

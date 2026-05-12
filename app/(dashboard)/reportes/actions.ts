@@ -367,9 +367,10 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
   const saldoFinal = saldoInicial + flujoNeto
 
   const utilidadDespuesVariables = utilidadBruta - gastosVariables
-  const utilidadOperacional = utilidadDespuesVariables - gastosFijos
-  const utilidadNeta =
-    utilidadOperacional - gastosFinancieros - gastosPorTipo.sin_clasificar.total
+  const utilidadOperacional =
+    utilidadDespuesVariables - gastosFijos - gastosPorTipo.sin_clasificar.total
+  const utilidadAntesImpuestos = utilidadOperacional - gastosFinancieros
+  const utilidadNeta = utilidadAntesImpuestos
   const margenNeto = ventasNetas > 0 ? (utilidadNeta / ventasNetas) * 100 : 0
 
   const totalTransacciones = ventasRows.length

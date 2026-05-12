@@ -79,6 +79,13 @@ export async function crearProducto(formData: FormData) {
     const duplicado = await assertNombreYSKUUnicos(supabase, tienda_id, nombre, sku)
     if (duplicado) return duplicado
 
+    const precio_venta = Number(formData.get('precio_venta'))
+    if (isNaN(precio_venta) || precio_venta < 0) {
+      return { error: 'El precio de venta debe ser un número válido' }
+    }
+    const costo_raw = Number(formData.get('costo_produccion'))
+    const costo_produccion = isNaN(costo_raw) || costo_raw <= 0 ? null : costo_raw
+
     const { data, error } = await supabase
       .from('productos')
       .insert({
@@ -86,8 +93,8 @@ export async function crearProducto(formData: FormData) {
         nombre,
         sku,
         tipo: formData.get('tipo') as string,
-        precio_venta: Number(formData.get('precio_venta')),
-        costo_produccion: Number(formData.get('costo_produccion')) || null,
+        precio_venta,
+        costo_produccion,
         stock_minimo: Number(formData.get('stock_minimo')),
       })
       .select('id')
@@ -111,17 +118,25 @@ export async function editarProducto(id: string, formData: FormData) {
     const duplicado = await assertNombreYSKUUnicos(supabase, tienda_id, nombre, sku, id)
     if (duplicado) return duplicado
 
-    const estadoRaw = (formData.get('estado') as string) || undefined
+    const precio_venta = Number(formData.get('precio_venta'))
+    if (isNaN(precio_venta) || precio_venta < 0) {
+      return { error: 'El precio de venta debe ser un número válido' }
+    }
+    const costo_raw = Number(formData.get('costo_produccion'))
+    const costo_produccion = isNaN(costo_raw) || costo_raw <= 0 ? null : costo_raw
+
+    const estadoRaw = formData.get('estado') as string
+    const estado = ['activo', 'archivado'].includes(estadoRaw) ? estadoRaw : undefined
     const { error } = await supabase
       .from('productos')
       .update({
         nombre,
         sku,
         tipo: formData.get('tipo') as string,
-        precio_venta: Number(formData.get('precio_venta')),
-        costo_produccion: Number(formData.get('costo_produccion')) || null,
+        precio_venta,
+        costo_produccion,
         stock_minimo: Number(formData.get('stock_minimo')),
-        ...(estadoRaw ? { estado: estadoRaw } : {}),
+        ...(estado ? { estado } : {}),
       })
       .eq('id', id)
       .eq('tienda_id', tienda_id)

@@ -123,7 +123,13 @@ export async function importarProductos(filas: Record<string, string>[]) {
         })
         continue
       }
-      await supabase.from('productos').update({ tiene_variantes: true, stock_actual: 0 }).eq('id', productoId)
+      const { error: errUpdate } = await supabase
+        .from('productos')
+        .update({ tiene_variantes: true, stock_actual: 0 })
+        .eq('id', productoId)
+      if (errUpdate) {
+        console.error('Error actualizando tiene_variantes:', errUpdate.message)
+      }
     }
     exitosos++
   }
