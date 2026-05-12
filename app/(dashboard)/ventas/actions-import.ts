@@ -202,7 +202,7 @@ export async function importarVentas(filas: Record<string, string>[]) {
         cliente_id,
         canal,
         plataforma_pago: plataforma,
-        fecha: fechaNorm,
+        fecha: fechaNorm!,
         total_bruto,
         total_costo_transaccion,
         total_neto,

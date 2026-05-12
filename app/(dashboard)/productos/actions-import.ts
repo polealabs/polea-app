@@ -196,6 +196,10 @@ export async function importarProductos(filas: Record<string, string>[]) {
         }
       }
 
+      if (!productoId) {
+        continue
+      }
+
       idByNombre.set(op.nombre, productoId)
 
       if (op.varianteMismaFila) {

@@ -75,6 +75,7 @@ export default function ImportCSV({ onDescargarPlantilla, onProcesar, descripcio
       }
 
       const res = await onProcesar(filas)
+      console.log('=== RESULTADO IMPORTACION ===', JSON.stringify(res))
       setResultado(res)
     } catch {
       setResultado({

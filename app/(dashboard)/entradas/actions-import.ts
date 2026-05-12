@@ -32,6 +32,8 @@ export async function importarEntradas(filas: Record<string, string>[]) {
   const { data: tienda } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).single()
   if (!tienda) return { exitosos: 0, errores: [{ fila: 0, mensaje: 'Tienda no encontrada' }] }
 
+  console.log('=== INICIO IMPORTACION ENTRADAS ===', filas.length, 'filas')
+
   const { data: productos } = await supabase.from('productos').select('id, nombre').eq('tienda_id', tienda.id)
   const { data: proveedores } = await supabase.from('proveedores').select('id, nombre').eq('tienda_id', tienda.id)
   const mapProductos = new Map((productos ?? []).map((p) => [p.nombre.toLowerCase().trim(), p.id]))
@@ -128,6 +130,8 @@ export async function importarEntradas(filas: Record<string, string>[]) {
     })
   }
 
+  console.log('=== PASO 1 COMPLETO ===', 'errores:', errores.length, 'validas:', filasValidas.length)
+
   if (errores.length > 0) {
     return {
       exitosos: 0,
@@ -135,6 +139,8 @@ export async function importarEntradas(filas: Record<string, string>[]) {
       mensaje: MENSAJE_ABORTO(errores.length),
     }
   }
+
+  console.log('=== PASO 2 INICIO ===', filasValidas.length, 'filas a insertar')
 
   let exitosos = 0
   const erroresPaso2: { fila: number; mensaje: string }[] = []
@@ -178,5 +184,6 @@ export async function importarEntradas(filas: Record<string, string>[]) {
     revalidatePath('/productos')
     revalidatePath('/dashboard')
   }
+  console.log('=== FIN IMPORTACION ===', 'exitosos:', exitosos)
   return { exitosos, errores: erroresPaso2 }
 }
