@@ -36,11 +36,14 @@ export async function importarProductos(filas: Record<string, string>[]) {
       errores.push({ fila: i + 2, mensaje: 'El campo "nombre" es obligatorio' })
       continue
     }
-    if (isNaN(precio_venta) || precio_venta < 0) {
+
+    const esFilaVariante = productoIdMap.has(nombre)
+
+    if (!esFilaVariante && (isNaN(precio_venta) || precio_venta < 0)) {
       errores.push({ fila: i + 2, mensaje: 'El precio de venta debe ser un número mayor o igual a 0' })
       continue
     }
-    if (!TIPOS_VALIDOS.includes(tipo)) {
+    if (!esFilaVariante && !TIPOS_VALIDOS.includes(tipo)) {
       errores.push({
         fila: i + 2,
         mensaje: `tipo inválido: "${tipo}". Válidos: ${TIPOS_VALIDOS.join(', ')}`,
@@ -70,14 +73,36 @@ export async function importarProductos(filas: Record<string, string>[]) {
 
       if (error) {
         if (error.code === '23505') {
-          errores.push({ fila: i + 2, mensaje: `El producto "${nombre}" ya existe en tu catálogo` })
+          const { data: existente } = await supabase
+            .from('productos')
+            .select('id')
+            .eq('tienda_id', tienda.id)
+            .eq('nombre', nombre)
+            .maybeSingle()
+
+          if (existente) {
+            productoId = existente.id
+            productoIdMap.set(nombre, productoId)
+          } else {
+            errores.push({
+              fila: i + 2,
+              mensaje: `El producto "${nombre}" ya existe pero no se pudo recuperar`,
+            })
+            continue
+          }
         } else {
-          errores.push({ fila: i + 2, mensaje: `No se pudo guardar el producto "${nombre}". Intenta de nuevo.` })
+          errores.push({ fila: i + 2, mensaje: `No se pudo guardar "${nombre}": ${error.message}` })
+          continue
         }
-        continue
+      } else {
+        productoId = prod!.id
+        productoIdMap.set(nombre, productoId)
       }
-      productoId = prod.id
-      productoIdMap.set(nombre, productoId)
+    }
+
+    if (esFilaVariante && !variante_nombre) {
+      exitosos++
+      continue
     }
 
     if (variante_nombre) {
