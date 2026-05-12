@@ -21,7 +21,7 @@ export default async function AdminTiendaDetalle({ params }: { params: Promise<{
   })
 
   const totalVentas = (ventas ?? []).reduce((s, v) => s + (v.total_neto ?? 0), 0)
-  const totalEquipo = 1 + (miembros?.length ?? 0)
+  const totalEquipo = miembros?.length ?? 0
 
   function formatCOP(n: number) {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n)
