@@ -189,7 +189,8 @@ export async function aceptarInvitacion(token: string) {
     if (errMiembro) return { error: errMiembro.message }
 
     // Marcar invitación como aceptada
-    await supabase.from('invitaciones').update({ aceptada: true }).eq('id', inv.id)
+    const { error: errUpdate } = await supabase.from('invitaciones').update({ aceptada: true }).eq('id', inv.id)
+    if (errUpdate) console.error('Error marcando invitación como aceptada:', errUpdate.message)
 
     return { ok: true }
   } catch (e: unknown) {
