@@ -81,6 +81,7 @@ export async function importarVentas(filas: Record<string, string>[]) {
 
     const lineasCalculadas: {
       producto_id: string
+      variante_id: string | null
       cantidad: number
       precio_venta: number
       descuento: number
@@ -91,6 +92,7 @@ export async function importarVentas(filas: Record<string, string>[]) {
 
     for (const { fila: numFila, datos } of lineas) {
       const productoNombre = datos['producto_nombre']?.trim()
+      const variante_nombre = datos['variante_nombre']?.trim()
       const cantidad = Number(datos['cantidad'])
       const precio_venta = Number(datos['precio_venta'])
       const descuento = Number(datos['descuento'] ?? 0)
@@ -126,6 +128,26 @@ export async function importarVentas(filas: Record<string, string>[]) {
         continue
       }
 
+      let variante_id: string | null = null
+      if (variante_nombre) {
+        const { data: variante } = await supabase
+          .from('producto_variantes')
+          .select('id')
+          .eq('producto_id', producto_id)
+          .eq('nombre', variante_nombre)
+          .maybeSingle()
+        if (variante) {
+          variante_id = variante.id
+        } else {
+          errores.push({
+            fila: numFila,
+            mensaje: `No se encontró la variante "${variante_nombre}" para el producto "${productoNombre}".`,
+          })
+          hayErrorLinea = true
+          continue
+        }
+      }
+
       const { costoTransaccion, neto } = calcularNetoConDescuento(
         precio_venta,
         cantidad,
@@ -134,6 +156,7 @@ export async function importarVentas(filas: Record<string, string>[]) {
       )
       lineasCalculadas.push({
         producto_id,
+        variante_id: variante_id || null,
         cantidad,
         precio_venta,
         descuento,

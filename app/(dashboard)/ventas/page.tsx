@@ -111,10 +111,21 @@ function maxCantidadPorLinea(
 
 function descargarPlantillaVentas() {
   descargarCSV('plantilla_ventas.csv', [
-    ['venta_id', 'producto_nombre', 'cantidad', 'precio_venta', 'descuento', 'canal', 'plataforma_pago', 'fecha', 'cliente_nombre'],
-    ['1', 'Aretes luna plateados', '1', '85000', '0', 'WhatsApp', 'Nequi', '2026-01-20', 'María García'],
-    ['1', 'Collar sol dorado', '2', '120000', '10', 'WhatsApp', 'Nequi', '2026-01-20', 'María García'],
-    ['2', 'Anillo minimalista', '1', '65000', '0', 'Instagram', 'Efectivo', '2026-01-21', ''],
+    [
+      'venta_id',
+      'fecha',
+      'cliente_nombre',
+      'canal',
+      'plataforma_pago',
+      'producto_nombre',
+      'variante_nombre',
+      'cantidad',
+      'precio_venta',
+      'descuento',
+    ],
+    ['1', '2026-01-20', 'María García', 'WhatsApp', 'Nequi', 'Anillo rojo', 'Talla 3', '1', '85000', '0'],
+    ['1', '2026-01-20', 'María García', 'WhatsApp', 'Nequi', 'Anillo rojo', 'Talla 4', '2', '85000', '0'],
+    ['2', '2026-01-21', 'Sin cliente', 'Instagram', 'Efectivo', 'Collar sol dorado', '', '1', '120000', '10'],
   ])
 }
 
@@ -531,7 +542,7 @@ export default function VentasPage() {
           if (res.exitosos > 0 && tienda) await fetchData()
           return res
         }}
-        descripcion="El descuento va en porcentaje (ej: 10 = 10%). Agrupa productos de la misma venta con el mismo venta_id · Fechas: DD/MM/YYYY o YYYY-MM-DD"
+        descripcion="CSV: venta_id, fecha, cliente_nombre, canal, plataforma_pago, producto_nombre, variante_nombre (opcional), cantidad, precio_venta, descuento (%). Misma venta = mismo venta_id. Fechas: DD/MM/YYYY o YYYY-MM-DD"
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">

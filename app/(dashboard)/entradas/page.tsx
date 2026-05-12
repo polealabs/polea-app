@@ -95,10 +95,18 @@ function tipoBadgeClass(tipo: Producto['tipo']) {
 
 function descargarPlantillaEntradas() {
   descargarCSV('plantilla_entradas.csv', [
-    ['producto_nombre', 'cantidad', 'costo_unitario', 'fecha'],
-    ['Aretes luna plateados', '10', '45000', '2026-01-15'],
-    ['Collar sol dorado', '5', '65000', '2026-01-15'],
-    ['Anillo minimalista', '8', '35000', '2026-02-01'],
+    [
+      'fecha',
+      'producto_nombre',
+      'variante_nombre',
+      'cantidad',
+      'costo_unitario',
+      'proveedor_nombre',
+      'notas',
+    ],
+    ['2026-01-15', 'Anillo rojo', 'Talla 3', '5', '45000', 'Joyero supremo', 'Pedido enero'],
+    ['2026-01-15', 'Anillo rojo', 'Talla 4', '3', '45000', 'Joyero supremo', ''],
+    ['2026-01-15', 'Collar sol dorado', '', '10', '60000', 'Proveedor XYZ', ''],
   ])
 }
 
@@ -728,7 +736,7 @@ function EntradasPageContent() {
             if (res.exitosos > 0 && tienda) await fetchData(tienda.id, mesActual)
             return res
           }}
-          descripcion="El nombre del producto debe coincidir exactamente. Fechas aceptadas: DD/MM/YYYY o YYYY-MM-DD"
+          descripcion="CSV: fecha, producto_nombre, variante_nombre (opcional), cantidad, costo_unitario, proveedor_nombre, notas. Nombre de producto y proveedor deben coincidir con los registrados. Fechas: DD/MM/YYYY o YYYY-MM-DD"
         />
       )}
 
