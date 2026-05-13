@@ -188,6 +188,21 @@ export async function aceptarInvitacion(token: string) {
 
     if (errMiembro) return { error: errMiembro.message }
 
+    // Asegurar que el perfil existe
+    const { data: perfilExistente } = await supabase
+      .from('perfiles')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (!perfilExistente) {
+      await supabase.from('perfiles').insert({
+        id: user.id,
+        nombre: user.email?.split('@')[0] ?? 'Usuario',
+        updated_at: new Date().toISOString(),
+      })
+    }
+
     // Marcar invitación como aceptada
     const { error: errUpdate } = await supabase.from('invitaciones').update({ aceptada: true }).eq('id', inv.id)
     if (errUpdate) console.error('Error marcando invitación como aceptada:', errUpdate.message)
