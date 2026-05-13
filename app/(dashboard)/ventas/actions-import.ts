@@ -6,15 +6,6 @@ import { calcularNetoConDescuento } from '@/lib/utils'
 import { normalizarFecha } from '@/lib/csv'
 
 const CANALES_VALIDOS = ['WhatsApp', 'Instagram', 'Web', 'Presencial', 'Tienda multimarca']
-const PLATAFORMAS_VALIDAS = [
-  'Wompi',
-  'Bold',
-  'Transferencia',
-  'Efectivo',
-  'Nequi',
-  'Daviplata',
-  'Contraentrega',
-]
 
 const MENSAJE_ABORTO = (n: number) =>
   `Se encontraron ${n} error(es). No se importó ningún registro. Corrige los errores y vuelve a intentarlo.`
@@ -37,6 +28,7 @@ type GrupoVentaValido = {
     cliente_id: string | null
     canal: string
     plataforma_pago: string
+    medio_pago_id: string | null
     fecha: string
     total_bruto: number
     total_costo_transaccion: number
@@ -62,6 +54,27 @@ export async function importarVentas(filas: Record<string, string>[]) {
 
   const mapProductos = new Map((productos ?? []).map((p) => [p.nombre.toLowerCase().trim(), p.id]))
   const mapClientes = new Map((clientes ?? []).map((c) => [c.nombre.toLowerCase().trim(), c.id]))
+
+  const { data: mediosPago } = await supabase
+    .from('medios_pago')
+    .select('id, nombre')
+    .eq('tienda_id', tienda.id)
+
+  const nombresMedios = new Set((mediosPago ?? []).map((m) => m.nombre.toLowerCase().trim()))
+
+  const mediosLegacy = new Set([
+    'wompi',
+    'bold',
+    'transferencia',
+    'efectivo',
+    'nequi',
+    'daviplata',
+    'contraentrada',
+    'contraentrega',
+    'addi',
+    'sistecredito',
+    'redeban',
+  ])
 
   const errores: { fila: number; mensaje: string }[] = []
   const gruposValidos: GrupoVentaValido[] = []
@@ -94,9 +107,14 @@ export async function importarVentas(filas: Record<string, string>[]) {
         `El canal "${canal}" no es válido. Debe ser uno de: WhatsApp, Instagram, Web, Presencial, Tienda multimarca`,
       )
     }
-    if (!PLATAFORMAS_VALIDAS.includes(plataforma)) {
+    const plataformaLower = plataforma.toLowerCase().trim()
+    if (!plataformaLower) {
       erroresCabecera.push(
-        `La plataforma "${plataforma}" no es válida. Debe ser una de: Wompi, Bold, Transferencia, Efectivo, Nequi, Daviplata, Contraentrega`,
+        'El campo "plataforma_pago" es obligatorio en la primera línea de cada venta (CSV).',
+      )
+    } else if (!nombresMedios.has(plataformaLower) && !mediosLegacy.has(plataformaLower)) {
+      erroresCabecera.push(
+        `La plataforma "${plataforma}" no está configurada en tus medios de pago. Verifica en Configuración → Medios de pago.`,
       )
     }
     if (!fechaNorm) {
@@ -107,6 +125,11 @@ export async function importarVentas(filas: Record<string, string>[]) {
       lineas.forEach((l) => errores.push({ fila: l.fila, mensaje: erroresCabecera.join(', ') }))
       continue
     }
+
+    const medioEncontrado = (mediosPago ?? []).find(
+      (m) => m.nombre.toLowerCase().trim() === plataformaLower,
+    )
+    const medio_pago_id = medioEncontrado?.id ?? null
 
     const cliente_id = clienteNombre ? (mapClientes.get(clienteNombre.toLowerCase()) ?? null) : null
 
@@ -202,6 +225,7 @@ export async function importarVentas(filas: Record<string, string>[]) {
         cliente_id,
         canal,
         plataforma_pago: plataforma,
+        medio_pago_id,
         fecha: fechaNorm!,
         total_bruto,
         total_costo_transaccion,
