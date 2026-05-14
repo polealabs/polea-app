@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { normalizarFecha } from '@/lib/csv'
 
-const CATEGORIAS_VALIDAS = ['Producción', 'Empaque', 'Envíos', 'Marketing', 'Plataformas', 'Otro']
+const TIPOS_VALIDOS = ['variable', 'fijo', 'financiero', 'compra_inventario']
 
 const MENSAJE_ABORTO = (n: number) =>
   `Se encontraron ${n} error(es). No se importó ningún registro. Corrige los errores y vuelve a intentarlo.`
@@ -16,6 +16,7 @@ type FilaGastoValida = {
     descripcion: string
     monto: number
     categoria: string
+    tipo_gasto: string
     fecha: string
   }
 }
@@ -36,31 +37,32 @@ export async function importarGastos(filas: Record<string, string>[]) {
   for (let i = 0; i < filas.length; i++) {
     const numFila = i + 2
     const fila = filas[i]
-    const descripcion = fila['descripcion']?.trim()
-    const monto = Number(fila['monto'])
-    const categoria = fila['categoria']?.trim()
     const fechaNorm = normalizarFecha(fila['fecha'])
+    const descripcion = fila['descripcion']?.trim()
+    const categoria = fila['categoria']?.trim() || 'Otro'
+    const tipo = fila['tipo']?.trim().toLowerCase()
+    const monto = Number(fila['monto'])
 
-    if (!descripcion) {
-      errores.push({ fila: numFila, mensaje: 'El campo "descripcion" es obligatorio' })
-      continue
-    }
-    if (isNaN(monto) || monto < 0) {
-      errores.push({ fila: numFila, mensaje: 'El monto debe ser un número mayor o igual a 0' })
-      continue
-    }
-    if (!categoria || !CATEGORIAS_VALIDAS.includes(categoria)) {
-      errores.push({
-        fila: numFila,
-        mensaje: `La categoría "${categoria ?? ''}" no es válida. Debe ser una de: Producción, Empaque, Envíos, Marketing, Plataformas, Otro`,
-      })
-      continue
-    }
     if (!fechaNorm) {
       errores.push({
         fila: numFila,
         mensaje: 'Fecha inválida. Formatos aceptados: DD/MM/YYYY, YYYY-MM-DD, DD-MM-YYYY',
       })
+      continue
+    }
+    if (!descripcion) {
+      errores.push({ fila: numFila, mensaje: 'El campo "descripcion" es obligatorio' })
+      continue
+    }
+    if (!tipo || !TIPOS_VALIDOS.includes(tipo)) {
+      errores.push({
+        fila: numFila,
+        mensaje: `El tipo "${tipo ?? ''}" no es válido. Debe ser: variable, fijo, financiero o compra_inventario`,
+      })
+      continue
+    }
+    if (isNaN(monto) || monto < 0) {
+      errores.push({ fila: numFila, mensaje: 'El monto debe ser un número mayor o igual a 0' })
       continue
     }
 
@@ -71,17 +73,14 @@ export async function importarGastos(filas: Record<string, string>[]) {
         descripcion,
         monto,
         categoria,
+        tipo_gasto: tipo,
         fecha: fechaNorm,
       },
     })
   }
 
   if (errores.length > 0) {
-    return {
-      exitosos: 0,
-      errores,
-      mensaje: MENSAJE_ABORTO(errores.length),
-    }
+    return { exitosos: 0, errores, mensaje: MENSAJE_ABORTO(errores.length) }
   }
 
   let exitosos = 0
@@ -90,10 +89,7 @@ export async function importarGastos(filas: Record<string, string>[]) {
   for (const fv of filasValidas) {
     const { error } = await supabase.from('gastos').insert(fv.insert)
     if (error) {
-      erroresPaso2.push({
-        fila: fv.fila,
-        mensaje: error.message || 'No se pudo guardar el gasto. Intenta de nuevo.',
-      })
+      erroresPaso2.push({ fila: fv.fila, mensaje: error.message || 'No se pudo guardar el gasto.' })
     } else {
       exitosos++
     }

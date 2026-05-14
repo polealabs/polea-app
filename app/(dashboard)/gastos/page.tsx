@@ -73,10 +73,11 @@ function formatFecha(fecha: string) {
 
 function descargarPlantillaGastos() {
   descargarCSV('plantilla_gastos.csv', [
-    ['descripcion', 'monto', 'categoria', 'fecha'],
-    ['Empaque kraft', '15000', 'Empaque', '2026-01-10'],
-    ['Pauta Instagram', '80000', 'Marketing', '2026-01-15'],
-    ['Envío Servientrega', '12000', 'Envíos', '2026-01-20'],
+    ['fecha', 'descripcion', 'categoria', 'tipo', 'monto'],
+    ['15/01/2026', 'Arriendo local', 'Arriendo', 'fijo', '1500000'],
+    ['20/01/2026', 'Empaques kraft', 'Empaque', 'variable', '85000'],
+    ['05/01/2026', 'Cuota crédito banco', 'Financiero', 'financiero', '320000'],
+    ['10/01/2026', 'Compra tela algodón', 'Producción', 'compra_inventario', '450000'],
   ])
 }
 
@@ -337,7 +338,7 @@ export default function GastosPage() {
           if (res.exitosos > 0 && tienda) await fetchGastos(tienda.id, mesActual)
           return res
         }}
-        descripcion="CSV: categorías clásicas Producción, Empaque, Envíos, Marketing, Plataformas, Otro · En la app: tipo (variable/fijo/financiero) y subcategoría · Fechas: DD/MM/YYYY o YYYY-MM-DD"
+        descripcion="CSV: fecha, descripcion, categoria (libre), tipo (variable | fijo | financiero | compra_inventario), monto. Fechas: DD/MM/YYYY o YYYY-MM-DD"
       />
 
       <div
