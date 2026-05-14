@@ -950,6 +950,7 @@ export default function ConsignacionesPage() {
                   <th className={thClass}>Producto</th>
                   <th className={`${thClass} text-right`}>Unidades devueltas</th>
                   <th className={thClass}>Notas</th>
+                  <th className={`${thClass} text-right`}>Acción</th>
                 </tr>
               </thead>
               <tbody>
@@ -960,6 +961,15 @@ export default function ConsignacionesPage() {
                     <td className="px-4 py-3">{m.producto_nombre}</td>
                     <td className="px-4 py-3 text-right font-semibold">{m.cantidad}</td>
                     <td className="px-4 py-3">{m.notas || '—'}</td>
+                    <td className="px-4 py-3 text-right">
+                      <Link
+                        href={`/consignaciones/devolucion/${m.id}/pdf`}
+                        className="text-xs font-medium hover:underline"
+                        style={{ color: 'var(--color-accent)' }}
+                      >
+                        Ver devolución →
+                      </Link>
+                    </td>
                   </tr>
                 ))}
               </tbody>
