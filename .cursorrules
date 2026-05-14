@@ -1,0 +1,129 @@
+# POLEA — Reglas de contexto para Cursor
+
+## PROYECTO
+Polea es un SaaS de gestión administrativa para pequeños negocios colombianos.
+- Repositorio: https://github.com/polealabs/polea-app
+- Producción: https://polea-app.vercel.app
+- Supabase: https://amzldldwuxtahohueule.supabase.co
+- Fundadores: Nicolás Idrobo (SDR) · Luis Daniel (QA Lead)
+
+## STACK
+- Next.js 16.2.3 (App Router, Turbopack)
+- TypeScript 5
+- Tailwind CSS v4
+- Supabase (PostgreSQL + Auth)
+- Vercel (plan Hobby)
+- jsPDF + html2canvas para PDFs
+
+## ESTRUCTURA
+- app/(auth)/ → login, registro
+- app/(dashboard)/ → todos los módulos protegidos
+- app/polealabs/ → admin panel (solo admins)
+- app/invitacion/[token]/ → aceptar invitaciones
+- components/ui/ → ProductoSelect, CalculadoraPrecios, ImportCSV, Toast, ConfirmModal
+- components/layout/ → Sidebar, Header, HeaderWrapper
+- lib/ → types.ts, utils.ts, temas.ts, tipos-industria.ts, notificaciones.ts
+- lib/supabase/ → client.ts, server.ts, admin.ts
+- lib/hooks/ → useTienda.ts
+- lib/context/ → TemaContext.tsx
+
+## DECISIONES TÉCNICAS IMPORTANTES
+1. proxy.ts en lugar de middleware.ts (Next.js 16 deprecó middleware)
+2. RLS activo en todas las tablas via función get_tiendas_usuario() security definer
+3. Trigger trg_entrada_crea_gasto ELIMINADO (creaba duplicados)
+4. Constraint gastos_categoria_check ELIMINADO
+5. Constraint ventas_cabecera_plataforma_pago_check ELIMINADO
+6. Tema anti-flash: script inline en layout.tsx aplica CSS desde localStorage
+7. Timezone Colombia: usar new Date().getTime() - getTimezoneOffset() * 60000
+8. CPV: prioridad 1 costo_produccion del producto, prioridad 2 costo de entrada más reciente
+9. compra_inventario: aparece SOLO en flujo de caja, nunca en P&L
+10. Admin panel en /polealabs protegido por tabla admins
+
+## TRIGGERS EN SUPABASE
+- trg_entrada_suma_stock → suma stock en productos o producto_variantes según variante_id
+- trg_venta_item_resta_stock → resta stock en productos o producto_variantes según variante_id
+- trg_consignacion_resta_stock → resta stock al consignar
+- trg_consignacion_devolucion_stock → devuelve stock al devolver
+- trg_insertar_owner_miembro → inserta owner en miembros al crear tienda
+
+## TABLAS PRINCIPALES
+tiendas, perfiles, miembros, invitaciones, productos, producto_variantes, producto_atributos,
+entradas, ventas_cabecera, venta_items, clientes, gastos, proveedores, medios_pago,
+documentos, contadores_documentos, tiendas_consignatarias, consignacion_salidas,
+consignaciones, consignacion_movimientos, liquidaciones, devoluciones_venta,
+cuentas_por_pagar, cuotas_pago, preferencias, notificaciones, admins
+
+## MÓDULOS IMPLEMENTADOS
+- Inventario (productos, variantes, costo, defectuosos, archivado, CSV)
+- Entradas (flujo unificado producto+entrada+pago, cuentas por pagar, cuotas, CSV con variantes)
+- Ventas (multi-producto, medios de pago con IVA, envío, devoluciones, CSV con variantes)
+- Clientes (CRUD, dirección, CSV)
+- Gastos (variable/fijo/financiero/compra_inventario, edición, CSV)
+- Proveedores (CRUD, CSV)
+- Reportes (P&L correcto con CPV, flujo de caja con saldo inicial/final)
+- Dashboard (KPIs, alertas, modal venta rápida)
+- Tiendas Aliadas (salidas múltiples, devoluciones, liquidaciones, remisión PDF)
+- Documentos (cotizaciones, cuentas de cobro, PDF)
+- Equipo (roles, invitaciones por link con email via Resend)
+- Configuración (medios de pago personalizables con comisión + IVA)
+- Ayuda (guías por módulo, FAQs)
+- Admin Panel /polealabs (overview, tiendas, usuarios, métricas)
+
+## SISTEMA DE ROLES
+- owner: acceso total
+- admin: acceso total excepto eliminar tienda
+- vendedor: sin gastos ni reportes (canViewFinanzas = false)
+- readonly: solo lectura
+- Hook useTienda expone: tienda, rol, isOwner, isAdmin, canEdit, canDelete, canViewFinanzas
+
+## CÁLCULO DE COMISIONES
+base = subtotal + envío
+comision_base = (base × %) + tarifa_fija
+iva_comision = cobra_iva ? comision_base × 0.19 : 0
+neto = base - comision_base - iva_comision
+
+## ESTRUCTURA P&L
+Ventas brutas - devoluciones - descuentos - comisiones = Ventas netas
+- CPV = Utilidad bruta
+- Gastos variables = Utilidad después variables
+- Gastos fijos = Utilidad operacional
+- Gastos financieros = Utilidad antes impuestos
+= Utilidad neta
+(compra_inventario NO aparece en P&L, solo en flujo de caja)
+
+## IMPORTACIÓN CSV — VALIDACIÓN EN DOS PASOS
+Todos los imports usan validación en dos pasos:
+1. Validar todas las filas sin insertar nada
+2. Si hay errores → retornar { exitosos: 0, errores, mensaje } sin insertar
+3. Si todo ok → insertar todo
+
+## TEMAS
+4 temas: bosque (default), oceano, rosa, tierra
+Variables CSS: --color-primary, --color-accent, --color-background, --color-surface, --color-border, --color-text, --color-text-soft
+Anti-flash: script inline en app/layout.tsx lee localStorage antes del primer paint
+suppressHydrationWarning en <html>
+
+## COMPONENTES REUTILIZABLES
+- ProductoSelect: select con búsqueda de texto
+- CalculadoraPrecios: márgenes por industria, desglose costos, escenarios
+- ImportCSV: carga masiva con validación dos pasos, resultado con mensaje
+- Toast/useToast: notificaciones
+- ConfirmModal: confirmación acciones destructivas
+- ModuleTableSkeleton: skeleton de carga
+
+## PENDIENTES
+1. PWA — instalar en celular
+2. Wompi — cobrar suscripciones
+3. Modo POS — venta rápida ferias
+4. Módulo eventos — caja del evento
+5. Documento devolución tiendas aliadas
+6. Tooltips en módulos
+7. Recuperar contraseña
+8. Resend con dominio verificado para emails reales
+
+## VARIABLES DE ENTORNO
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+NEXT_PUBLIC_SITE_URL
+RESEND_API_KEY
