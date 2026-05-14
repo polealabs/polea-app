@@ -9,6 +9,7 @@ import { calcularComisionMedioPago, toLocalISODateString } from '@/lib/utils'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import ClienteInlineForm from '@/components/ui/ClienteInlineForm'
 import ImportCSV from '@/components/ui/ImportCSV'
+import { Tooltip } from '@/components/ui/Tooltip'
 import ProductoSelect from '@/components/ui/ProductoSelect'
 import Toast from '@/components/ui/Toast'
 import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
@@ -989,14 +990,36 @@ export default function VentasPage() {
       ) : (
         <div className="bg-white rounded-2xl border border-[#EDE5DC] shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[600px]">
+            <table className="w-full text-sm min-w-[880px]">
             <thead>
               <tr className="border-b border-[#EDE5DC] bg-[#FAF6F0]" style={{ background: 'var(--color-background)' }}>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">Fecha</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">Cliente</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">Canal</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                  <span className="inline-flex items-center gap-0">
+                    Canal
+                    <Tooltip texto="Dónde se realizó la venta: WhatsApp, Instagram, presencial, etc." />
+                  </span>
+                </th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                  <span className="inline-flex items-center gap-0">
+                    Medio de pago
+                    <Tooltip texto="Cómo pagó el cliente. Afecta la comisión descontada" />
+                  </span>
+                </th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">Productos</th>
-                <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">Total neto</th>
+                <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                  <span className="inline-flex items-center justify-end gap-0">
+                    Total bruto
+                    <Tooltip texto="Valor total de la venta antes de descontar comisiones" />
+                  </span>
+                </th>
+                <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                  <span className="inline-flex items-center justify-end gap-0">
+                    Total neto
+                    <Tooltip texto="Lo que recibes después de comisiones de plataforma" />
+                  </span>
+                </th>
                 <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">Acción</th>
               </tr>
             </thead>
@@ -1015,9 +1038,6 @@ export default function VentasPage() {
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${canalBadgeClass(v.canal)}`}>
                         {v.canal}
                       </span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-[#FAF6F0] text-[#6A5D52] font-medium">
-                        {v.medio_pago_nombre ?? v.plataforma_pago}
-                      </span>
                       {devolucionesPorVenta[v.id] ? (
                         <span className="text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">
                           {devolucionesPorVenta[v.id]} dev.
@@ -1025,9 +1045,15 @@ export default function VentasPage() {
                       ) : null}
                     </div>
                   </td>
+                  <td className="px-5 py-4">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-[#FAF6F0] text-[#6A5D52] font-medium">
+                      {v.medio_pago_nombre ?? v.plataforma_pago}
+                    </span>
+                  </td>
                   <td className="px-5 py-4 text-[#1A1510]/80">
                     {v.items.map((it) => `${it.producto_nombre} × ${it.cantidad}`).join(', ')}
                   </td>
+                  <td className="px-5 py-4 text-right text-[#1A1510]/80">{formatCOP(v.total_bruto)}</td>
                   <td className="px-5 py-4 text-right font-bold text-[#1E3A2F]">{formatCOP(v.total_neto)}</td>
                   <td className="px-5 py-4 text-right">
                     <div className="flex items-center justify-end gap-3 flex-wrap">

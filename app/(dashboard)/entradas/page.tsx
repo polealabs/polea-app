@@ -19,6 +19,7 @@ import {
 import type { CuentaPorPagar, CuotaPago, Entrada, Producto, ProductoVariante, Proveedor } from '@/lib/types'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import ImportCSV from '@/components/ui/ImportCSV'
+import { Tooltip } from '@/components/ui/Tooltip'
 import ProductoSelect from '@/components/ui/ProductoSelect'
 import ProveedorInlineForm from '@/components/ui/ProveedorInlineForm'
 import Toast from '@/components/ui/Toast'
@@ -1278,8 +1279,18 @@ function EntradasPageContent() {
                       <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">Producto</th>
                       <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">Tipo</th>
                       <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">Cantidad</th>
-                      <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">Costo u.</th>
-                      <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">Total</th>
+                      <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                        <span className="inline-flex items-center justify-end gap-0">
+                          Costo u.
+                          <Tooltip texto="Precio al que compraste cada unidad a tu proveedor" />
+                        </span>
+                      </th>
+                      <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
+                        <span className="inline-flex items-center justify-end gap-0">
+                          Total
+                          <Tooltip texto="Costo unitario × cantidad" />
+                        </span>
+                      </th>
                       <th className="px-5 py-3" />
                     </tr>
                   </thead>

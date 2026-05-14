@@ -6,6 +6,7 @@ import { useTienda } from '@/lib/hooks/useTienda'
 import { actualizarGasto, crearGasto, eliminarGasto } from './actions'
 import { CATEGORIAS_GASTO, type Gasto, type Proveedor, type TipoGasto } from '@/lib/types'
 import ImportCSV from '@/components/ui/ImportCSV'
+import { Tooltip } from '@/components/ui/Tooltip'
 import ProveedorInlineForm from '@/components/ui/ProveedorInlineForm'
 import Toast from '@/components/ui/Toast'
 import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
@@ -605,7 +606,10 @@ export default function GastosPage() {
                     Categoría
                   </th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
-                    Tipo
+                    <span className="inline-flex items-center gap-0">
+                      Tipo
+                      <Tooltip texto="Variable: cambia según ventas. Fijo: se paga siempre. Financiero: intereses y créditos. Compra inventario: aparece solo en flujo de caja, no en P&L" />
+                    </span>
                   </th>
                   <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                     Monto

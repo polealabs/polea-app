@@ -7,6 +7,7 @@ import { useTienda } from '@/lib/hooks/useTienda'
 import { crearCliente, editarCliente, eliminarCliente } from './actions'
 import type { Cliente } from '@/lib/types'
 import ImportCSV from '@/components/ui/ImportCSV'
+import { Tooltip } from '@/components/ui/Tooltip'
 import Toast from '@/components/ui/Toast'
 import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
 import { descargarCSV } from '@/lib/csv'
@@ -414,7 +415,10 @@ export default function ClientesPage() {
                   Correo
                 </th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
-                  Compras
+                  <span className="inline-flex items-center gap-0">
+                    Compras
+                    <Tooltip texto="Suma de todas las ventas registradas a este cliente" />
+                  </span>
                 </th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                   Desde

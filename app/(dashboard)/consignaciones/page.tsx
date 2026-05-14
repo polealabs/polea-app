@@ -22,6 +22,7 @@ import Toast from '@/components/ui/Toast'
 import { useToast } from '@/lib/hooks/useToast'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import ProductoSelect from '@/components/ui/ProductoSelect'
+import { Tooltip } from '@/components/ui/Tooltip'
 import ImportCSV from '@/components/ui/ImportCSV'
 import { descargarCSV } from '@/lib/csv'
 import { importarConsignatarias } from './actions-import'
@@ -627,7 +628,12 @@ export default function ConsignacionesPage() {
                   <th className={thClass}>Ciudad</th>
                   <th className={thClass}>Contacto</th>
                   <th className={thClass}>NIT</th>
-                  <th className={`${thClass} text-right`}>Comisión</th>
+                  <th className={`${thClass} text-right`}>
+                    <span className="inline-flex items-center justify-end gap-0">
+                      Comisión
+                      <Tooltip texto="Porcentaje que se queda la tienda aliada por cada venta" />
+                    </span>
+                  </th>
                   <th className={`${thClass} text-right`}>Unidades activas</th>
                   <th className={`${thClass} text-right`}>Acciones</th>
                 </tr>
@@ -737,7 +743,12 @@ export default function ConsignacionesPage() {
                     <tr className="bg-[#FAF6F0]">
                       <th className={thClass}>Producto</th>
                       <th className={`${thClass} text-right`}>Enviadas</th>
-                      <th className={`${thClass} text-right`}>Disponibles</th>
+                      <th className={`${thClass} text-right`}>
+                        <span className="inline-flex items-center justify-end gap-0">
+                          Disponibles
+                          <Tooltip texto="Unidades en consignación que aún no han sido vendidas ni devueltas" />
+                        </span>
+                      </th>
                       <th className={`${thClass} text-right`}>Devueltas</th>
                       <th className={`${thClass} text-right`}>Liquidadas</th>
                       <th className={thClass}>Fecha envío</th>
@@ -785,7 +796,12 @@ export default function ConsignacionesPage() {
                   <tr className="bg-[#FAF6F0]">
                     <th className={thClass}>Producto</th>
                     <th className={`${thClass} text-right`}>Total enviado</th>
-                    <th className={`${thClass} text-right`}>Total disponible</th>
+                    <th className={`${thClass} text-right`}>
+                      <span className="inline-flex items-center justify-end gap-0">
+                        Total disponible
+                        <Tooltip texto="Unidades en consignación que aún no han sido vendidas ni devueltas" />
+                      </span>
+                    </th>
                     <th className={thClass}>Por tienda</th>
                   </tr>
                 </thead>

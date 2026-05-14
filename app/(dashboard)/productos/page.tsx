@@ -9,6 +9,7 @@ import type { Producto } from '@/lib/types'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import CalculadoraPrecios from '@/components/ui/CalculadoraPrecios'
 import ImportCSV from '@/components/ui/ImportCSV'
+import { Tooltip } from '@/components/ui/Tooltip'
 import Toast from '@/components/ui/Toast'
 import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
 import { descargarCSV } from '@/lib/csv'
@@ -942,19 +943,31 @@ export default function ProductosPage() {
                   Tipo
                 </th>
                 <th className="w-28 text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
-                  Costo
+                  <span className="inline-flex items-center justify-end gap-0">
+                    Costo
+                    <Tooltip texto="Costo de fabricar o adquirir una unidad. Se usa para calcular la utilidad en reportes" />
+                  </span>
                 </th>
                 <th className="w-28 text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                   Precio
                 </th>
                 <th className="w-24 text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
-                  Stock
+                  <span className="inline-flex items-center justify-end gap-0">
+                    Stock
+                    <Tooltip texto="Unidades disponibles en este momento" />
+                  </span>
                 </th>
                 <th className="w-20 text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
-                  Mín
+                  <span className="inline-flex items-center justify-end gap-0">
+                    Mín
+                    <Tooltip texto="Alerta cuando el stock baje de este número" />
+                  </span>
                 </th>
                 <th className="w-24 text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
-                  Defectuosos
+                  <span className="inline-flex items-center justify-end gap-0">
+                    Defectuosos
+                    <Tooltip texto="Unidades dadas de baja por daño o pérdida" />
+                  </span>
                 </th>
                 <th className="w-24 text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
                   Variantes

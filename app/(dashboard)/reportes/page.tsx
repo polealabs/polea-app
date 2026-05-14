@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { obtenerDatosReporte, type DatosReporte } from './actions'
 import { useTienda } from '@/lib/hooks/useTienda'
 import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
+import { Tooltip } from '@/components/ui/Tooltip'
 
 function formatCOP(n: number) {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n)
@@ -19,29 +20,6 @@ function colorVariacion(v: number) {
   if (v > 0) return 'text-[#3A7D5A]'
   if (v < 0) return 'text-[#C44040]'
   return 'text-[#8A7D72]'
-}
-
-function Bombillo({ texto }: { texto: string }) {
-  const [show, setShow] = useState(false)
-  return (
-    <span className="relative inline-flex ml-1.5 align-middle">
-      <button
-        type="button"
-        onMouseEnter={() => setShow(true)}
-        onMouseLeave={() => setShow(false)}
-        onClick={() => setShow((v) => !v)}
-        className="w-4 h-4 rounded-full bg-[#FBF3E0] border border-[#D4A853] inline-flex items-center justify-center text-[#D4A853] text-[9px] font-bold hover:bg-[#D4A853] hover:text-white transition flex-shrink-0"
-      >
-        💡
-      </button>
-      {show && (
-        <span className="absolute bottom-6 left-1/2 -translate-x-1/2 w-56 bg-[#1E3A2F] text-white text-xs rounded-xl p-3 z-50 shadow-xl leading-relaxed block">
-          {texto}
-          <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#1E3A2F] block" />
-        </span>
-      )}
-    </span>
-  )
 }
 
 export default function ReportesPage() {
@@ -171,7 +149,7 @@ export default function ReportesPage() {
               <div className="bg-white rounded-2xl border border-[#EDE5DC] p-4 shadow-sm">
                 <p className="text-xs text-[#8A7D72] mb-1 flex items-center">
                   Ventas netas
-                  <Bombillo texto="Es el dinero que realmente recibiste después de descontar comisiones de plataformas de pago como Wompi o Bold." />
+                  <Tooltip texto="Es el dinero que realmente recibiste después de descontar comisiones de plataformas de pago como Wompi o Bold." />
                 </p>
                 <p className="text-xl sm:text-2xl font-serif text-[#1E3A2F]">{formatCOP(datos.ventasNetas)}</p>
                 <div className="h-1 bg-[#C4622D] rounded-full mt-3" />
@@ -180,7 +158,7 @@ export default function ReportesPage() {
               <div className="bg-white rounded-2xl border border-[#EDE5DC] p-4 shadow-sm">
                 <p className="text-xs text-[#8A7D72] mb-1 flex items-center">
                   Utilidad bruta
-                  <Bombillo texto="Lo que te queda después de restar el CPV (costo de los productos efectivamente vendidos en el mes)." />
+                  <Tooltip texto="Lo que te queda después de restar el CPV (costo de los productos efectivamente vendidos en el mes)." />
                 </p>
                 <p className={`text-xl sm:text-2xl font-serif ${datos.utilidadBruta >= 0 ? 'text-[#3A7D5A]' : 'text-[#C44040]'}`}>
                   {formatCOP(datos.utilidadBruta)}
@@ -191,7 +169,7 @@ export default function ReportesPage() {
               <div className="bg-white rounded-2xl border border-[#EDE5DC] p-4 shadow-sm">
                 <p className="text-xs text-[#8A7D72] mb-1 flex items-center">
                   Utilidad operacional
-                  <Bombillo texto="Lo que queda después de ventas netas, CPV y todos los gastos operacionales (variables y fijos)." />
+                  <Tooltip texto="Lo que queda después de ventas netas, CPV y todos los gastos operacionales (variables y fijos)." />
                 </p>
                 <p className={`text-xl sm:text-2xl font-serif ${datos.utilidadOperacional >= 0 ? 'text-[#3A7D5A]' : 'text-[#C44040]'}`}>
                   {formatCOP(datos.utilidadOperacional)}
@@ -206,7 +184,7 @@ export default function ReportesPage() {
               >
                 <p className="text-xs text-[#8A7D72] mb-1 flex items-center">
                   Utilidad neta
-                  <Bombillo texto="Lo que realmente ganaste este mes después de pagar todo — mercancía y gastos operativos. Este es el número más importante." />
+                  <Tooltip texto="Lo que realmente ganaste este mes después de pagar todo — mercancía y gastos operativos. Este es el número más importante." />
                 </p>
                 <p className={`text-xl sm:text-2xl font-serif ${datos.utilidadNeta >= 0 ? 'text-[#3A7D5A]' : 'text-[#C44040]'}`}>
                   {formatCOP(datos.utilidadNeta)}
@@ -236,7 +214,7 @@ export default function ReportesPage() {
                 <div className="flex items-center justify-between py-2">
                   <p className="text-sm text-[#C44040] flex items-center">
                     Devoluciones del mes
-                    <Bombillo texto="Ventas devueltas con reembolso o crédito este mes. Las devoluciones por cambio no afectan el total." />
+                    <Tooltip texto="Ventas devueltas con reembolso o crédito este mes. Las devoluciones por cambio no afectan el total." />
                   </p>
                   <p className="text-sm font-semibold text-[#C44040]">- {formatCOP(datos.totalDevoluciones)}</p>
                 </div>
@@ -257,7 +235,7 @@ export default function ReportesPage() {
                 <div>
                   <p className="text-sm text-[#4A3F35] flex items-center">
                     CPV - Costo de productos vendidos
-                    <Bombillo texto="Se calcula con los productos vendidos en el mes y el costo unitario de entrada más reciente antes de la venta para productos terminados." />
+                    <Tooltip texto="Se calcula con los productos vendidos en el mes y el costo unitario de entrada más reciente antes de la venta para productos terminados." />
                   </p>
                   <p className="text-xs text-[#8A7D72]">Costo de los {datos.totalUnidadesVendidas} productos vendidos este mes</p>
                 </div>
@@ -274,7 +252,7 @@ export default function ReportesPage() {
                   <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full bg-[#F2F0EC] text-[#5A4F45]">
                     {datos.margenBruto.toFixed(1)}% margen
                   </span>
-                  <Bombillo texto="El margen bruto muestra cuánto queda después del CPV y antes de gastos operacionales." />
+                  <Tooltip texto="El margen bruto muestra cuánto queda después del CPV y antes de gastos operacionales." />
                 </div>
                 <p className={`text-sm font-bold ${datos.utilidadBruta >= 0 ? 'text-[#3A7D5A]' : 'text-[#C44040]'}`}>
                   {formatCOP(datos.utilidadBruta)}
@@ -287,7 +265,7 @@ export default function ReportesPage() {
                     <div>
                       <p className="text-sm text-[#4A3F35] font-medium flex items-center">
                         Gastos variables
-                        <Bombillo texto="Gastos que varían con el volumen de ventas: empaques, envíos, comisiones, pasarelas de pago, insumos." />
+                        <Tooltip texto="Gastos que varían con el volumen de ventas: empaques, envíos, comisiones, pasarelas de pago, insumos." />
                       </p>
                       <div className="mt-1 pl-3 space-y-0.5">
                         {datos.gastosPorTipo.variable.items.map((item) => (
@@ -318,7 +296,7 @@ export default function ReportesPage() {
                     <div>
                       <p className="text-sm text-[#4A3F35] font-medium flex items-center">
                         Gastos fijos
-                        <Bombillo texto="Gastos que no cambian con las ventas: arriendo, nómina, suscripciones, publicidad fija." />
+                        <Tooltip texto="Gastos que no cambian con las ventas: arriendo, nómina, suscripciones, publicidad fija." />
                       </p>
                       <div className="mt-1 pl-3 space-y-0.5">
                         {datos.gastosPorTipo.fijo.items.map((item) => (
@@ -349,7 +327,7 @@ export default function ReportesPage() {
                     <div>
                       <p className="text-sm text-[#4A3F35] font-medium flex items-center">
                         Gastos financieros
-                        <Bombillo texto="Intereses y cuotas de créditos o préstamos." />
+                        <Tooltip texto="Intereses y cuotas de créditos o préstamos." />
                       </p>
                       <div className="mt-1 pl-3 space-y-0.5">
                         {datos.gastosPorTipo.financiero.items.map((item) => (
@@ -370,7 +348,7 @@ export default function ReportesPage() {
                   <div>
                     <p className="text-sm text-[#8A7D72] flex items-center">
                       Otros gastos
-                      <Bombillo texto="Gastos registrados antes de la categorización. Te recomendamos reclasificarlos en el módulo de Gastos." />
+                      <Tooltip texto="Gastos registrados antes de la categorización. Te recomendamos reclasificarlos en el módulo de Gastos." />
                     </p>
                     <div className="mt-1 pl-3 space-y-0.5">
                       {datos.gastosPorTipo.sin_clasificar.items.map((item, idx) => (
@@ -413,7 +391,7 @@ export default function ReportesPage() {
                   <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full bg-[#F2F0EC] text-[#5A4F45]">
                     {datos.margenNeto.toFixed(1)}% margen
                   </span>
-                  <Bombillo texto="Resultado final. En este momento no incluye impuestos — agrega un contador para calcularlos." />
+                  <Tooltip texto="Resultado final. En este momento no incluye impuestos — agrega un contador para calcularlos." />
                 </div>
                 <p className={`text-lg font-bold ${datos.utilidadNeta >= 0 ? 'text-[#3A7D5A]' : 'text-[#C44040]'}`}>
                   {formatCOP(datos.utilidadNeta)}
@@ -432,7 +410,7 @@ export default function ReportesPage() {
             <div className="bg-white rounded-2xl border border-[#EDE5DC] shadow-sm p-6 mt-6 mb-6">
               <p className="text-sm font-semibold text-[#1A1510] mb-5 flex items-center flex-wrap gap-1">
                 💵 Flujo de caja del mes
-                <Bombillo texto="Muestra el movimiento real del dinero. A diferencia del P&L, aquí aparecen las compras al proveedor aunque no hayas vendido esa mercancía aún." />
+                <Tooltip texto="Muestra el movimiento real del dinero. A diferencia del P&L, aquí aparecen las compras al proveedor aunque no hayas vendido esa mercancía aún." />
               </p>
 
               {datos.saldoInicial !== 0 && (
@@ -537,21 +515,21 @@ export default function ReportesPage() {
                 <div>
                   <p className="text-xs text-[#8A7D72] flex items-center">
                     Ticket promedio
-                    <Bombillo texto="El valor promedio de cada venta. Subirlo es más eficiente que conseguir más clientes — considera combos o productos complementarios." />
+                    <Tooltip texto="El valor promedio de cada venta. Subirlo es más eficiente que conseguir más clientes — considera combos o productos complementarios." />
                   </p>
                   <p className="text-xl font-serif text-[#1E3A2F]">{formatCOP(datos.ticketPromedio)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-[#8A7D72] flex items-center">
                     Transacciones
-                    <Bombillo texto="Número de ventas registradas en el mes." />
+                    <Tooltip texto="Número de ventas registradas en el mes." />
                   </p>
                   <p className="text-xl font-serif text-[#1E3A2F]">{datos.totalTransacciones}</p>
                 </div>
                 <div>
                   <p className="text-xs text-[#8A7D72] flex items-center">
                     Unidades vendidas
-                    <Bombillo texto="Total de productos despachados en el mes." />
+                    <Tooltip texto="Total de productos despachados en el mes." />
                   </p>
                   <p className="text-xl font-serif text-[#1E3A2F]">{datos.unidadesVendidas}</p>
                 </div>
