@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
@@ -434,7 +435,11 @@ export default function ClientesPage() {
                     i === clientesFiltrados.length - 1 ? 'border-b-0' : ''
                   }`}
                 >
-                  <td className="px-5 py-4 font-medium text-[#1A1510]">{cliente.nombre}</td>
+                  <td className="px-5 py-4 font-medium">
+                    <Link href={`/clientes/${cliente.id}`} className="text-[#1E3A2F] hover:text-[#C4622D] hover:underline transition">
+                      {cliente.nombre}
+                    </Link>
+                  </td>
                   <td className="px-5 py-4 text-[#1A1510]/70">{cliente.telefono ?? '—'}</td>
                   <td className="px-5 py-3.5 text-sm" style={{ color: 'var(--color-text-soft)' }}>
                     {cliente.direccion || '—'}
