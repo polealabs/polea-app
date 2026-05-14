@@ -22,6 +22,9 @@ import Toast from '@/components/ui/Toast'
 import { useToast } from '@/lib/hooks/useToast'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import ProductoSelect from '@/components/ui/ProductoSelect'
+import ImportCSV from '@/components/ui/ImportCSV'
+import { descargarCSV } from '@/lib/csv'
+import { importarConsignatarias } from './actions-import'
 import { toLocalISODateString, toLocalISOYearMonthString } from '@/lib/utils'
 
 type ConsignacionRow = Consignacion & {
@@ -484,6 +487,14 @@ export default function ConsignacionesPage() {
     setShowModalMovimiento(true)
   }
 
+  function descargarPlantillaConsignatarias() {
+    descargarCSV('plantilla_tiendas_aliadas.csv', [
+      ['nombre', 'contacto', 'telefono', 'ciudad', 'nit', 'porcentaje_comision'],
+      ['Tienda Ejemplo', 'María López', '3001234567', 'Cali', '900123456-1', '15'],
+      ['Boutique Luna', 'Carlos Ruiz', '3109876543', 'Bogotá', '', '20'],
+    ])
+  }
+
   if (tiendaLoading || loading) return <div className="p-4 md:p-6">Cargando consignaciones...</div>
 
   return (
@@ -597,6 +608,16 @@ export default function ConsignacionesPage() {
               </div>
             </form>
           )}
+
+          <ImportCSV
+            descripcion="Columnas: nombre*, contacto, telefono, ciudad, nit, porcentaje_comision"
+            onDescargarPlantilla={descargarPlantillaConsignatarias}
+            onProcesar={async (filas) => {
+              const res = await importarConsignatarias(filas)
+              if (res.exitosos > 0) await loadData()
+              return res
+            }}
+          />
 
           <div className="min-w-0 bg-white border border-[#EDE5DC] rounded-2xl overflow-x-auto">
             <table className="w-full text-sm">
