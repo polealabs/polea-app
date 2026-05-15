@@ -495,32 +495,34 @@ export default function ConsignacionesPage() {
 
   function descargarPlantillaConsignatarias() {
     descargarCSV('plantilla_tiendas_aliadas.csv', [
-      ['nombre', 'contacto', 'telefono', 'ciudad', 'nit', 'porcentaje_comision'],
-      ['Tienda Ejemplo', 'María López', '3001234567', 'Cali', '900123456-1', '15'],
-      ['Boutique Luna', 'Carlos Ruiz', '3109876543', 'Bogotá', '', '20'],
+      ['nombre', 'ciudad', 'contacto', 'nit', 'porcentaje_comision', 'telefono'],
+      ['Boutique Luna', 'Bogotá', 'Carlos Ruiz', '900123456-1', '20', '3109876543'],
+      ['Tienda Ejemplo', 'Cali', 'María López', '900123456-2', '15', '3001234567'],
     ])
   }
   function descargarPlantillaSalidas() {
     descargarCSV('plantilla_salidas_consignacion.csv', [
-      ['fecha', 'tienda_aliada', 'producto', 'cantidad', 'precio_unitario'],
-      ['15/01/2026', 'Boutique Luna', 'Collar Citrino', '5', '150000'],
+      ['fecha', 'tienda_aliada', 'producto', 'variante', 'cantidad', 'precio_unitario'],
+      ['15/01/2026', 'Boutique Luna', 'Collar Citrino', '', '5', '150000'],
+      ['15/01/2026', 'Boutique Luna', 'Collar Lapizlazulo', '10 inches', '3', '200000'],
     ])
   }
 
   function descargarPlantillaDevoluciones() {
     descargarCSV('plantilla_devoluciones_consignacion.csv', [
-      ['fecha', 'tienda_aliada', 'producto', 'cantidad', 'notas'],
-      ['20/01/2026', 'Boutique Luna', 'Collar Citrino', '2', 'Defectuoso'],
+      ['fecha', 'tienda_aliada', 'producto', 'variante', 'cantidad', 'notas'],
+      ['20/01/2026', 'Boutique Luna', 'Collar Citrino', '', '2', 'Defectuoso'],
+      ['20/01/2026', 'Boutique Luna', 'Collar Lapizlazulo', '10 inches', '1', ''],
     ])
   }
 
   function descargarPlantillaLiquidaciones() {
     descargarCSV('plantilla_liquidaciones_consignacion.csv', [
-      ['fecha', 'tienda_aliada', 'mes', 'total_vendido', 'notas'],
-      ['31/01/2026', 'Boutique Luna', '2026-01', '450000', 'Liquidación enero'],
+      ['fecha', 'tienda_aliada', 'mes', 'producto', 'variante', 'cant_vendida', 'precio_venta', 'notas'],
+      ['31/01/2026', 'Boutique Luna', '2026-01', 'Collar Citrino', '', '3', '150000', 'Liquidación enero'],
+      ['31/01/2026', 'Boutique Luna', '2026-01', 'Collar Lapizlazulo', '10 inches', '2', '200000', ''],
     ])
   }
-
 
   if (tiendaLoading || loading) return <div className="p-4 md:p-6">Cargando consignaciones...</div>
 
@@ -637,20 +639,10 @@ export default function ConsignacionesPage() {
           )}
 
           <ImportCSV
-            descripcion="Columnas: nombre*, contacto, telefono, ciudad, nit, porcentaje_comision"
+            descripcion="Columnas: nombre*, ciudad, contacto, nit, porcentaje_comision*, telefono"
             onDescargarPlantilla={descargarPlantillaConsignatarias}
             onProcesar={async (filas) => {
               const res = await importarConsignatarias(filas)
-              if (res.exitosos > 0) await loadData()
-              return res
-            }}
-          />
-
-          <ImportCSV
-            descripcion="Columnas: fecha*, tienda_aliada*, producto*, cantidad*, precio_unitario*. Filas con la misma fecha y tienda se agrupan en una remisión."
-            onDescargarPlantilla={descargarPlantillaSalidas}
-            onProcesar={async (filas) => {
-              const res = await importarSalidasConsignacion(filas)
               if (res.exitosos > 0) await loadData()
               return res
             }}
@@ -763,6 +755,16 @@ export default function ConsignacionesPage() {
             <button type="button" onClick={() => setInventarioVista('global')} className={`px-3 py-1.5 border rounded-full text-xs ${inventarioVista === 'global' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : ''}`}>Global</button>
             <button type="button" onClick={() => setInventarioVista('tienda')} className={`px-3 py-1.5 border rounded-full text-xs ${inventarioVista === 'tienda' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : ''}`}>Por tienda</button>
           </div>
+
+          <ImportCSV
+            descripcion="Columnas: fecha*, tienda_aliada*, producto*, variante (opcional, nombre exacto), cantidad*, precio_unitario*. Filas con la misma fecha y tienda se agrupan en una remisión."
+            onDescargarPlantilla={descargarPlantillaSalidas}
+            onProcesar={async (filas) => {
+              const res = await importarSalidasConsignacion(filas)
+              if (res.exitosos > 0) await loadData()
+              return res
+            }}
+          />
 
           {inventarioVista === 'tienda' && (
             <>
@@ -916,7 +918,7 @@ export default function ConsignacionesPage() {
             </button>
           )}
           <ImportCSV
-            descripcion="Columnas: fecha*, tienda_aliada*, mes* (ej: 2026-01), total_vendido*, notas (opcional)"
+            descripcion="Columnas: fecha*, tienda_aliada*, mes* (ej: 2026-01), producto*, variante (opcional), cant_vendida*, precio_venta*, notas"
             onDescargarPlantilla={descargarPlantillaLiquidaciones}
             onProcesar={async (filas) => {
               const res = await importarLiquidacionesConsignacion(filas)

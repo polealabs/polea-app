@@ -36,7 +36,7 @@ export async function generarNotificaciones(tiendaId: string): Promise<void> {
   if (prefs.alerta_stock_bajo) {
     const { data: productos } = await supabase
       .from('productos')
-      .select('id, nombre, stock_actual, stock_minimo, tiene_variantes')
+      .select('id, nombre, stock_actual, stock_minimo')
       .eq('tienda_id', tiendaId)
       .neq('estado', 'archivado')
 
@@ -47,10 +47,10 @@ export async function generarNotificaciones(tiendaId: string): Promise<void> {
       .eq('activa', true)
 
     const productosStockBajo = (productos ?? []).filter((p) => {
-      if (p.tiene_variantes) {
-        return (variantes ?? []).some(
-          (v) => v.producto_id === p.id && v.stock_actual <= v.stock_minimo,
-        )
+      const variantesDelProducto = (variantes ?? []).filter((v) => v.producto_id === p.id)
+      const tieneVariantesReal = variantesDelProducto.length > 0
+      if (tieneVariantesReal) {
+        return variantesDelProducto.some((v) => v.stock_actual <= v.stock_minimo)
       }
       return p.stock_actual > 0 && p.stock_actual <= p.stock_minimo
     })
@@ -93,7 +93,7 @@ export async function generarNotificaciones(tiendaId: string): Promise<void> {
 
     const { data: todosProductosRaw } = await supabase
       .from('productos')
-      .select('id, nombre, stock_actual, tiene_variantes')
+      .select('id, nombre, stock_actual')
       .eq('tienda_id', tiendaId)
       .neq('estado', 'archivado')
 
@@ -103,13 +103,12 @@ export async function generarNotificaciones(tiendaId: string): Promise<void> {
       .eq('tienda_id', tiendaId)
       .eq('activa', true)
 
-    const stockMovPorProducto = new Map<string, number>()
-    for (const v of variantesMov ?? []) {
-      stockMovPorProducto.set(v.producto_id, (stockMovPorProducto.get(v.producto_id) ?? 0) + v.stock_actual)
-    }
-
     const todosProductos = (todosProductosRaw ?? []).filter((p) => {
-      const stock = p.tiene_variantes ? (stockMovPorProducto.get(p.id) ?? 0) : p.stock_actual
+      const variantesDelProducto = (variantesMov ?? []).filter((v) => v.producto_id === p.id)
+      const tieneVariantesReal = variantesDelProducto.length > 0
+      const stock = tieneVariantesReal
+        ? variantesDelProducto.reduce((s, v) => s + v.stock_actual, 0)
+        : p.stock_actual
       return stock > 0
     })
 

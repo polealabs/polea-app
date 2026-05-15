@@ -413,14 +413,18 @@ export default function ProductosPage() {
       })
     }
 
-    const productosEnriquecidos: ProductoConStock[] = (productosData ?? []).map((p) => ({
-      ...p,
-      stockEfectivo: p.tiene_variantes ? (mapaStock.get(p.id) ?? 0) : p.stock_actual,
-      stockBajo: p.tiene_variantes
-        ? (mapaVarianteBaja.get(p.id) ?? false)
-        : p.stock_actual > 0 && p.stock_actual <= p.stock_minimo,
-      variantes: mapaVariantes.get(p.id) ?? [],
-    }))
+    const productosEnriquecidos: ProductoConStock[] = (productosData ?? []).map((p) => {
+      const variantesDelProducto = mapaVariantes.get(p.id) ?? []
+      const tieneVariantesReal = variantesDelProducto.length > 0
+      return {
+        ...p,
+        stockEfectivo: tieneVariantesReal ? (mapaStock.get(p.id) ?? 0) : p.stock_actual,
+        stockBajo: tieneVariantesReal
+          ? (mapaVarianteBaja.get(p.id) ?? false)
+          : p.stock_actual > 0 && p.stock_actual <= p.stock_minimo,
+        variantes: variantesDelProducto,
+      }
+    })
 
     setProductos(productosEnriquecidos)
 

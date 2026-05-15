@@ -38,6 +38,7 @@ export async function importarSalidasConsignacion(filas: Record<string, string>[
       fecha: string
       consignataria_id: string
       producto_id: string
+      variante_id: string | null
       cantidad: number
       precio_unitario: number
     }
@@ -83,7 +84,36 @@ export async function importarSalidasConsignacion(filas: Record<string, string>[
         continue
       }
 
-      validas.push({ fecha, consignataria_id, producto_id, cantidad, precio_unitario: precio })
+      const varianteNombre = fila['variante']?.trim() || null
+      let variante_id: string | null = null
+
+      if (varianteNombre && producto_id) {
+        const { data: variante } = await supabase
+          .from('producto_variantes')
+          .select('id')
+          .eq('tienda_id', tienda_id)
+          .eq('producto_id', producto_id)
+          .ilike('nombre', varianteNombre)
+          .eq('activa', true)
+          .maybeSingle()
+        if (!variante) {
+          errores.push({
+            fila: numFila,
+            mensaje: `Variante "${varianteNombre}" no encontrada para "${productoNombre}"`,
+          })
+          continue
+        }
+        variante_id = variante.id
+      }
+
+      validas.push({
+        fecha,
+        consignataria_id,
+        producto_id,
+        variante_id,
+        cantidad,
+        precio_unitario: precio,
+      })
     }
 
     if (errores.length > 0) return { exitosos: 0, errores, mensaje: MENSAJE_ABORTO(errores.length) }
@@ -117,6 +147,7 @@ export async function importarSalidasConsignacion(filas: Record<string, string>[
           tienda_id,
           consignataria_id,
           producto_id: item.producto_id,
+          variante_id: item.variante_id,
           cantidad: item.cantidad,
           precio_unitario: item.precio_unitario,
           unidades_disponibles: item.cantidad,
@@ -162,6 +193,7 @@ export async function importarDevolucionesConsignacion(filas: Record<string, str
       fecha: string
       consignataria_id: string
       producto_id: string
+      variante_id: string | null
       productoNombre: string
       cantidad: number
       notas: string | null
@@ -196,11 +228,34 @@ export async function importarDevolucionesConsignacion(filas: Record<string, str
         continue
       }
 
+      const varianteNombre = fila['variante']?.trim() || null
+      let variante_id: string | null = null
+
+      if (varianteNombre && producto_id) {
+        const { data: variante } = await supabase
+          .from('producto_variantes')
+          .select('id')
+          .eq('tienda_id', tienda_id)
+          .eq('producto_id', producto_id)
+          .ilike('nombre', varianteNombre)
+          .eq('activa', true)
+          .maybeSingle()
+        if (!variante) {
+          errores.push({
+            fila: numFila,
+            mensaje: `Variante "${varianteNombre}" no encontrada para "${productoNombre}"`,
+          })
+          continue
+        }
+        variante_id = variante.id
+      }
+
       validas.push({
         fila: numFila,
         fecha,
         consignataria_id,
         producto_id,
+        variante_id,
         productoNombre: productoNombre ?? '',
         cantidad,
         notas,
@@ -213,9 +268,9 @@ export async function importarDevolucionesConsignacion(filas: Record<string, str
     const erroresPaso2: { fila: number; mensaje: string }[] = []
 
     for (const op of validas) {
-      const { data: consig } = await supabase
+      let query = supabase
         .from('consignaciones')
-        .select('id, unidades_disponibles')
+        .select('id, unidades_disponibles, producto_id')
         .eq('tienda_id', tienda_id)
         .eq('consignataria_id', op.consignataria_id)
         .eq('producto_id', op.producto_id)
@@ -223,7 +278,12 @@ export async function importarDevolucionesConsignacion(filas: Record<string, str
         .gt('unidades_disponibles', 0)
         .order('fecha', { ascending: true })
         .limit(1)
-        .maybeSingle()
+
+      if (op.variante_id) {
+        query = query.eq('variante_id', op.variante_id)
+      }
+
+      const { data: consig } = await query.maybeSingle()
 
       if (!consig) {
         erroresPaso2.push({
@@ -302,6 +362,9 @@ export async function importarLiquidacionesConsignacion(filas: Record<string, st
       (consignatarias ?? []).map((c) => [c.nombre.toLowerCase().trim(), c]),
     )
 
+    const { data: productosDB } = await supabase.from('productos').select('id, nombre').eq('tienda_id', tienda_id)
+    const porNombreProd = new Map((productosDB ?? []).map((p) => [p.nombre.toLowerCase().trim(), p.id]))
+
     const errores: { fila: number; mensaje: string }[] = []
     type FilaLiq = {
       fila: number
@@ -309,8 +372,12 @@ export async function importarLiquidacionesConsignacion(filas: Record<string, st
       consignataria_id: string
       porcentaje_comision: number
       mes: string
-      total_vendido: number
+      producto_id: string
+      variante_id: string | null
+      cant_vendida: number
+      precio_venta: number
       notas: string | null
+      productoNombre: string
     }
     const validas: FilaLiq[] = []
 
@@ -320,7 +387,10 @@ export async function importarLiquidacionesConsignacion(filas: Record<string, st
       const fecha = normalizarFecha(fila['fecha'])
       const tiendaNombre = fila['tienda_aliada']?.trim()
       const mes = fila['mes']?.trim()
-      const total_vendido = Number(fila['total_vendido'])
+      const productoNombre = fila['producto']?.trim()
+      const varianteNombre = fila['variante']?.trim() || null
+      const cant_vendida = Number(fila['cant_vendida'])
+      const precio_venta = Number(fila['precio_venta'])
       const notas = fila['notas']?.trim() || null
 
       if (!fecha) {
@@ -336,9 +406,36 @@ export async function importarLiquidacionesConsignacion(filas: Record<string, st
         errores.push({ fila: numFila, mensaje: '"mes" es obligatorio (ej: 2025-03)' })
         continue
       }
-      if (isNaN(total_vendido) || total_vendido <= 0) {
-        errores.push({ fila: numFila, mensaje: '"total_vendido" debe ser mayor a 0' })
+
+      const producto_id = porNombreProd.get(productoNombre?.toLowerCase() ?? '')
+      if (!producto_id) {
+        errores.push({ fila: numFila, mensaje: `Producto "${productoNombre}" no encontrado` })
         continue
+      }
+      if (isNaN(cant_vendida) || cant_vendida <= 0) {
+        errores.push({ fila: numFila, mensaje: '"cant_vendida" debe ser mayor a 0' })
+        continue
+      }
+      if (isNaN(precio_venta) || precio_venta <= 0) {
+        errores.push({ fila: numFila, mensaje: '"precio_venta" debe ser mayor a 0' })
+        continue
+      }
+
+      let variante_id: string | null = null
+      if (varianteNombre) {
+        const { data: variante } = await supabase
+          .from('producto_variantes')
+          .select('id')
+          .eq('tienda_id', tienda_id)
+          .eq('producto_id', producto_id)
+          .ilike('nombre', varianteNombre)
+          .eq('activa', true)
+          .maybeSingle()
+        if (!variante) {
+          errores.push({ fila: numFila, mensaje: `Variante "${varianteNombre}" no encontrada` })
+          continue
+        }
+        variante_id = variante.id
       }
 
       validas.push({
@@ -347,40 +444,138 @@ export async function importarLiquidacionesConsignacion(filas: Record<string, st
         consignataria_id: consig.id,
         porcentaje_comision: consig.porcentaje_comision,
         mes,
-        total_vendido,
+        producto_id,
+        variante_id,
+        cant_vendida,
+        precio_venta,
         notas,
+        productoNombre: productoNombre ?? '',
       })
     }
 
     if (errores.length > 0) return { exitosos: 0, errores, mensaje: MENSAJE_ABORTO(errores.length) }
 
+    const grupos = new Map<string, FilaLiq[]>()
+    for (const v of validas) {
+      const key = `${v.fecha}__${v.consignataria_id}__${v.mes}`
+      if (!grupos.has(key)) grupos.set(key, [])
+      grupos.get(key)!.push(v)
+    }
+
     let exitosos = 0
     const erroresPaso2: { fila: number; mensaje: string }[] = []
 
-    for (const op of validas) {
-      const comision = Math.round(op.total_vendido * (op.porcentaje_comision / 100))
-      const neto = op.total_vendido - comision
+    for (const [, items] of grupos.entries()) {
+      const { fecha, consignataria_id, mes, porcentaje_comision } = items[0]
+      const consignaciones_ids: string[] = []
+      let total_vendido = 0
+      let grupoOk = true
+
+      for (const op of items) {
+        let query = supabase
+          .from('consignaciones')
+          .select('id, unidades_disponibles')
+          .eq('tienda_id', tienda_id)
+          .eq('consignataria_id', op.consignataria_id)
+          .eq('producto_id', op.producto_id)
+          .eq('estado', 'activa')
+          .gt('unidades_disponibles', 0)
+          .order('fecha', { ascending: true })
+          .limit(1)
+
+        if (op.variante_id) {
+          query = query.eq('variante_id', op.variante_id)
+        } else {
+          query = query.is('variante_id', null)
+        }
+
+        const { data: consig } = await query.maybeSingle()
+
+        if (!consig) {
+          erroresPaso2.push({
+            fila: op.fila,
+            mensaje: `No hay consignación activa de "${op.productoNombre}" en esa tienda`,
+          })
+          grupoOk = false
+          continue
+        }
+        if (op.cant_vendida > (consig.unidades_disponibles ?? 0)) {
+          erroresPaso2.push({
+            fila: op.fila,
+            mensaje: `Solo hay ${consig.unidades_disponibles} unidades disponibles`,
+          })
+          grupoOk = false
+          continue
+        }
+
+        const total_bruto = op.precio_venta * op.cant_vendida
+        const comisionMov = Math.round(total_bruto * (op.porcentaje_comision / 100))
+        const netoMov = total_bruto - comisionMov
+        const nuevasDisponibles = (consig.unidades_disponibles ?? 0) - op.cant_vendida
+        const nuevoEstado = nuevasDisponibles === 0 ? 'liquidada' : 'activa'
+
+        const { error: errMov } = await supabase.from('consignacion_movimientos').insert({
+          tienda_id,
+          consignacion_id: consig.id,
+          consignataria_id: op.consignataria_id,
+          tipo: 'liquidacion',
+          cantidad: op.cant_vendida,
+          precio_venta: op.precio_venta,
+          total_bruto,
+          comision: comisionMov,
+          neto: netoMov,
+          fecha: op.fecha,
+          notas: op.notas,
+        })
+
+        if (errMov) {
+          erroresPaso2.push({ fila: op.fila, mensaje: errMov.message })
+          grupoOk = false
+          continue
+        }
+
+        await supabase
+          .from('consignaciones')
+          .update({
+            unidades_disponibles: nuevasDisponibles,
+            estado: nuevoEstado,
+          })
+          .eq('id', consig.id)
+
+        total_vendido += total_bruto
+        consignaciones_ids.push(consig.id)
+      }
+
+      if (!grupoOk || consignaciones_ids.length === 0) continue
+
+      const comision = Math.round(total_vendido * (porcentaje_comision / 100))
+      const neto = total_vendido - comision
+      const notasGrupo = items.map((i) => i.notas).filter(Boolean).join(' | ') || null
 
       const { error } = await supabase.from('liquidaciones').insert({
         tienda_id,
-        consignataria_id: op.consignataria_id,
-        fecha: op.fecha,
-        mes: op.mes,
-        total_vendido: op.total_vendido,
-        porcentaje_comision: op.porcentaje_comision,
+        consignataria_id,
+        fecha,
+        mes,
+        total_vendido,
+        porcentaje_comision,
         comision,
         neto,
-        notas: op.notas,
-        consignaciones_ids: [],
+        notas: notasGrupo,
+        consignaciones_ids,
       })
+
       if (error) {
-        erroresPaso2.push({ fila: op.fila, mensaje: error.message })
+        erroresPaso2.push({ fila: items[0].fila, mensaje: error.message })
         continue
       }
       exitosos++
     }
 
-    if (exitosos > 0) revalidatePath('/consignaciones')
+    if (exitosos > 0) {
+      revalidatePath('/consignaciones')
+      revalidatePath('/productos')
+    }
     return { exitosos, errores: erroresPaso2 }
   } catch (e: unknown) {
     return { exitosos: 0, errores: [{ fila: 0, mensaje: e instanceof Error ? e.message : 'Error desconocido' }] }
