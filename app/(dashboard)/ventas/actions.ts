@@ -58,11 +58,41 @@ export async function crearVentaMulti(payload: {
     }
 
     const byId = new Map(prodsStock.map((p) => [p.id, p]))
-    const cantidadPorProducto = new Map<string, number>()
-    for (const l of payload.lineas) {
-      cantidadPorProducto.set(l.producto_id, (cantidadPorProducto.get(l.producto_id) ?? 0) + l.cantidad)
+
+    // Fetch variant stocks for lines that specify a variant
+    const varianteIds = [...new Set(payload.lineas.filter((l) => l.variante_id).map((l) => l.variante_id!))]
+    const variantesMap = new Map<string, { stock_actual: number; nombre: string; producto_id: string }>()
+    if (varianteIds.length > 0) {
+      const { data: vars, error: errVars } = await supabase
+        .from('producto_variantes')
+        .select('id, stock_actual, nombre, producto_id')
+        .eq('tienda_id', tienda_id)
+        .in('id', varianteIds)
+      if (errVars) return { error: errVars.message }
+      ;(vars ?? []).forEach((v) => variantesMap.set(v.id, v))
     }
-    for (const [producto_id, cant] of cantidadPorProducto) {
+
+    // Validate stock per (producto_id, variante_id) pair
+    const cantPorVariante = new Map<string, number>()
+    const cantPorProducto = new Map<string, number>()
+    for (const l of payload.lineas) {
+      if (l.variante_id) {
+        cantPorVariante.set(l.variante_id, (cantPorVariante.get(l.variante_id) ?? 0) + l.cantidad)
+      } else {
+        cantPorProducto.set(l.producto_id, (cantPorProducto.get(l.producto_id) ?? 0) + l.cantidad)
+      }
+    }
+    for (const [variante_id, cant] of cantPorVariante) {
+      const v = variantesMap.get(variante_id)
+      if (!v) return { error: 'Variante no encontrada o no pertenece a tu tienda' }
+      if (v.stock_actual < cant) {
+        const prod = byId.get(v.producto_id)
+        return {
+          error: `Stock insuficiente para «${prod?.nombre ?? ''}» (${v.nombre}): pides ${cant} uds. y hay ${v.stock_actual} disponibles.`,
+        }
+      }
+    }
+    for (const [producto_id, cant] of cantPorProducto) {
       const p = byId.get(producto_id)
       if (!p) continue
       if (p.stock_actual < cant) {

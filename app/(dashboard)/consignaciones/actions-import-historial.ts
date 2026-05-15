@@ -158,6 +158,21 @@ export async function importarSalidasConsignacion(filas: Record<string, string>[
         if (errConsig) {
           erroresPaso2.push({ fila: 0, mensaje: `Error en consignación: ${errConsig.message}` })
         } else {
+          if (item.variante_id) {
+            const { data: varStock } = await supabase
+              .from('producto_variantes')
+              .select('stock_actual')
+              .eq('id', item.variante_id)
+              .single()
+            if (varStock) {
+              await supabase
+                .from('producto_variantes')
+                .update({ stock_actual: Math.max(0, varStock.stock_actual - item.cantidad) })
+                .eq('id', item.variante_id)
+            }
+            // El trigger trg_consignacion_resta_stock resta del padre (incorrecto para variantes).
+            await supabase.from('productos').update({ stock_actual: 0 }).eq('id', item.producto_id)
+          }
           exitosos++
         }
       }
@@ -303,7 +318,7 @@ export async function importarDevolucionesConsignacion(filas: Record<string, str
       const nuevasDisponibles = (consig.unidades_disponibles ?? 0) - op.cantidad
       const nuevoEstado = nuevasDisponibles === 0 ? 'devuelta' : 'activa'
 
-      await supabase.from('consignacion_movimientos').insert({
+      const { error: errMov } = await supabase.from('consignacion_movimientos').insert({
         tienda_id,
         consignacion_id: consig.id,
         consignataria_id: op.consignataria_id,
@@ -315,25 +330,49 @@ export async function importarDevolucionesConsignacion(filas: Record<string, str
         comision: null,
         neto: null,
       })
+      if (errMov) {
+        erroresPaso2.push({ fila: op.fila, mensaje: errMov.message })
+        continue
+      }
 
-      await supabase
+      const { error: errConsig } = await supabase
         .from('consignaciones')
         .update({
           unidades_disponibles: nuevasDisponibles,
           estado: nuevoEstado,
         })
         .eq('id', consig.id)
+      if (errConsig) {
+        erroresPaso2.push({ fila: op.fila, mensaje: errConsig.message })
+        continue
+      }
 
-      const { data: prod } = await supabase
-        .from('productos')
-        .select('stock_actual')
-        .eq('id', op.producto_id)
-        .single()
-      if (prod) {
-        await supabase
+      if (op.variante_id) {
+        const { data: varStock } = await supabase
+          .from('producto_variantes')
+          .select('stock_actual')
+          .eq('id', op.variante_id)
+          .single()
+        if (varStock) {
+          await supabase
+            .from('producto_variantes')
+            .update({ stock_actual: varStock.stock_actual + op.cantidad })
+            .eq('id', op.variante_id)
+        }
+        // El trigger trg_consignacion_devolucion_stock suma al padre (incorrecto para variantes).
+        await supabase.from('productos').update({ stock_actual: 0 }).eq('id', op.producto_id)
+      } else {
+        const { data: prod } = await supabase
           .from('productos')
-          .update({ stock_actual: prod.stock_actual + op.cantidad })
+          .select('stock_actual')
           .eq('id', op.producto_id)
+          .single()
+        if (prod) {
+          await supabase
+            .from('productos')
+            .update({ stock_actual: prod.stock_actual + op.cantidad })
+            .eq('id', op.producto_id)
+        }
       }
 
       exitosos++

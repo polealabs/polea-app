@@ -139,6 +139,10 @@ export async function registrarEntradaCompleta(payload: {
           })
           .eq('id', payload.variante_id)
       }
+
+      // El trigger trg_entrada_suma_stock suma incorrectamente al producto padre.
+      // Para productos con variantes el stock real vive en producto_variantes, el padre siempre va a 0.
+      await supabase.from('productos').update({ stock_actual: 0 }).eq('id', producto_id)
     }
 
     const montoTotal = payload.cantidad * payload.costo_unitario

@@ -135,6 +135,7 @@ export async function registrarSalidaMultiple(payload: {
         tienda_id,
         consignataria_id: payload.consignataria_id,
         producto_id: item.producto_id,
+        variante_id: item.variante_id || null,
         cantidad: item.cantidad,
         precio_unitario: item.precio_unitario,
         unidades_disponibles: item.cantidad,
@@ -143,6 +144,23 @@ export async function registrarSalidaMultiple(payload: {
         estado: 'activa',
       })
       if (errorConsig) return { error: errorConsig.message }
+
+      if (item.variante_id) {
+        // El trigger trg_consignacion_resta_stock resta del producto padre (incorrecto para variantes).
+        // Reducir la variante manualmente y dejar el padre en 0.
+        const { data: varStock } = await supabase
+          .from('producto_variantes')
+          .select('stock_actual')
+          .eq('id', item.variante_id)
+          .single()
+        if (varStock) {
+          await supabase
+            .from('producto_variantes')
+            .update({ stock_actual: Math.max(0, varStock.stock_actual - item.cantidad) })
+            .eq('id', item.variante_id)
+        }
+        await supabase.from('productos').update({ stock_actual: 0 }).eq('id', item.producto_id)
+      }
     }
 
     revalidatePath('/consignaciones')
@@ -247,27 +265,44 @@ export async function registrarMovimiento(payload: {
       .eq('tienda_id', tienda_id)
 
     if (payload.tipo === 'devolucion') {
-      const { error: rpcError } = await supabase.rpc('increment_stock', {
-        p_producto_id: consig.producto_id,
-        p_cantidad: payload.cantidad,
-      })
-
-      if (rpcError) {
-        const { data } = await supabase
-          .from('productos')
+      if (consig.variante_id) {
+        // Producto con variante: restaurar stock en la variante y dejar el padre en 0.
+        const { data: varStock } = await supabase
+          .from('producto_variantes')
           .select('stock_actual')
-          .eq('id', consig.producto_id)
-          .eq('tienda_id', tienda_id)
+          .eq('id', consig.variante_id)
           .single()
-
-        if (data) {
+        if (varStock) {
           await supabase
+            .from('producto_variantes')
+            .update({ stock_actual: varStock.stock_actual + payload.cantidad })
+            .eq('id', consig.variante_id)
+        }
+        // El trigger trg_consignacion_devolucion_stock suma al producto padre (incorrecto).
+        await supabase.from('productos').update({ stock_actual: 0 }).eq('id', consig.producto_id)
+      } else {
+        const { error: rpcError } = await supabase.rpc('increment_stock', {
+          p_producto_id: consig.producto_id,
+          p_cantidad: payload.cantidad,
+        })
+
+        if (rpcError) {
+          const { data } = await supabase
             .from('productos')
-            .update({
-              stock_actual: data.stock_actual + payload.cantidad,
-            })
+            .select('stock_actual')
             .eq('id', consig.producto_id)
             .eq('tienda_id', tienda_id)
+            .single()
+
+          if (data) {
+            await supabase
+              .from('productos')
+              .update({
+                stock_actual: data.stock_actual + payload.cantidad,
+              })
+              .eq('id', consig.producto_id)
+              .eq('tienda_id', tienda_id)
+          }
         }
       }
     }

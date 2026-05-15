@@ -36,7 +36,8 @@ export async function registrarDevolucion(payload: {
         ? payload.precio_cambio - payload.precio_original
         : 0
 
-    const mes_contable = new Date().toISOString().slice(0, 7)
+    const offset = new Date().getTimezoneOffset() * 60000
+    const mes_contable = new Date(Date.now() - offset).toISOString().slice(0, 7)
 
     const { error } = await supabase.from('devoluciones_venta').insert({
       tienda_id,

@@ -53,7 +53,6 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/ventas') ||
     pathname.startsWith('/clientes') ||
     pathname.startsWith('/consignaciones') ||
-    pathname.startsWith('/consignaciones/salida') ||
     pathname.startsWith('/documentos') ||
     pathname.startsWith('/gastos') ||
     pathname.startsWith('/proveedores') ||
@@ -64,12 +63,31 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/preferencias') ||
     pathname.startsWith('/configuracion') ||
     pathname.startsWith('/reportes') ||
-    pathname.startsWith('/polealabs')
+    pathname.startsWith('/eventos')
 
-  const supabaseCookie = request.cookies.getAll().find(
-    (c) => c.name.startsWith('sb-') && c.name.endsWith('-auth-token'),
+  if (!isDashboardRoute && !isAuthRoute) return NextResponse.next()
+
+  let response = NextResponse.next({ request })
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          response = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
+        },
+      },
+    },
   )
-  const hasSession = !!supabaseCookie
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  const hasSession = !!session
 
   if (!hasSession && isDashboardRoute) {
     return NextResponse.redirect(new URL('/login', request.url))
@@ -79,7 +97,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  return NextResponse.next()
+  return response
 }
 
 export const config = {

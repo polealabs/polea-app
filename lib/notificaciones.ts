@@ -50,7 +50,7 @@ export async function generarNotificaciones(tiendaId: string): Promise<void> {
       const variantesDelProducto = (variantes ?? []).filter((v) => v.producto_id === p.id)
       const tieneVariantesReal = variantesDelProducto.length > 0
       if (tieneVariantesReal) {
-        return variantesDelProducto.some((v) => v.stock_actual <= v.stock_minimo)
+        return variantesDelProducto.some((v) => v.stock_actual > 0 && v.stock_actual <= v.stock_minimo)
       }
       return p.stock_actual > 0 && p.stock_actual <= p.stock_minimo
     })
@@ -84,8 +84,8 @@ export async function generarNotificaciones(tiendaId: string): Promise<void> {
 
   if (prefs.alerta_sin_movimiento) {
     const diasSinMovimiento =
-      typeof prefs.dias_sin_movimiento === 'number' && prefs.dias_sin_movimiento > 0
-        ? prefs.dias_sin_movimiento
+      typeof prefs.sin_movimiento_dias === 'number' && prefs.sin_movimiento_dias > 0
+        ? prefs.sin_movimiento_dias
         : 30
     const haceNDias = new Date(hoy.getTime() - diasSinMovimiento * 24 * 60 * 60 * 1000)
       .toISOString()
@@ -150,10 +150,18 @@ export async function generarNotificaciones(tiendaId: string): Promise<void> {
   }
 
   if (prefs.alerta_cliente_recurrente) {
-    const haceRecurrente = new Date(hoy.getTime() - prefs.dias_cliente_recurrente * 24 * 60 * 60 * 1000)
+    const diasRecurrente =
+      typeof prefs.dias_cliente_recurrente === 'number' && prefs.dias_cliente_recurrente > 0
+        ? prefs.dias_cliente_recurrente
+        : 30
+    const diasSinCompra =
+      typeof prefs.dias_sin_compra_alerta === 'number' && prefs.dias_sin_compra_alerta > 0
+        ? prefs.dias_sin_compra_alerta
+        : 15
+    const haceRecurrente = new Date(hoy.getTime() - diasRecurrente * 24 * 60 * 60 * 1000)
       .toISOString()
       .split('T')[0]
-    const haceAlerta = new Date(hoy.getTime() - prefs.dias_sin_compra_alerta * 24 * 60 * 60 * 1000)
+    const haceAlerta = new Date(hoy.getTime() - diasSinCompra * 24 * 60 * 60 * 1000)
       .toISOString()
       .split('T')[0]
 
@@ -213,7 +221,7 @@ export async function generarNotificaciones(tiendaId: string): Promise<void> {
               .map((c) => c.nombre)
               .join(', ')}${
               clientesSinCompra.length > 3 ? ` y ${clientesSinCompra.length - 3} más` : ''
-            } llevan más de ${prefs.dias_sin_compra_alerta} días sin visitar. ¡Es un buen momento para contactarlos!`,
+            } llevan más de ${diasSinCompra} días sin visitar. ¡Es un buen momento para contactarlos!`,
             leida: false,
             metadata: { clientes: clientesSinCompra },
           })
