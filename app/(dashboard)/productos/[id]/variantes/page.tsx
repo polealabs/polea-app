@@ -219,9 +219,9 @@ export default function VariantesProductoPage() {
 
         <div className="flex flex-wrap gap-2 mb-3">
           {atributos.length > 0 ? (
-            atributos.map((a) => (
+            atributos.map((a, i) => (
               <span
-                key={a.nombre}
+                key={`${a.nombre}-${i}`}
                 className="text-xs px-3 py-1.5 rounded-full border"
                 style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
               >

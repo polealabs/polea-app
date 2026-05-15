@@ -12,6 +12,7 @@ const navItems = [
   { href: '/ventas', icon: '↗', label: 'Ventas' },
   { href: '/clientes', icon: '◎', label: 'Clientes' },
   { href: '/consignaciones', icon: '🏪', label: 'Tiendas Aliadas' },
+  { href: '/eventos', icon: '📅', label: 'Eventos' },
   { href: '/documentos', icon: '📄', label: 'Documentos' },
   { href: '/gastos', icon: '−', label: 'Gastos' },
   { href: '/proveedores', icon: '◈', label: 'Proveedores' },

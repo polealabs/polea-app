@@ -36,11 +36,25 @@ export async function generarNotificaciones(tiendaId: string): Promise<void> {
   if (prefs.alerta_stock_bajo) {
     const { data: productos } = await supabase
       .from('productos')
-      .select('id, nombre, stock_actual, stock_minimo')
+      .select('id, nombre, stock_actual, stock_minimo, tiene_variantes')
       .eq('tienda_id', tiendaId)
       .neq('estado', 'archivado')
 
-    const productosStockBajo = (productos ?? []).filter((p) => p.stock_actual <= p.stock_minimo)
+    const { data: variantes } = await supabase
+      .from('producto_variantes')
+      .select('producto_id, stock_actual')
+      .eq('tienda_id', tiendaId)
+      .eq('activa', true)
+
+    const stockPorProducto = new Map<string, number>()
+    for (const v of variantes ?? []) {
+      stockPorProducto.set(v.producto_id, (stockPorProducto.get(v.producto_id) ?? 0) + v.stock_actual)
+    }
+
+    const productosStockBajo = (productos ?? []).filter((p) => {
+      const stock = p.tiene_variantes ? (stockPorProducto.get(p.id) ?? 0) : p.stock_actual
+      return stock <= p.stock_minimo
+    })
     if (productosStockBajo.length > 0) {
       const hace24h = new Date(hoy.getTime() - 24 * 60 * 60 * 1000).toISOString()
       const { data: existe } = await supabase
@@ -78,12 +92,27 @@ export async function generarNotificaciones(tiendaId: string): Promise<void> {
       .toISOString()
       .split('T')[0]
 
-    const { data: todosProductos } = await supabase
+    const { data: todosProductosRaw } = await supabase
       .from('productos')
-      .select('id, nombre, stock_actual')
+      .select('id, nombre, stock_actual, tiene_variantes')
       .eq('tienda_id', tiendaId)
       .neq('estado', 'archivado')
-      .gt('stock_actual', 0)
+
+    const { data: variantesMov } = await supabase
+      .from('producto_variantes')
+      .select('producto_id, stock_actual')
+      .eq('tienda_id', tiendaId)
+      .eq('activa', true)
+
+    const stockMovPorProducto = new Map<string, number>()
+    for (const v of variantesMov ?? []) {
+      stockMovPorProducto.set(v.producto_id, (stockMovPorProducto.get(v.producto_id) ?? 0) + v.stock_actual)
+    }
+
+    const todosProductos = (todosProductosRaw ?? []).filter((p) => {
+      const stock = p.tiene_variantes ? (stockMovPorProducto.get(p.id) ?? 0) : p.stock_actual
+      return stock > 0
+    })
 
     const { data: ventasRecientes } = await supabase
       .from('venta_items')
@@ -92,7 +121,7 @@ export async function generarNotificaciones(tiendaId: string): Promise<void> {
       .gte('created_at', haceNDias)
 
     const idsConMovimiento = new Set((ventasRecientes ?? []).map((v) => v.producto_id))
-    const sinMovimiento = (todosProductos ?? []).filter((p) => !idsConMovimiento.has(p.id))
+    const sinMovimiento = todosProductos.filter((p) => !idsConMovimiento.has(p.id))
 
     if (sinMovimiento.length > 0) {
       const hace24h = new Date(hoy.getTime() - 24 * 60 * 60 * 1000).toISOString()

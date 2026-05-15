@@ -118,6 +118,188 @@ function tipoBadgeClass(tipo: Producto['tipo']) {
   }
 }
 
+function AgregarVarianteInline({
+  productoId,
+  tiendaId,
+  onGuardado,
+}: {
+  productoId: string
+  tiendaId: string
+  onGuardado: () => void
+}) {
+  const supabase = createClient()
+  const [nombre, setNombre] = useState('')
+  const [precio, setPrecio] = useState<number | ''>('')
+  const [stock, setStock] = useState<number | ''>(0)
+  const [guardando, setGuardando] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [variantes, setVariantes] = useState<
+    { id: string; nombre: string; precio_venta: number; stock_actual: number; activa: boolean }[]
+  >([])
+
+  useEffect(() => {
+    void (async () => {
+      const sb = createClient()
+      const { data } = await sb
+        .from('producto_variantes')
+        .select('id, nombre, precio_venta, stock_actual, activa')
+        .eq('producto_id', productoId)
+        .eq('tienda_id', tiendaId)
+        .order('created_at')
+      setVariantes(data ?? [])
+    })()
+  }, [productoId, tiendaId])
+
+  async function handleAgregar() {
+    if (!nombre.trim() || precio === '' || Number(precio) <= 0) {
+      setError('Nombre y precio son obligatorios')
+      return
+    }
+    setGuardando(true)
+    setError(null)
+    const { error: err } = await supabase.from('producto_variantes').insert({
+      tienda_id: tiendaId,
+      producto_id: productoId,
+      nombre: nombre.trim(),
+      atributos: {} as Record<string, string>,
+      precio_venta: Number(precio),
+      stock_actual: Number(stock) || 0,
+      stock_minimo: 0,
+      activa: true,
+    })
+    if (err) {
+      setError(err.message)
+      setGuardando(false)
+      return
+    }
+    await supabase
+      .from('productos')
+      .update({ tiene_variantes: true, stock_actual: 0 })
+      .eq('id', productoId)
+      .eq('tienda_id', tiendaId)
+    const { data } = await supabase
+      .from('producto_variantes')
+      .select('id, nombre, precio_venta, stock_actual, activa')
+      .eq('producto_id', productoId)
+      .eq('tienda_id', tiendaId)
+      .order('created_at')
+    setVariantes(data ?? [])
+    setNombre('')
+    setPrecio('')
+    setStock(0)
+    setGuardando(false)
+    onGuardado()
+  }
+
+  async function handleToggle(varianteId: string, activa: boolean) {
+    await supabase
+      .from('producto_variantes')
+      .update({ activa: !activa })
+      .eq('id', varianteId)
+      .eq('tienda_id', tiendaId)
+    setVariantes((prev) => prev.map((v) => (v.id === varianteId ? { ...v, activa: !activa } : v)))
+    onGuardado()
+  }
+
+  return (
+    <div className="space-y-3">
+      {variantes.length > 0 && (
+        <div className="rounded-xl border divide-y text-sm" style={{ borderColor: 'var(--color-border)' }}>
+          {variantes.map((v) => (
+            <div key={v.id} className="flex items-center justify-between px-3 py-2">
+              <div>
+                <span
+                  className={v.activa ? 'font-medium' : 'line-through text-[#8A7D72]'}
+                  style={{ color: 'var(--color-text)' }}
+                >
+                  {v.nombre}
+                </span>
+                <span className="text-xs ml-2" style={{ color: 'var(--color-text-soft)' }}>
+                  {new Intl.NumberFormat('es-CO', {
+                    style: 'currency',
+                    currency: 'COP',
+                    minimumFractionDigits: 0,
+                  }).format(v.precio_venta)}{' '}
+                  · Stock: {v.stock_actual}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleToggle(v.id, v.activa)}
+                className="text-xs px-2 py-0.5 rounded-full transition"
+                style={{
+                  background: v.activa ? 'var(--color-accent-pale)' : 'var(--color-background)',
+                  color: v.activa ? 'var(--color-accent)' : 'var(--color-text-soft)',
+                }}
+              >
+                {v.activa ? 'Activa' : 'Inactiva'}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-2 flex-wrap items-end">
+        <div className="flex-1 min-w-32">
+          <p className="text-xs text-[#8A7D72] mb-1">Nombre variante</p>
+          <input
+            type="text"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            placeholder="Ej: Talla M, Rojo"
+            className="w-full px-3 py-1.5 rounded-lg border text-sm"
+            style={{
+              borderColor: 'var(--color-border)',
+              background: 'var(--color-surface)',
+              color: 'var(--color-text)',
+            }}
+          />
+        </div>
+        <div className="w-28">
+          <p className="text-xs text-[#8A7D72] mb-1">Precio</p>
+          <input
+            type="number"
+            value={precio}
+            onChange={(e) => setPrecio(e.target.value === '' ? '' : Number(e.target.value))}
+            placeholder="0"
+            className="w-full px-3 py-1.5 rounded-lg border text-sm"
+            style={{
+              borderColor: 'var(--color-border)',
+              background: 'var(--color-surface)',
+              color: 'var(--color-text)',
+            }}
+          />
+        </div>
+        <div className="w-20">
+          <p className="text-xs text-[#8A7D72] mb-1">Stock</p>
+          <input
+            type="number"
+            value={stock}
+            onChange={(e) => setStock(e.target.value === '' ? '' : Number(e.target.value))}
+            placeholder="0"
+            className="w-full px-3 py-1.5 rounded-lg border text-sm"
+            style={{
+              borderColor: 'var(--color-border)',
+              background: 'var(--color-surface)',
+              color: 'var(--color-text)',
+            }}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => void handleAgregar()}
+          disabled={guardando}
+          className="text-xs font-semibold px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+          style={{ background: 'var(--color-accent)', color: 'white' }}
+        >
+          {guardando ? 'Guardando...' : '+ Variante'}
+        </button>
+      </div>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+    </div>
+  )
+}
+
 export default function ProductosPage() {
   const router = useRouter()
   const { tienda, loading: tiendaLoading, canEdit, canDelete } = useTienda()
@@ -1267,6 +1449,48 @@ export default function ProductosPage() {
                             {error}
                           </p>
                         )}
+
+                        {canEdit &&
+                          tienda &&
+                          (() => {
+                            const variantesActuales = variantesPorProducto.get(p.id) ?? 0
+                            return (
+                              <div
+                                className="mt-4 pt-4 border-t"
+                                style={{ borderColor: 'var(--color-border)' }}
+                              >
+                                <div className="flex items-center justify-between mb-3">
+                                  <p
+                                    className="text-xs font-semibold uppercase tracking-wide"
+                                    style={{ color: 'var(--color-text-soft)' }}
+                                  >
+                                    Variantes{' '}
+                                    {variantesActuales > 0 ? `(${variantesActuales} activas)` : ''}
+                                  </p>
+                                </div>
+                                <AgregarVarianteInline
+                                  productoId={p.id}
+                                  tiendaId={tienda.id}
+                                  onGuardado={() => {
+                                    void (async () => {
+                                      const supabase = createClient()
+                                      const { data } = await supabase
+                                        .from('producto_variantes')
+                                        .select('producto_id')
+                                        .eq('tienda_id', tienda.id)
+                                        .eq('activa', true)
+                                      const mapa = new Map<string, number>()
+                                      ;(data ?? []).forEach((v) =>
+                                        mapa.set(v.producto_id, (mapa.get(v.producto_id) ?? 0) + 1),
+                                      )
+                                      setVariantesPorProducto(mapa)
+                                      await fetchProductos(tienda.id)
+                                    })()
+                                  }}
+                                />
+                              </div>
+                            )
+                          })()}
 
                         <div className="flex gap-3 justify-end mt-4">
                           <button
