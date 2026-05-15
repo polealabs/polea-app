@@ -103,6 +103,7 @@ type EntradaRow = {
   cantidad: number
   costo_unitario: number
   fecha?: string
+  created_at?: string
   productos?: { nombre?: string; tipo?: string } | { nombre?: string; tipo?: string }[] | null
 }
 
@@ -189,7 +190,7 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
   } = await supabase.auth.getUser()
   if (!user) return null
 
-  const { data: tienda } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).single()
+  const { data: tienda } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
   if (!tienda) return null
 
   const start = `${mes}-01`
@@ -254,10 +255,11 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
         .lt('ventas_cabecera.fecha', end),
       supabase
         .from('entradas')
-        .select('producto_id, costo_unitario, fecha, productos!inner(nombre, tipo)')
+        .select('producto_id, costo_unitario, fecha, created_at, productos!inner(nombre, tipo)')
         .eq('tienda_id', tienda.id)
         .eq('productos.tipo', 'Producto terminado')
-        .order('fecha', { ascending: false }),
+        .order('fecha', { ascending: false })
+        .order('created_at', { ascending: false }),
       supabase
         .from('devoluciones_venta')
         .select('precio_original, cantidad, tipo, resolucion, mes_contable')

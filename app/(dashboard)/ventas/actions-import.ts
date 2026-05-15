@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { calcularNetoConDescuento } from '@/lib/utils'
+import { calcularComisionMedioPago } from '@/lib/utils'
 import { normalizarFecha } from '@/lib/csv'
 
 const CANALES_VALIDOS = ['WhatsApp', 'Instagram', 'Web', 'Presencial', 'Tienda multimarca']
@@ -57,7 +57,7 @@ export async function importarVentas(filas: Record<string, string>[]) {
 
   const { data: mediosPago } = await supabase
     .from('medios_pago')
-    .select('id, nombre')
+    .select('id, nombre, comision_porcentaje, tarifa_fija, cobra_iva')
     .eq('tienda_id', tienda.id)
 
   const nombresMedios = new Set((mediosPago ?? []).map((m) => m.nombre.toLowerCase().trim()))
@@ -194,12 +194,9 @@ export async function importarVentas(filas: Record<string, string>[]) {
         }
       }
 
-      const { costoTransaccion, neto } = calcularNetoConDescuento(
-        precio_venta,
-        cantidad,
-        descuento,
-        plataforma,
-      )
+      const bruto = precio_venta * cantidad
+      const descuentoTotal = Math.round(bruto * (descuento / 100))
+      const base_neta = bruto - descuentoTotal
       lineasCalculadas.push({
         fila: numFila,
         producto_id,
@@ -207,16 +204,33 @@ export async function importarVentas(filas: Record<string, string>[]) {
         cantidad,
         precio_venta,
         descuento,
-        costo_transaccion: costoTransaccion,
-        neto,
+        costo_transaccion: 0,
+        neto: base_neta,
       })
     }
 
     if (hayErrorLinea) continue
 
+    // Calcular comisión a nivel de transacción con el medio de pago real configurado
+    const subtotal = lineasCalculadas.reduce((s, l) => s + l.neto, 0)
+    let comisionTotal = 0
+    if (medioEncontrado && 'comision_porcentaje' in medioEncontrado) {
+      const calc = calcularComisionMedioPago(subtotal, 0, medioEncontrado as {
+        comision_porcentaje: number
+        tarifa_fija: number
+        cobra_iva: boolean
+      })
+      comisionTotal = calc.comision_total
+    }
+    const ratio = subtotal > 0 ? comisionTotal / subtotal : 0
+    for (const l of lineasCalculadas) {
+      l.costo_transaccion = Math.round(l.neto * ratio)
+      l.neto = l.neto - l.costo_transaccion
+    }
+
     const total_bruto = lineasCalculadas.reduce((s, l) => s + l.precio_venta * l.cantidad, 0)
-    const total_costo_transaccion = lineasCalculadas.reduce((s, l) => s + l.costo_transaccion, 0)
-    const total_neto = lineasCalculadas.reduce((s, l) => s + l.neto, 0)
+    const total_costo_transaccion = comisionTotal
+    const total_neto = subtotal - comisionTotal
 
     gruposValidos.push({
       filasGrupo: lineas.map((l) => l.fila),

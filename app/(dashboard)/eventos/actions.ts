@@ -170,22 +170,6 @@ export async function cerrarEvento(eventoId: string) {
       if (errItems) return { error: errItems.message }
     }
 
-    for (const v of ventas ?? []) {
-      const { data: prod } = await supabase
-        .from('productos')
-        .select('stock_actual')
-        .eq('id', v.producto_id)
-        .eq('tienda_id', tienda_id)
-        .maybeSingle()
-      if (prod) {
-        await supabase
-          .from('productos')
-          .update({ stock_actual: Math.max(0, (prod.stock_actual ?? 0) - v.cantidad) })
-          .eq('id', v.producto_id)
-          .eq('tienda_id', tienda_id)
-      }
-    }
-
     for (const g of gastos ?? []) {
       const { error: errG } = await supabase.from('gastos').insert({
         tienda_id,
@@ -202,7 +186,59 @@ export async function cerrarEvento(eventoId: string) {
     for (const v of ventas ?? []) {
       vendidoPorProducto.set(v.producto_id, (vendidoPorProducto.get(v.producto_id) ?? 0) + v.cantidad)
     }
+
+    const { data: inventarioEvento } = await supabase
+      .from('evento_inventario')
+      .select('producto_id, variante_id, cantidad_llevada')
+      .eq('evento_id', eventoId)
+      .eq('tienda_id', tienda_id)
+
+    const inventarioPorProducto = new Map<string, { variante_id: string | null; cantidad_llevada: number }[]>()
+    for (const inv of inventarioEvento ?? []) {
+      if (!inventarioPorProducto.has(inv.producto_id)) inventarioPorProducto.set(inv.producto_id, [])
+      inventarioPorProducto.get(inv.producto_id)!.push({
+        variante_id: inv.variante_id as string | null,
+        cantidad_llevada: inv.cantidad_llevada as number,
+      })
+    }
+
     for (const [producto_id, cantidad_vendida] of vendidoPorProducto.entries()) {
+      const invRows = inventarioPorProducto.get(producto_id) ?? []
+      const hasVariante = invRows.some((inv) => inv.variante_id)
+
+      if (!hasVariante) {
+        // Producto sin variantes: reducir productos.stock_actual
+        const { data: prod } = await supabase
+          .from('productos')
+          .select('stock_actual')
+          .eq('id', producto_id)
+          .eq('tienda_id', tienda_id)
+          .maybeSingle()
+        if (prod) {
+          await supabase
+            .from('productos')
+            .update({ stock_actual: Math.max(0, (prod.stock_actual ?? 0) - cantidad_vendida) })
+            .eq('id', producto_id)
+            .eq('tienda_id', tienda_id)
+        }
+      } else if (invRows.length === 1 && invRows[0].variante_id) {
+        // Una sola variante en el inventario del evento: reducir esa variante
+        const { data: varStock } = await supabase
+          .from('producto_variantes')
+          .select('stock_actual')
+          .eq('id', invRows[0].variante_id)
+          .single()
+        if (varStock) {
+          await supabase
+            .from('producto_variantes')
+            .update({ stock_actual: Math.max(0, varStock.stock_actual - cantidad_vendida) })
+            .eq('id', invRows[0].variante_id)
+        }
+        // evento_ventas no registra variante_id, así que el padre siempre va a 0
+        await supabase.from('productos').update({ stock_actual: 0 }).eq('id', producto_id)
+      }
+      // Múltiples variantes: no se puede saber cuál se vendió sin variante_id en evento_ventas
+
       await supabase
         .from('evento_inventario')
         .update({ cantidad_vendida })
