@@ -26,6 +26,11 @@ import { Tooltip } from '@/components/ui/Tooltip'
 import ImportCSV from '@/components/ui/ImportCSV'
 import { descargarCSV } from '@/lib/csv'
 import { importarConsignatarias } from './actions-import'
+import {
+  importarDevolucionesConsignacion,
+  importarLiquidacionesConsignacion,
+  importarSalidasConsignacion,
+} from './actions-import-historial'
 import { toLocalISODateString, toLocalISOYearMonthString } from '@/lib/utils'
 
 type ConsignacionRow = Consignacion & {
@@ -495,6 +500,27 @@ export default function ConsignacionesPage() {
       ['Boutique Luna', 'Carlos Ruiz', '3109876543', 'Bogotá', '', '20'],
     ])
   }
+  function descargarPlantillaSalidas() {
+    descargarCSV('plantilla_salidas_consignacion.csv', [
+      ['fecha', 'tienda_aliada', 'producto', 'cantidad', 'precio_unitario'],
+      ['15/01/2026', 'Boutique Luna', 'Collar Citrino', '5', '150000'],
+    ])
+  }
+
+  function descargarPlantillaDevoluciones() {
+    descargarCSV('plantilla_devoluciones_consignacion.csv', [
+      ['fecha', 'tienda_aliada', 'producto', 'cantidad', 'notas'],
+      ['20/01/2026', 'Boutique Luna', 'Collar Citrino', '2', 'Defectuoso'],
+    ])
+  }
+
+  function descargarPlantillaLiquidaciones() {
+    descargarCSV('plantilla_liquidaciones_consignacion.csv', [
+      ['fecha', 'tienda_aliada', 'mes', 'total_vendido', 'notas'],
+      ['31/01/2026', 'Boutique Luna', '2026-01', '450000', 'Liquidación enero'],
+    ])
+  }
+
 
   if (tiendaLoading || loading) return <div className="p-4 md:p-6">Cargando consignaciones...</div>
 
@@ -534,7 +560,7 @@ export default function ConsignacionesPage() {
             onClick={() => abrirSalida()}
             className="btn-primary px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2"
           >
-            <span>↗</span> Nueva salida
+            <span>🚚</span> Nueva salida
           </button>
           <button
             onClick={() => {
@@ -615,6 +641,16 @@ export default function ConsignacionesPage() {
             onDescargarPlantilla={descargarPlantillaConsignatarias}
             onProcesar={async (filas) => {
               const res = await importarConsignatarias(filas)
+              if (res.exitosos > 0) await loadData()
+              return res
+            }}
+          />
+
+          <ImportCSV
+            descripcion="Columnas: fecha*, tienda_aliada*, producto*, cantidad*, precio_unitario*. Filas con la misma fecha y tienda se agrupan en una remisión."
+            onDescargarPlantilla={descargarPlantillaSalidas}
+            onProcesar={async (filas) => {
+              const res = await importarSalidasConsignacion(filas)
               if (res.exitosos > 0) await loadData()
               return res
             }}
@@ -879,6 +915,15 @@ export default function ConsignacionesPage() {
               <span>🧾</span> Crear cuenta de cobro
             </button>
           )}
+          <ImportCSV
+            descripcion="Columnas: fecha*, tienda_aliada*, mes* (ej: 2026-01), total_vendido*, notas (opcional)"
+            onDescargarPlantilla={descargarPlantillaLiquidaciones}
+            onProcesar={async (filas) => {
+              const res = await importarLiquidacionesConsignacion(filas)
+              if (res.exitosos > 0) await loadData()
+              return res
+            }}
+          />
           <div className="min-w-0 bg-white border border-[#EDE5DC] rounded-2xl overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -941,6 +986,15 @@ export default function ConsignacionesPage() {
               style={{ maxWidth: '200px' }}
             />
           </div>
+          <ImportCSV
+            descripcion="Columnas: fecha*, tienda_aliada*, producto*, cantidad*, notas (opcional)"
+            onDescargarPlantilla={descargarPlantillaDevoluciones}
+            onProcesar={async (filas) => {
+              const res = await importarDevolucionesConsignacion(filas)
+              if (res.exitosos > 0) await loadData()
+              return res
+            }}
+          />
           <div className="min-w-0 bg-white border border-[#EDE5DC] rounded-2xl overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -1001,7 +1055,7 @@ export default function ConsignacionesPage() {
                 className="text-xl"
                 style={{ color: 'var(--color-text-soft)' }}
               >
-                ✕
+                ×
               </button>
             </div>
 
@@ -1067,7 +1121,7 @@ export default function ConsignacionesPage() {
                             opciones={productos.map((p) => ({
                               id: p.id,
                               label: p.nombre,
-                              sublabel: `Stock: ${p.stock_actual} uds · ${formatCOP(p.precio_venta)}`,
+                              sublabel: `Stock: ${p.stock_actual} uds  ${formatCOP(p.precio_venta)}`,
                             }))}
                             value={item.producto_id}
                             onChange={(id) => actualizarLineaSalida(i, 'producto_id', id)}
@@ -1237,7 +1291,7 @@ export default function ConsignacionesPage() {
                 className="text-xl"
                 style={{ color: 'var(--color-text-soft)' }}
               >
-                ✕
+                ×
               </button>
             </div>
 
@@ -1419,7 +1473,7 @@ export default function ConsignacionesPage() {
                 className={`${inputClass} mb-2`}
               >
                 {consignaciones.filter(c => c.unidades_disponibles > 0).map(c => (
-                  <option key={c.id} value={c.id}>{c.consignataria_nombre} · {c.producto_nombre} ({c.unidades_disponibles})</option>
+                  <option key={c.id} value={c.id}>{c.consignataria_nombre}  {c.producto_nombre} ({c.unidades_disponibles})</option>
                 ))}
               </select>
             )}

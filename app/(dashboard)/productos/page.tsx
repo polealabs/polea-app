@@ -29,9 +29,20 @@ const TIPOS: Producto['tipo'][] = [
 
 type FiltroStock = 'todos' | 'agotado' | 'bajo' | 'sin-movimiento' | 'defectuosos' | 'archivados'
 
+type VarianteConStock = {
+  id: string
+  nombre: string
+  sku: string | null
+  precio_venta: number
+  stock_actual: number
+  stock_minimo: number
+  activa: boolean
+}
+
 type ProductoConStock = Producto & {
   stockEfectivo: number
   stockBajo: boolean
+  variantes: VarianteConStock[]
 }
 
 type ProductoFormState = {
@@ -329,9 +340,18 @@ export default function ProductosPage() {
   const [nuevoAttrValores, setNuevoAttrValores] = useState('')
   const [filtroActivo, setFiltroActivo] = useState<FiltroStock>('todos')
   const [idsSinMovimiento, setIdsSinMovimiento] = useState<Set<string>>(new Set())
-  const [variantesPorProducto, setVariantesPorProducto] = useState<Map<string, number>>(new Map())
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set())
   const [ignorarFiltroQuery, setIgnorarFiltroQuery] = useState(false)
   const { toasts, showToast, removeToast } = useToast()
+
+  function toggleExpandido(id: string) {
+    setExpandidos((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   function generarCombinaciones(attrs: { nombre: string; valores: string[] }[]): Record<string, string>[] {
     if (attrs.length === 0) return []
@@ -370,22 +390,28 @@ export default function ProductosPage() {
 
     const { data: variantesData } = await supabase
       .from('producto_variantes')
-      .select('producto_id, stock_actual, stock_minimo')
+      .select('id, producto_id, nombre, sku, precio_venta, stock_actual, stock_minimo, activa')
       .eq('tienda_id', tiendaId)
       .eq('activa', true)
 
-    const mapaConteo = new Map<string, number>()
+    const mapaVariantes = new Map<string, VarianteConStock[]>()
     const mapaStock = new Map<string, number>()
     const mapaVarianteBaja = new Map<string, boolean>()
 
     for (const v of variantesData ?? []) {
-      mapaConteo.set(v.producto_id, (mapaConteo.get(v.producto_id) ?? 0) + 1)
       mapaStock.set(v.producto_id, (mapaStock.get(v.producto_id) ?? 0) + v.stock_actual)
-      if (v.stock_actual <= v.stock_minimo) {
-        mapaVarianteBaja.set(v.producto_id, true)
-      }
+      if (v.stock_actual <= v.stock_minimo) mapaVarianteBaja.set(v.producto_id, true)
+      if (!mapaVariantes.has(v.producto_id)) mapaVariantes.set(v.producto_id, [])
+      mapaVariantes.get(v.producto_id)!.push({
+        id: v.id,
+        nombre: v.nombre,
+        sku: v.sku ?? null,
+        precio_venta: v.precio_venta ?? 0,
+        stock_actual: v.stock_actual,
+        stock_minimo: v.stock_minimo,
+        activa: v.activa,
+      })
     }
-    setVariantesPorProducto(new Map(mapaConteo))
 
     const productosEnriquecidos: ProductoConStock[] = (productosData ?? []).map((p) => ({
       ...p,
@@ -393,6 +419,7 @@ export default function ProductosPage() {
       stockBajo: p.tiene_variantes
         ? (mapaVarianteBaja.get(p.id) ?? false)
         : p.stock_actual > 0 && p.stock_actual <= p.stock_minimo,
+      variantes: mapaVariantes.get(p.id) ?? [],
     }))
 
     setProductos(productosEnriquecidos)
@@ -1212,27 +1239,17 @@ export default function ProductosPage() {
                   </td>
                   <td className="px-5 py-4 text-right text-[#1A1510]/80">{formatCOP(p.precio_venta)}</td>
                   <td className="px-5 py-4 text-right">
-                    {(variantesPorProducto.get(p.id) ?? 0) > 0 ? (
-                      <button
-                        type="button"
-                        onClick={() => router.push(`/productos/${p.id}/variantes`)}
-                        className="font-semibold hover:underline text-[#1E3A2F]"
-                      >
-                        {variantesPorProducto.get(p.id)} variantes
-                      </button>
-                    ) : (
-                      <span
-                        className={`font-semibold ${
-                          p.stockEfectivo < 0 || p.stockEfectivo === 0
-                            ? 'text-[#C44040]'
-                            : p.stockBajo
-                              ? 'text-[#D4A853]'
-                              : 'text-[#1E3A2F]'
-                        }`}
-                      >
-                        {p.stockEfectivo}
-                      </span>
-                    )}
+                    <span
+                      className={`font-semibold ${
+                        p.stockEfectivo < 0 || p.stockEfectivo === 0
+                          ? 'text-[#C44040]'
+                          : p.stockBajo
+                            ? 'text-[#D4A853]'
+                            : 'text-[#1E3A2F]'
+                      }`}
+                    >
+                      {p.stockEfectivo}
+                    </span>
                   </td>
                   <td className="px-5 py-4 text-right text-[#1A1510]/50">{p.stock_minimo}</td>
                   <td className="px-5 py-3.5 text-sm text-center">
@@ -1244,10 +1261,25 @@ export default function ProductosPage() {
                       <span style={{ color: 'var(--color-text-faint)' }}>—</span>
                     )}
                   </td>
-                  <td className="px-5 py-4 text-xs text-[#8A7D72]">
-                    {(variantesPorProducto.get(p.id) ?? 0) > 0
-                      ? `${variantesPorProducto.get(p.id)} activas`
-                      : 'Sin variantes'}
+                  <td className="px-5 py-4">
+                    {p.variantes.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleExpandido(p.id)}
+                        className="text-xs font-medium px-2 py-1 rounded-lg transition"
+                        style={{
+                          background: expandidos.has(p.id) ? 'var(--color-accent-pale)' : 'var(--color-background)',
+                          color: expandidos.has(p.id) ? 'var(--color-accent)' : 'var(--color-text-soft)',
+                        }}
+                      >
+                        {expandidos.has(p.id) ? '▲' : '▼'} {p.variantes.length} variante
+                        {p.variantes.length !== 1 ? 's' : ''}
+                      </button>
+                    ) : (
+                      <span className="text-xs" style={{ color: 'var(--color-text-faint)' }}>
+                        Sin variantes
+                      </span>
+                    )}
                   </td>
                   <td className="px-5 py-4">{stockEstadoBadge(p)}</td>
                   <td className="px-5 py-4 text-right">
@@ -1264,15 +1296,6 @@ export default function ProductosPage() {
                           style={{ color: p.estado === 'archivado' ? '#3A7D5A' : '#8A7D72' }}
                         >
                           {p.estado === 'archivado' ? 'Activar' : 'Archivar'}
-                        </button>
-                      )}
-                      {canEdit && (
-                        <button
-                          onClick={() => router.push(`/productos/${p.id}/variantes`)}
-                          className="text-xs font-medium hover:underline"
-                          style={{ color: 'var(--color-accent)' }}
-                        >
-                          Variantes {variantesPorProducto.get(p.id) ? `(${variantesPorProducto.get(p.id)})` : ''}
                         </button>
                       )}
                       {canEdit && (
@@ -1295,6 +1318,97 @@ export default function ProductosPage() {
                     </div>
                   </td>
                 </tr>
+                {expandidos.has(p.id) &&
+                  p.variantes.map((v) => {
+                    const bajav = v.stock_actual <= v.stock_minimo
+                    return (
+                      <tr key={v.id} style={{ background: 'var(--color-background)' }}>
+                        <td className="pl-10 pr-5 py-2 text-xs" style={{ color: 'var(--color-text-soft)' }}>
+                          ↳ {v.nombre}
+                          {v.sku && (
+                            <span className="ml-1 text-[10px]" style={{ color: 'var(--color-text-faint)' }}>
+                              SKU: {v.sku}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-5 py-2 text-xs text-center" style={{ color: 'var(--color-text-faint)' }}>
+                          —
+                        </td>
+                        <td className="px-5 py-2 text-xs text-right" style={{ color: 'var(--color-text-faint)' }}>
+                          —
+                        </td>
+                        <td className="px-5 py-2 text-xs font-medium text-right" style={{ color: 'var(--color-text)' }}>
+                          {formatCOP(v.precio_venta)}
+                        </td>
+                        <td className="px-5 py-2 text-right">
+                          <input
+                            type="number"
+                            defaultValue={v.stock_actual}
+                            disabled={!canEdit || !tienda}
+                            onBlur={async (e) => {
+                              if (!tienda) return
+                              const nuevo = Number(e.target.value)
+                              if (nuevo === v.stock_actual) return
+                              const supabase = createClient()
+                              await supabase
+                                .from('producto_variantes')
+                                .update({ stock_actual: nuevo })
+                                .eq('id', v.id)
+                                .eq('tienda_id', tienda.id)
+                              await fetchProductos(tienda.id)
+                            }}
+                            className="w-16 px-2 py-1 rounded border text-xs text-center"
+                            style={{
+                              borderColor: bajav ? '#D4A853' : 'var(--color-border)',
+                              background: bajav ? '#FBF3E0' : 'var(--color-surface)',
+                              color: bajav ? '#D4A853' : 'var(--color-text)',
+                            }}
+                          />
+                        </td>
+                        <td className="px-5 py-2 text-right">
+                          <input
+                            type="number"
+                            defaultValue={v.stock_minimo}
+                            disabled={!canEdit || !tienda}
+                            onBlur={async (e) => {
+                              if (!tienda) return
+                              const nuevo = Number(e.target.value)
+                              if (nuevo === v.stock_minimo) return
+                              const supabase = createClient()
+                              await supabase
+                                .from('producto_variantes')
+                                .update({ stock_minimo: nuevo })
+                                .eq('id', v.id)
+                                .eq('tienda_id', tienda.id)
+                              await fetchProductos(tienda.id)
+                            }}
+                            className="w-16 px-2 py-1 rounded border text-xs text-center"
+                            style={{
+                              borderColor: 'var(--color-border)',
+                              background: 'var(--color-surface)',
+                              color: 'var(--color-text)',
+                            }}
+                          />
+                        </td>
+                        <td className="px-5 py-2 text-xs text-center" style={{ color: 'var(--color-text-faint)' }}>
+                          —
+                        </td>
+                        <td className="px-5 py-2 text-xs" style={{ color: 'var(--color-text-faint)' }}>
+                          —
+                        </td>
+                        <td className="px-5 py-2 text-xs" style={{ color: 'var(--color-text-faint)' }}>
+                          {bajav ? (
+                            <span className="text-[10px] font-semibold text-[#D4A853] bg-[#FBF3E0] px-2 py-0.5 rounded-full">
+                              Stock bajo
+                            </span>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td className="px-5 py-2" />
+                      </tr>
+                    )
+                  })}
                 {editando?.id === p.id && (
                   <tr id={`edit-row-${p.id}`}>
                     <td colSpan={10} className="p-0">
@@ -1460,7 +1574,7 @@ export default function ProductosPage() {
                         {canEdit &&
                           tienda &&
                           (() => {
-                            const variantesActuales = variantesPorProducto.get(p.id) ?? 0
+                            const variantesActuales = p.variantes.length
                             return (
                               <div
                                 className="mt-4 pt-4 border-t"
