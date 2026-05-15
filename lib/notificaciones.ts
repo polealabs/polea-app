@@ -42,18 +42,17 @@ export async function generarNotificaciones(tiendaId: string): Promise<void> {
 
     const { data: variantes } = await supabase
       .from('producto_variantes')
-      .select('producto_id, stock_actual')
+      .select('producto_id, stock_actual, stock_minimo')
       .eq('tienda_id', tiendaId)
       .eq('activa', true)
 
-    const stockPorProducto = new Map<string, number>()
-    for (const v of variantes ?? []) {
-      stockPorProducto.set(v.producto_id, (stockPorProducto.get(v.producto_id) ?? 0) + v.stock_actual)
-    }
-
     const productosStockBajo = (productos ?? []).filter((p) => {
-      const stock = p.tiene_variantes ? (stockPorProducto.get(p.id) ?? 0) : p.stock_actual
-      return stock <= p.stock_minimo
+      if (p.tiene_variantes) {
+        return (variantes ?? []).some(
+          (v) => v.producto_id === p.id && v.stock_actual <= v.stock_minimo,
+        )
+      }
+      return p.stock_actual > 0 && p.stock_actual <= p.stock_minimo
     })
     if (productosStockBajo.length > 0) {
       const hace24h = new Date(hoy.getTime() - 24 * 60 * 60 * 1000).toISOString()

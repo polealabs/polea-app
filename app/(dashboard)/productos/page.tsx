@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useCallback, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
@@ -28,6 +28,11 @@ const TIPOS: Producto['tipo'][] = [
 ]
 
 type FiltroStock = 'todos' | 'agotado' | 'bajo' | 'sin-movimiento' | 'defectuosos' | 'archivados'
+
+type ProductoConStock = Producto & {
+  stockEfectivo: number
+  stockBajo: boolean
+}
 
 type ProductoFormState = {
   nombre: string
@@ -76,22 +81,22 @@ function descargarPlantillaProductos() {
   ])
 }
 
-function stockEstadoBadge(p: Producto) {
-  if (p.stock_actual < 0) {
+function stockEstadoBadge(p: ProductoConStock) {
+  if (p.stockEfectivo < 0) {
     return (
       <span className="text-[10px] font-semibold text-[#C44040] bg-[#FDEAEA] px-2 py-0.5 rounded-full">
         Stock negativo
       </span>
     )
   }
-  if (p.stock_actual === 0) {
+  if (p.stockEfectivo === 0) {
     return (
       <span className="text-[10px] font-semibold text-[#C44040] bg-[#FDEAEA] px-2 py-0.5 rounded-full">
         Agotado
       </span>
     )
   }
-  if (p.stock_actual > 0 && p.stock_actual <= p.stock_minimo) {
+  if (p.stockBajo) {
     return (
       <span className="text-[10px] font-semibold text-[#D4A853] bg-[#FBF3E0] px-2 py-0.5 rounded-full">
         Stock bajo
@@ -304,10 +309,10 @@ export default function ProductosPage() {
   const router = useRouter()
   const { tienda, loading: tiendaLoading, canEdit, canDelete } = useTienda()
   const searchParams = useSearchParams()
-  const [productos, setProductos] = useState<Producto[]>([])
+  const [productos, setProductos] = useState<ProductoConStock[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [editando, setEditando] = useState<Producto | null>(null)
+  const [editando, setEditando] = useState<ProductoConStock | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [feedbackVariant, setFeedbackVariant] = useState<'error' | 'warning'>('error')
   const [submitting, setSubmitting] = useState(false)
@@ -362,20 +367,35 @@ export default function ProductosPage() {
       .select('*')
       .eq('tienda_id', tiendaId)
       .order('created_at', { ascending: false })
-    const productos = productosData ?? []
-    setProductos(productos)
 
-    const { data: variantesCount } = await supabase
+    const { data: variantesData } = await supabase
       .from('producto_variantes')
-      .select('producto_id')
+      .select('producto_id, stock_actual, stock_minimo')
       .eq('tienda_id', tiendaId)
       .eq('activa', true)
 
-    const mapaVariantes = new Map<string, number>()
-    ;(variantesCount ?? []).forEach((v) => {
-      mapaVariantes.set(v.producto_id, (mapaVariantes.get(v.producto_id) ?? 0) + 1)
-    })
-    setVariantesPorProducto(mapaVariantes)
+    const mapaConteo = new Map<string, number>()
+    const mapaStock = new Map<string, number>()
+    const mapaVarianteBaja = new Map<string, boolean>()
+
+    for (const v of variantesData ?? []) {
+      mapaConteo.set(v.producto_id, (mapaConteo.get(v.producto_id) ?? 0) + 1)
+      mapaStock.set(v.producto_id, (mapaStock.get(v.producto_id) ?? 0) + v.stock_actual)
+      if (v.stock_actual <= v.stock_minimo) {
+        mapaVarianteBaja.set(v.producto_id, true)
+      }
+    }
+    setVariantesPorProducto(new Map(mapaConteo))
+
+    const productosEnriquecidos: ProductoConStock[] = (productosData ?? []).map((p) => ({
+      ...p,
+      stockEfectivo: p.tiene_variantes ? (mapaStock.get(p.id) ?? 0) : p.stock_actual,
+      stockBajo: p.tiene_variantes
+        ? (mapaVarianteBaja.get(p.id) ?? false)
+        : p.stock_actual > 0 && p.stock_actual <= p.stock_minimo,
+    }))
+
+    setProductos(productosEnriquecidos)
 
     const hace30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     const { data: ventasRecientes } = await supabase
@@ -386,11 +406,8 @@ export default function ProductosPage() {
 
     const idsConMovimiento = new Set((ventasRecientes ?? []).map((v) => v.producto_id))
     const sinMov = new Set(
-      productos
-        .filter(
-          (p) =>
-            p.estado !== 'archivado' && p.stock_actual > 0 && !idsConMovimiento.has(p.id),
-        )
+      productosEnriquecidos
+        .filter((p) => p.estado !== 'archivado' && p.stockEfectivo > 0 && !idsConMovimiento.has(p.id))
         .map((p) => p.id),
     )
     setIdsSinMovimiento(sinMov)
@@ -516,7 +533,7 @@ export default function ProductosPage() {
     setSubmitting(false)
   }
 
-  function abrirEdicion(prod: Producto) {
+  function abrirEdicion(prod: ProductoConStock) {
     setEditando(prod)
     setForm({
       nombre: prod.nombre,
@@ -547,19 +564,17 @@ export default function ProductosPage() {
     showToast('Producto eliminado')
   }
 
-  const totalDefectuosos = productos.filter(
-    (p) => p.estado !== 'archivado' && (p.unidades_defectuosas ?? 0) > 0,
-  ).length
-
-  const conteos = {
-    todos: productos.filter((p) => p.estado !== 'archivado').length,
-    agotado: productos.filter((p) => p.estado !== 'archivado' && p.stock_actual <= 0).length,
-    bajo: productos.filter((p) => p.estado !== 'archivado' && p.stock_actual > 0 && p.stock_actual <= p.stock_minimo)
-      .length,
-    'sin-movimiento': productos.filter((p) => p.estado !== 'archivado' && idsSinMovimiento.has(p.id)).length,
-    defectuosos: totalDefectuosos,
-    archivados: productos.filter((p) => p.estado === 'archivado').length,
-  }
+  const conteos = useMemo(
+    () => ({
+      todos: productos.filter((p) => p.estado !== 'archivado').length,
+      agotado: productos.filter((p) => p.estado !== 'archivado' && p.stockEfectivo <= 0).length,
+      bajo: productos.filter((p) => p.estado !== 'archivado' && p.stockBajo).length,
+      'sin-movimiento': productos.filter((p) => p.estado !== 'archivado' && idsSinMovimiento.has(p.id)).length,
+      defectuosos: productos.filter((p) => p.estado !== 'archivado' && (p.unidades_defectuosas ?? 0) > 0).length,
+      archivados: productos.filter((p) => p.estado === 'archivado').length,
+    }),
+    [productos, idsSinMovimiento],
+  )
 
   const chips = [
     {
@@ -600,30 +615,22 @@ export default function ProductosPage() {
     },
   ]
 
-  const productosPorFiltro = (() => {
+  const productosPorFiltro = useMemo(() => {
     switch (filtroActivoReal) {
       case 'agotado':
-        return productos
-          .filter((p) => p.stock_actual <= 0)
-          .filter((p) => p.estado !== 'archivado')
+        return productos.filter((p) => p.estado !== 'archivado' && p.stockEfectivo <= 0)
       case 'bajo':
-        return productos
-          .filter((p) => p.stock_actual > 0 && p.stock_actual <= p.stock_minimo)
-          .filter((p) => p.estado !== 'archivado')
+        return productos.filter((p) => p.estado !== 'archivado' && p.stockBajo)
       case 'sin-movimiento':
-        return productos
-          .filter((p) => idsSinMovimiento.has(p.id))
-          .filter((p) => p.estado !== 'archivado')
+        return productos.filter((p) => p.estado !== 'archivado' && idsSinMovimiento.has(p.id))
       case 'defectuosos':
-        return productos
-          .filter((p) => (p.unidades_defectuosas ?? 0) > 0)
-          .filter((p) => p.estado !== 'archivado')
+        return productos.filter((p) => p.estado !== 'archivado' && (p.unidades_defectuosas ?? 0) > 0)
       case 'archivados':
         return productos.filter((p) => p.estado === 'archivado')
       default:
         return productos.filter((p) => p.estado !== 'archivado')
     }
-  })()
+  }, [productos, filtroActivoReal, idsSinMovimiento])
 
   const productosFiltrados =
     busqueda.trim() === ''
@@ -1216,14 +1223,14 @@ export default function ProductosPage() {
                     ) : (
                       <span
                         className={`font-semibold ${
-                          p.stock_actual < 0 || p.stock_actual === 0
+                          p.stockEfectivo < 0 || p.stockEfectivo === 0
                             ? 'text-[#C44040]'
-                            : p.stock_actual <= p.stock_minimo
+                            : p.stockBajo
                               ? 'text-[#D4A853]'
                               : 'text-[#1E3A2F]'
                         }`}
                       >
-                        {p.stock_actual}
+                        {p.stockEfectivo}
                       </span>
                     )}
                   </td>
@@ -1472,20 +1479,7 @@ export default function ProductosPage() {
                                   productoId={p.id}
                                   tiendaId={tienda.id}
                                   onGuardado={() => {
-                                    void (async () => {
-                                      const supabase = createClient()
-                                      const { data } = await supabase
-                                        .from('producto_variantes')
-                                        .select('producto_id')
-                                        .eq('tienda_id', tienda.id)
-                                        .eq('activa', true)
-                                      const mapa = new Map<string, number>()
-                                      ;(data ?? []).forEach((v) =>
-                                        mapa.set(v.producto_id, (mapa.get(v.producto_id) ?? 0) + 1),
-                                      )
-                                      setVariantesPorProducto(mapa)
-                                      await fetchProductos(tienda.id)
-                                    })()
+                                    void fetchProductos(tienda.id)
                                   }}
                                 />
                               </div>
@@ -1540,21 +1534,7 @@ export default function ProductosPage() {
                                   setFeedbackVariant('warning')
                                 }
                               } else {
-                                setProductos((prev) =>
-                                  prev.map((prod) =>
-                                    prod.id === idEd
-                                      ? {
-                                          ...prod,
-                                          nombre: form.nombre,
-                                          sku: form.sku.trim() || undefined,
-                                          tipo: form.tipo,
-                                          precio_venta: form.precio_venta,
-                                          costo_produccion: form.costo_produccion || undefined,
-                                          stock_minimo: form.stock_minimo,
-                                        }
-                                      : prod,
-                                  ),
-                                )
+                                if (tienda) await fetchProductos(tienda.id)
                                 setEditando(null)
                                 setError(null)
                                 showToast('Producto actualizado', 'success')
