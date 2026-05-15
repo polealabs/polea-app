@@ -282,7 +282,25 @@ export default function DashboardPage() {
 
     const listaProductos = todosProductosRes.data ?? []
 
-    const stockBajo = listaProductos.filter((p) => p.stock_actual <= p.stock_minimo)
+    const { data: variantesData } = await supabase
+      .from('producto_variantes')
+      .select('producto_id, stock_actual, stock_minimo')
+      .eq('tienda_id', tienda.id)
+      .eq('activa', true)
+
+    const mapaVariantesBajas = new Map<string, boolean>()
+    const mapaVariantesStock = new Map<string, number>()
+    for (const v of variantesData ?? []) {
+      mapaVariantesStock.set(v.producto_id, (mapaVariantesStock.get(v.producto_id) ?? 0) + v.stock_actual)
+      if (v.stock_actual <= v.stock_minimo) mapaVariantesBajas.set(v.producto_id, true)
+    }
+
+    const stockBajo = listaProductos.filter((p) => {
+      const variantesReales = (variantesData ?? []).filter((v) => v.producto_id === p.id)
+      const tieneVariantesReal = variantesReales.length > 0
+      if (tieneVariantesReal) return mapaVariantesBajas.get(p.id) ?? false
+      return p.stock_actual <= p.stock_minimo
+    })
     setProductosStockBajo(stockBajo)
 
     const { data: ventasRecientes } = await supabase
