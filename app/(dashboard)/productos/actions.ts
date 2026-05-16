@@ -13,7 +13,7 @@ async function getTiendaId() {
     .from('tiendas')
     .select('id')
     .eq('owner_id', user.id)
-    .single()
+    .maybeSingle()
   if (!data) throw new Error('Tienda no encontrada')
   return data.id
 }

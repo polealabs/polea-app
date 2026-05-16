@@ -307,7 +307,7 @@ export interface Consignacion {
   producto_id: string
   cantidad: number
   unidades_disponibles: number
-  costo_unitario: number
+  precio_unitario: number
   fecha: string
   estado: 'activa' | 'liquidada' | 'devuelta'
   created_at: string

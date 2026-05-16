@@ -9,7 +9,7 @@ async function getTienda() {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) throw new Error('No autenticado')
-  const { data } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).single()
+  const { data } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
   if (!data) throw new Error('Tienda no encontrada')
   return { tienda_id: data.id, supabase }
 }

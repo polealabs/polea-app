@@ -48,7 +48,7 @@ export async function importarProductos(filas: Record<string, string>[]) {
   } = await supabase.auth.getUser()
   if (!user) return { exitosos: 0, errores: [{ fila: 0, mensaje: 'No autenticado' }] }
 
-  const { data: tienda } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).single()
+  const { data: tienda } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
   if (!tienda) return { exitosos: 0, errores: [{ fila: 0, mensaje: 'Tienda no encontrada' }] }
 
   const { data: existentes } = await supabase.from('productos').select('id, nombre').eq('tienda_id', tienda.id)

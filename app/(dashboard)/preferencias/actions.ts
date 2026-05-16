@@ -10,7 +10,7 @@ export async function obtenerPreferencias() {
   } = await supabase.auth.getUser()
   if (!user) return null
 
-  const { data: tienda } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).single()
+  const { data: tienda } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
   if (!tienda) return null
 
   const { data } = await supabase.from('preferencias').select('*').eq('tienda_id', tienda.id).maybeSingle()
@@ -33,7 +33,7 @@ export async function guardarPreferencias(formData: FormData) {
   } = await supabase.auth.getUser()
   if (!user) return { error: 'No autenticado' }
 
-  const { data: tienda } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).single()
+  const { data: tienda } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
   if (!tienda) return { error: 'Tienda no encontrada' }
 
   const updates = {

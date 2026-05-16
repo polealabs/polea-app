@@ -249,8 +249,8 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
         .lt('fecha', prevEnd),
       supabase
         .from('venta_items')
-        .select('producto_id, cantidad, ventas_cabecera!inner(fecha, tienda_id)')
-        .eq('ventas_cabecera.tienda_id', tienda.id)
+        .select('producto_id, cantidad, ventas_cabecera!inner(fecha)')
+        .eq('tienda_id', tienda.id)
         .gte('ventas_cabecera.fecha', start)
         .lt('ventas_cabecera.fecha', end),
       supabase

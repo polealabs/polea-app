@@ -11,7 +11,7 @@ async function getOwnerTienda() {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) throw new Error('No autenticado')
-  const { data: tienda } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).single()
+  const { data: tienda } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
   if (!tienda) throw new Error('Solo el dueño puede gestionar el equipo')
   return { tienda_id: tienda.id, user_id: user.id, supabase }
 }
