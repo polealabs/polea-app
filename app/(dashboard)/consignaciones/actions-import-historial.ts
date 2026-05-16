@@ -181,6 +181,7 @@ export async function importarSalidasConsignacion(filas: Record<string, string>[
     if (exitosos > 0) {
       revalidatePath('/consignaciones')
       revalidatePath('/productos')
+      revalidatePath('/dashboard')
     }
     return { exitosos, errores: erroresPaso2 }
   } catch (e: unknown) {
@@ -381,6 +382,7 @@ export async function importarDevolucionesConsignacion(filas: Record<string, str
     if (exitosos > 0) {
       revalidatePath('/consignaciones')
       revalidatePath('/productos')
+      revalidatePath('/dashboard')
     }
     return { exitosos, errores: erroresPaso2 }
   } catch (e: unknown) {
@@ -614,6 +616,7 @@ export async function importarLiquidacionesConsignacion(filas: Record<string, st
     if (exitosos > 0) {
       revalidatePath('/consignaciones')
       revalidatePath('/productos')
+      revalidatePath('/dashboard')
     }
     return { exitosos, errores: erroresPaso2 }
   } catch (e: unknown) {

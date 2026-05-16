@@ -165,6 +165,7 @@ export async function registrarSalidaMultiple(payload: {
 
     revalidatePath('/consignaciones')
     revalidatePath('/productos')
+    revalidatePath('/dashboard')
     return { ok: true, salida_id: salida.id }
   } catch (e: unknown) {
     return { error: e instanceof Error ? e.message : 'Error desconocido' }
@@ -197,6 +198,7 @@ export async function registrarDevolucionMultiple(payload: {
 
     revalidatePath('/consignaciones')
     revalidatePath('/productos')
+    revalidatePath('/dashboard')
     return { ok: true }
   } catch (e: unknown) {
     return { error: e instanceof Error ? e.message : 'Error desconocido' }
@@ -309,6 +311,7 @@ export async function registrarMovimiento(payload: {
 
     revalidatePath('/consignaciones')
     revalidatePath('/productos')
+    revalidatePath('/dashboard')
     return { ok: true, neto, comision, total_bruto }
   } catch (e: unknown) {
     return { error: e instanceof Error ? e.message : 'Error desconocido' }
@@ -326,6 +329,7 @@ export async function marcarDevuelta(id: string) {
     if (error) return { error: error.message }
     revalidatePath('/consignaciones')
     revalidatePath('/productos')
+    revalidatePath('/dashboard')
     return { ok: true }
   } catch (e: unknown) {
     return { error: e instanceof Error ? e.message : 'Error desconocido' }

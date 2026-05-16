@@ -104,6 +104,7 @@ export async function registrarDevolucion(payload: {
 
     revalidatePath('/ventas')
     revalidatePath('/productos')
+    revalidatePath('/dashboard')
     return { ok: true }
   } catch (e: unknown) {
     return { error: e instanceof Error ? e.message : 'Error desconocido' }
