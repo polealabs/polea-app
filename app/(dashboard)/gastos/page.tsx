@@ -15,6 +15,7 @@ import { useToast } from '@/lib/hooks/useToast'
 import { importarGastos } from './actions-import'
 import { obtenerPreferencias } from '@/app/(dashboard)/preferencias/actions'
 import { Paginacion } from '@/components/ui/Paginacion'
+import { FormModal } from '@/components/ui/FormModal'
 
 const inputClass =
   'w-full px-3 py-2 rounded-lg border border-[#1A1510]/20 bg-white text-[#1A1510] placeholder:text-[#1A1510]/40 focus:outline-none focus:ring-2 focus:ring-[#C4622D]/40 focus:border-[#C4622D] transition text-sm'
@@ -263,6 +264,16 @@ export default function GastosPage() {
     showToast('Proveedor creado y seleccionado')
   }
 
+  function cerrarFormGasto() {
+    setShowForm(false)
+    setEditando(null)
+    setShowProveedorForm(false)
+    setProveedorIdSeleccionado('')
+    resetFormularioGasto(setTipoGasto, setSubcategoria)
+    setForm({ descripcion: '', monto: '', fecha: today, categoria: '' })
+    setError(null)
+  }
+
   async function handleEliminar(id: string) {
     if (!confirm('¿Eliminar este gasto?')) return
     await eliminarGasto(id)
@@ -335,13 +346,8 @@ export default function GastosPage() {
           />
           <button
             onClick={() => {
-              setEditando(null)
+              cerrarFormGasto()
               setShowForm(true)
-              setError(null)
-              setShowProveedorForm(false)
-              setProveedorIdSeleccionado('')
-              resetFormularioGasto(setTipoGasto, setSubcategoria)
-              setForm({ descripcion: '', monto: '', fecha: today, categoria: '' })
             }}
             className="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-lg"
           >
@@ -398,12 +404,12 @@ export default function GastosPage() {
         </p>
       )}
 
-      {showForm && (
-        <div
-          className="bg-white rounded-2xl border border-[#1A1510]/8 p-6 mb-6 shadow-sm"
-          style={{ background: 'var(--color-surface)' }}
-        >
-          <h2 className="text-base font-semibold text-[#1E3A2F] mb-4">{editando ? 'Editar gasto' : 'Nuevo gasto'}</h2>
+      <FormModal
+        open={showForm}
+        title={editando ? 'Editar gasto' : 'Nuevo gasto'}
+        onClose={cerrarFormGasto}
+        maxWidth="max-w-2xl"
+      >
           <form
             onSubmit={async (e) => {
               e.preventDefault()
@@ -556,14 +562,7 @@ export default function GastosPage() {
             <div className="sm:col-span-4 flex gap-3 justify-end">
               <button
                 type="button"
-                onClick={() => {
-                  setShowForm(false)
-                  setEditando(null)
-                  setShowProveedorForm(false)
-                  setProveedorIdSeleccionado('')
-                  resetFormularioGasto(setTipoGasto, setSubcategoria)
-                  setForm({ descripcion: '', monto: '', fecha: today, categoria: '' })
-                }}
+                onClick={cerrarFormGasto}
                 className="text-sm text-[#1A1510]/60 hover:text-[#1A1510] px-4 py-2 rounded-lg border border-[#1A1510]/20 transition"
               >
                 Cancelar
@@ -577,8 +576,7 @@ export default function GastosPage() {
               </button>
             </div>
           </form>
-        </div>
-      )}
+      </FormModal>
 
       {gastos.length === 0 ? (
         <div
@@ -587,14 +585,7 @@ export default function GastosPage() {
         >
           <p className="text-[#1A1510]/40 text-sm">No tienes gastos registrados para este mes.</p>
           <button
-            onClick={() => {
-              setEditando(null)
-              setShowForm(true)
-              setShowProveedorForm(false)
-              setProveedorIdSeleccionado('')
-              resetFormularioGasto(setTipoGasto, setSubcategoria)
-              setForm({ descripcion: '', monto: '', fecha: today, categoria: '' })
-            }}
+            onClick={() => { cerrarFormGasto(); setShowForm(true) }}
             className="mt-3 text-sm text-[#C4622D] font-medium hover:underline"
           >
             Crea el primero
@@ -699,7 +690,6 @@ export default function GastosPage() {
                               setShowForm(true)
                               setError(null)
                               setShowProveedorForm(false)
-                              window.scrollTo({ top: 0, behavior: 'smooth' })
                             }}
                             className="text-sm font-medium hover:underline"
                             style={{ color: 'var(--color-primary)' }}

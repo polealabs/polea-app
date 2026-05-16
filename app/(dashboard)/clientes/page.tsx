@@ -17,6 +17,7 @@ import { importarClientes } from './actions-import'
 import { toLocalISOYearMonthString } from '@/lib/utils'
 import { obtenerPreferencias } from '@/app/(dashboard)/preferencias/actions'
 import { Paginacion } from '@/components/ui/Paginacion'
+import { FormModal } from '@/components/ui/FormModal'
 
 type ClienteConCompras = Cliente & { total_compras: number }
 
@@ -317,88 +318,85 @@ export default function ClientesPage() {
         />
       </div>
 
-      {canEdit && (showForm || editando) && (
-        <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-6 mb-6 shadow-sm" style={{ background: 'var(--color-surface)' }}>
-          <h2 className="text-base font-semibold text-[#1E3A2F] mb-4">
-            {editando ? 'Editar cliente' : 'Nuevo cliente'}
-          </h2>
-          <form action={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className={labelClass}>Nombre</label>
-              <input
-                name="nombre"
-                type="text"
-                required
-                defaultValue={editando?.nombre}
-                className={inputClass}
-                placeholder="Ej: Laura Gómez"
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Teléfono</label>
-              <input
-                name="telefono"
-                type="text"
-                defaultValue={editando?.telefono}
-                className={inputClass}
-                placeholder="Ej: 3001234567"
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Dirección (opcional)</label>
-              <input
-                type="text"
-                name="direccion"
-                defaultValue={editando?.direccion ?? ''}
-                placeholder="Ej: Calle 10 # 5-23, Cali"
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Ciudad</label>
-              <input
-                name="ciudad"
-                type="text"
-                defaultValue={editando?.ciudad}
-                className={inputClass}
-                placeholder="Ej: Medellín"
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Correo</label>
-              <input
-                name="correo"
-                type="email"
-                defaultValue={editando?.correo}
-                className={inputClass}
-                placeholder="cliente@correo.com"
-              />
-            </div>
-            {error && (
-              <p className="sm:col-span-2 text-sm text-red-600 bg-red-50 px-4 py-2.5 rounded-lg">{error}</p>
-            )}
-            <div className="sm:col-span-2 flex gap-3 justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowForm(false)
-                  setEditando(null)
-                }}
-                className="text-sm text-[#1A1510]/60 hover:text-[#1A1510] px-4 py-2 rounded-lg border border-[#1A1510]/20 transition"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
-              >
-                {submitting ? 'Guardando...' : 'Guardar'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      <FormModal
+        open={canEdit && (showForm || !!editando)}
+        title={editando ? 'Editar cliente' : 'Nuevo cliente'}
+        onClose={() => { setShowForm(false); setEditando(null); setError(null) }}
+        maxWidth="max-w-xl"
+      >
+        <form action={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className={labelClass}>Nombre</label>
+            <input
+              name="nombre"
+              type="text"
+              required
+              defaultValue={editando?.nombre}
+              className={inputClass}
+              placeholder="Ej: Laura Gómez"
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Teléfono</label>
+            <input
+              name="telefono"
+              type="text"
+              defaultValue={editando?.telefono}
+              className={inputClass}
+              placeholder="Ej: 3001234567"
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Dirección (opcional)</label>
+            <input
+              type="text"
+              name="direccion"
+              defaultValue={editando?.direccion ?? ''}
+              placeholder="Ej: Calle 10 # 5-23, Cali"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Ciudad</label>
+            <input
+              name="ciudad"
+              type="text"
+              defaultValue={editando?.ciudad}
+              className={inputClass}
+              placeholder="Ej: Medellín"
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Correo</label>
+            <input
+              name="correo"
+              type="email"
+              defaultValue={editando?.correo}
+              className={inputClass}
+              placeholder="cliente@correo.com"
+            />
+          </div>
+          {error && (
+            <p className="sm:col-span-2 text-sm text-red-600 bg-red-50 px-4 py-2.5 rounded-lg">{error}</p>
+          )}
+          <div className="sm:col-span-2 flex gap-3 justify-end">
+            <button
+              type="button"
+              onClick={() => { setShowForm(false); setEditando(null); setError(null) }}
+              className="text-sm text-[#1A1510]/60 hover:text-[#1A1510] px-4 py-2 rounded-lg border border-[#1A1510]/20 transition"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
+            >
+              {submitting ? 'Guardando...' : 'Guardar'}
+            </button>
+          </div>
+        </form>
+      </FormModal>
 
       {clientesFiltrados.length === 0 ? (
         <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-12 text-center shadow-sm" style={{ background: 'var(--color-surface)' }}>

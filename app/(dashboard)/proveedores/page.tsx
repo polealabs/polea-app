@@ -12,6 +12,9 @@ import { descargarCSV } from '@/lib/csv'
 import { useToast } from '@/lib/hooks/useToast'
 import { importarProveedores } from './actions-import'
 import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
+import { obtenerPreferencias } from '@/app/(dashboard)/preferencias/actions'
+import { Paginacion } from '@/components/ui/Paginacion'
+import { FormModal } from '@/components/ui/FormModal'
 
 const inputClass =
   'w-full px-3 py-2 rounded-lg border border-[#1A1510]/20 bg-white text-[#1A1510] placeholder:text-[#1A1510]/40 focus:outline-none focus:ring-2 focus:ring-[#C4622D]/40 focus:border-[#C4622D] transition text-sm'
@@ -44,6 +47,8 @@ export default function ProveedoresPage() {
   const [ciudad, setCiudad] = useState('')
   const [categoriasSeleccionadas, setCategoriasSeleccionadas] = useState<string[]>([])
   const { toasts, showToast, removeToast } = useToast()
+  const [registrosPorPagina, setRegistrosPorPagina] = useState(20)
+  const [paginaProveedores, setPaginaProveedores] = useState(1)
 
   function toggleCategoria(cat: string) {
     setCategoriasSeleccionadas((prev) =>
@@ -87,6 +92,19 @@ export default function ProveedoresPage() {
     }, 0)
     return () => window.clearTimeout(timeoutId)
   }, [fetchProveedores, tienda])
+
+  useEffect(() => {
+    void obtenerPreferencias().then((data) => {
+      if (data) {
+        const raw = data as Record<string, unknown>
+        setRegistrosPorPagina(Number(raw.registros_por_pagina ?? 20) || 20)
+      }
+    })
+  }, [])
+
+  useEffect(() => {
+    setPaginaProveedores(1)
+  }, [busqueda])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -148,6 +166,22 @@ export default function ProveedoresPage() {
     })
   }, [busqueda, proveedores])
 
+  const proveedoresPaginados = proveedoresFiltrados.slice(
+    (paginaProveedores - 1) * registrosPorPagina,
+    paginaProveedores * registrosPorPagina,
+  )
+
+  function cerrarFormProveedor() {
+    setShowForm(false)
+    setEditando(null)
+    setError(null)
+    setNombre('')
+    setTelefono('')
+    setNit('')
+    setCiudad('')
+    setCategoriasSeleccionadas([])
+  }
+
   if (tiendaLoading || loading) {
     return <ModuleTableSkeleton maxWidthClass="max-w-6xl" rows={8} />
   }
@@ -200,11 +234,12 @@ export default function ProveedoresPage() {
         />
       </div>
 
-      {(showForm || editando) && (
-        <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-6 mb-6 shadow-sm" style={{ background: 'var(--color-surface)' }}>
-          <h2 className="text-base font-semibold text-[#1E3A2F] mb-4">
-            {editando ? 'Editar proveedor' : 'Nuevo proveedor'}
-          </h2>
+      <FormModal
+        open={showForm || !!editando}
+        title={editando ? 'Editar proveedor' : 'Nuevo proveedor'}
+        onClose={cerrarFormProveedor}
+        maxWidth="max-w-xl"
+      >
           <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className={labelClass}>Nombre</label>
@@ -267,16 +302,7 @@ export default function ProveedoresPage() {
             <div className="sm:col-span-2 flex gap-3 justify-end">
               <button
                 type="button"
-                onClick={() => {
-                  setShowForm(false)
-                  setEditando(null)
-                  setError(null)
-                  setNombre('')
-                  setTelefono('')
-                  setNit('')
-                  setCiudad('')
-                  setCategoriasSeleccionadas([])
-                }}
+                onClick={cerrarFormProveedor}
                 className="text-sm text-[#1A1510]/60 hover:text-[#1A1510] px-4 py-2 rounded-lg border border-[#1A1510]/20 transition"
               >
                 Cancelar
@@ -290,8 +316,7 @@ export default function ProveedoresPage() {
               </button>
             </div>
           </form>
-        </div>
-      )}
+      </FormModal>
 
       {proveedoresFiltrados.length === 0 ? (
         <div className="bg-white rounded-2xl border border-[#1A1510]/8 p-12 text-center shadow-sm" style={{ background: 'var(--color-surface)' }}>
@@ -336,11 +361,11 @@ export default function ProveedoresPage() {
               </tr>
             </thead>
             <tbody>
-              {proveedoresFiltrados.map((p, i) => (
+              {proveedoresPaginados.map((p, i) => (
                 <tr
                   key={p.id}
                   className={`border-b border-[#1A1510]/5 hover:bg-[#FAF6F0]/60 transition ${
-                    i === proveedoresFiltrados.length - 1 ? 'border-b-0' : ''
+                    i === proveedoresPaginados.length - 1 ? 'border-b-0' : ''
                   }`}
                 >
                   <td className="px-5 py-4 font-medium text-[#1A1510]">{p.nombre}</td>
@@ -385,6 +410,12 @@ export default function ProveedoresPage() {
             </tbody>
           </table>
           </div>
+          <Paginacion
+            total={proveedoresFiltrados.length}
+            porPagina={registrosPorPagina}
+            pagina={paginaProveedores}
+            onChange={setPaginaProveedores}
+          />
         </div>
       )}
       <Toast toasts={toasts} onRemove={removeToast} />
