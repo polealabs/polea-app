@@ -34,6 +34,7 @@ export async function crearGasto(formData: FormData) {
 
     if (error) return { error: error.message }
     revalidatePath('/gastos')
+    revalidatePath('/dashboard')
     return { ok: true }
   } catch (e: unknown) {
     return { error: e instanceof Error ? e.message : 'Error desconocido' }
@@ -63,6 +64,7 @@ export async function actualizarGasto(id: string, formData: FormData) {
 
     if (error) return { error: error.message }
     revalidatePath('/gastos')
+    revalidatePath('/dashboard')
     return { ok: true }
   } catch (e: unknown) {
     return { error: e instanceof Error ? e.message : 'Error desconocido' }
@@ -79,6 +81,7 @@ export async function eliminarGasto(id: string) {
       .eq('tienda_id', tienda_id)
     if (error) return { error: error.message }
     revalidatePath('/gastos')
+    revalidatePath('/dashboard')
     return { ok: true as const }
   } catch (e: unknown) {
     return { error: e instanceof Error ? e.message : 'Error desconocido' }
