@@ -15,7 +15,7 @@ export async function actualizarTienda(formData: FormData) {
     .from('tiendas')
     .select('id')
     .eq('owner_id', user.id)
-    .single()
+    .maybeSingle()
   if (!tienda) return { error: 'Tienda no encontrada' }
 
   const temaRecibido = (formData.get('tema') as string) || 'bosque'

@@ -25,7 +25,7 @@ export async function crearGasto(formData: FormData) {
     .from('tiendas')
     .select('id')
     .eq('owner_id', user.id)
-    .single()
+    .maybeSingle()
 
   if (!tienda) return { error: 'Tienda no encontrada' }
 
