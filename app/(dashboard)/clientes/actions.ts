@@ -37,6 +37,10 @@ export async function crearCliente(formData: FormData) {
 
 export async function editarCliente(id: string, formData: FormData) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado' }
+  const { data: tienda } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
+  if (!tienda) return { error: 'Tienda no encontrada' }
 
   const { error } = await supabase
     .from('clientes')
@@ -48,6 +52,7 @@ export async function editarCliente(id: string, formData: FormData) {
       correo: (formData.get('correo') as string) || null,
     })
     .eq('id', id)
+    .eq('tienda_id', tienda.id)
 
   if (error) return { error: error.message }
   revalidatePath('/clientes')
@@ -56,6 +61,10 @@ export async function editarCliente(id: string, formData: FormData) {
 
 export async function eliminarCliente(id: string) {
   const supabase = await createClient()
-  await supabase.from('clientes').delete().eq('id', id)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+  const { data: tienda } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
+  if (!tienda) return
+  await supabase.from('clientes').delete().eq('id', id).eq('tienda_id', tienda.id)
   revalidatePath('/clientes')
 }
