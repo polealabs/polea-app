@@ -704,9 +704,9 @@ export default function ConsignacionesPage() {
                 Sin remisiones en este mes.
               </p>
             ) : (
-              <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--color-border)' }}>
+              <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
                 <table className="w-full text-sm">
-                  <thead style={{ background: 'var(--color-background)' }}>
+                  <thead style={{ background: 'var(--color-background)', borderBottom: '1px solid var(--color-border)' }}>
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-soft)' }}>Fecha</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-soft)' }}>Tienda</th>

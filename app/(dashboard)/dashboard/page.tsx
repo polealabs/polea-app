@@ -289,21 +289,22 @@ export default function DashboardPage() {
       .eq('activa', true)
 
     const mapaVariantesBajas = new Map<string, boolean>()
-    const mapaVariantesAgotadas = new Map<string, boolean>()
     const mapaVariantesStock = new Map<string, number>()
     for (const v of variantesData ?? []) {
       mapaVariantesStock.set(v.producto_id, (mapaVariantesStock.get(v.producto_id) ?? 0) + v.stock_actual)
-      if (v.stock_actual === 0) mapaVariantesAgotadas.set(v.producto_id, true)
-      if (v.stock_actual > 0 && v.stock_actual <= v.stock_minimo) mapaVariantesBajas.set(v.producto_id, true)
+      // Same condition as productos/page.tsx: stock <= minimo covers both bajo and agotado variants
+      if (v.stock_actual <= (v.stock_minimo ?? 0)) mapaVariantesBajas.set(v.producto_id, true)
     }
 
     const stockBajo = listaProductos.filter((p) => {
       const variantesReales = (variantesData ?? []).filter((v) => v.producto_id === p.id)
       const tieneVariantesReal = variantesReales.length > 0
       if (tieneVariantesReal) {
-        return (mapaVariantesAgotadas.get(p.id) ?? false) || (mapaVariantesBajas.get(p.id) ?? false)
+        // Match productos module: agotado = total stock <= 0, bajo = any variant <= minimo
+        const stockTotal = mapaVariantesStock.get(p.id) ?? 0
+        return stockTotal <= 0 || (mapaVariantesBajas.get(p.id) ?? false)
       }
-      return p.stock_actual === 0 || (p.stock_actual > 0 && p.stock_actual <= p.stock_minimo)
+      return p.stock_actual <= 0 || (p.stock_actual > 0 && p.stock_actual <= (p.stock_minimo ?? 0))
     })
     setProductosStockBajo(stockBajo)
 
@@ -654,26 +655,19 @@ export default function DashboardPage() {
 
       {/* ALERTAS BANNER */}
       {notificacionesActivas.length > 0 && (
-        <div className="rounded-2xl p-5 flex items-center gap-4 mb-4 relative" style={{ background: 'var(--color-primary)' }}>
-          <div className="absolute right-[-20px] top-[-20px] w-[120px] h-[120px] rounded-full bg-terra/20 blur-2xl" />
-          <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-lg flex-shrink-0">
-            ✦
-          </div>
-          <div className="flex-1">
-            <p className="text-[10px] uppercase tracking-[2px] text-[#E8845A] mb-1">Alertas</p>
-            <ul className="space-y-0.5">
-              {notificacionesActivas.map((alerta, i) => (
-                <li key={`${alerta.tipo}-${i}`} className="text-sm text-white/90 leading-snug">
-                  <Link
-                    href={alerta.link}
-                    onClick={e => e.stopPropagation()}
-                    className="hover:text-white hover:underline underline-offset-2 transition cursor-pointer"
-                  >
-                    · {alerta.mensaje} →
-                  </Link>
-                </li>
-              ))}
-            </ul>
+        <div className="rounded-xl px-4 py-2.5 flex items-center gap-3 mb-4" style={{ background: 'var(--color-primary)' }}>
+          <span className="text-white/60 text-sm flex-shrink-0">✦</span>
+          <div className="flex flex-wrap gap-x-5 gap-y-1 min-w-0">
+            {notificacionesActivas.map((alerta, i) => (
+              <Link
+                key={`${alerta.tipo}-${i}`}
+                href={alerta.link}
+                onClick={e => e.stopPropagation()}
+                className="text-xs text-white/85 hover:text-white hover:underline underline-offset-2 transition whitespace-nowrap"
+              >
+                {alerta.mensaje} →
+              </Link>
+            ))}
           </div>
         </div>
       )}
@@ -729,7 +723,13 @@ export default function DashboardPage() {
                   {periodoGrafico === 'semana' ? 'Ventas esta semana' : periodoGrafico === 'mes' ? 'Ventas este mes' : 'Ventas este año'}
                 </p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-soft)' }}>
-                  {periodoGrafico === 'semana' && (semanaOffset === 0 ? 'Esta semana' : 'Semana anterior')}
+                  {periodoGrafico === 'semana' && (() => {
+                    const rango = getRangoSemana(semanaOffset)
+                    const desde = new Date(rango.desde + 'T12:00:00')
+                    const hasta = new Date(rango.hasta + 'T12:00:00')
+                    const fmt = (d: Date) => d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
+                    return `${fmt(desde)} – ${fmt(hasta)}`
+                  })()}
                   {periodoGrafico === 'mes' && `${['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][mesSeleccionado]} ${anioSeleccionado}`}
                   {periodoGrafico === 'anio' && `Año ${anioSeleccionado}`}
                 </p>
@@ -797,14 +797,16 @@ export default function DashboardPage() {
                       className="w-7 h-7 rounded-lg border flex items-center justify-center text-sm transition disabled:opacity-30"
                       style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-soft)', background: 'var(--color-surface)' }}
                     >‹</button>
-                    {semanaOffset < 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setSemanaOffset(0)}
-                        className="text-xs font-medium px-1"
-                        style={{ color: 'var(--color-accent)' }}
-                      >Hoy</button>
-                    )}
+                    <div className="w-8 flex items-center justify-center">
+                      {semanaOffset < 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setSemanaOffset(0)}
+                          className="text-xs font-medium"
+                          style={{ color: 'var(--color-accent)' }}
+                        >Hoy</button>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={() => setSemanaOffset(o => Math.min(0, o + 1))}

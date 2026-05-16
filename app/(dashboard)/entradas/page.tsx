@@ -1320,7 +1320,8 @@ function EntradasPageContent() {
                           <button
                             type="button"
                             onClick={() => setConfirmDeleteId(entrada.id)}
-                            className="text-xs text-[#1A1510]/40 hover:text-red-500 transition"
+                            className="text-xs font-medium hover:underline"
+                            style={{ color: '#C44040' }}
                           >
                             Eliminar
                           </button>

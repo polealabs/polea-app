@@ -436,7 +436,7 @@ export default function ClientesPage() {
                   }`}
                 >
                   <td className="px-5 py-4 font-medium">
-                    <Link href={`/clientes/${cliente.id}`} className="text-[#1E3A2F] hover:text-[#C4622D] hover:underline transition">
+                    <Link href={`/clientes/${cliente.id}`} className="underline underline-offset-2 transition hover:opacity-70" style={{ color: 'var(--color-accent)' }}>
                       {cliente.nombre}
                     </Link>
                   </td>
@@ -446,14 +446,8 @@ export default function ClientesPage() {
                   </td>
                   <td className="px-5 py-4 text-[#1A1510]/70">{cliente.ciudad ?? '—'}</td>
                   <td className="px-5 py-4 text-[#1A1510]/70">{cliente.correo ?? '—'}</td>
-                  <td className="px-5 py-4">
-                    {cliente.total_compras > 0 ? (
-                      <span className="inline-flex rounded-full bg-[#C4622D] px-2.5 py-1 text-xs font-semibold text-white">
-                        {cliente.total_compras}
-                      </span>
-                    ) : (
-                      <span className="text-[#1A1510]/40">0</span>
-                    )}
+                  <td className="px-5 py-4 text-sm font-medium" style={{ color: cliente.total_compras > 0 ? 'var(--color-text)' : 'var(--color-text-faint)' }}>
+                    {cliente.total_compras}
                   </td>
                   <td className="px-5 py-4 text-[#1A1510]/70">
                     {cliente.fecha_creacion ? formatFecha(cliente.fecha_creacion) : '—'}
@@ -468,13 +462,15 @@ export default function ClientesPage() {
                               setShowForm(false)
                               setError(null)
                             }}
-                            className="text-xs text-[#C4622D] hover:underline font-medium"
+                            className="text-xs font-medium hover:underline"
+                            style={{ color: 'var(--color-accent)' }}
                           >
                             Editar
                           </button>
                           <button
                             onClick={() => handleEliminar(cliente.id)}
-                            className="text-xs text-[#1A1510]/40 hover:text-red-500 transition"
+                            className="text-xs font-medium hover:underline"
+                            style={{ color: '#C44040' }}
                           >
                             Eliminar
                           </button>

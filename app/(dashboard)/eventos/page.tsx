@@ -198,21 +198,20 @@ export default function EventosPage() {
       ) : (
         <div className="space-y-3">
           {eventos.map((evento) => (
-            <div
-              key={evento.id}
-              className="bg-white rounded-2xl border border-[#1A1510]/8 p-5 shadow-sm flex items-center justify-between gap-4 cursor-pointer hover:border-[#C4622D]/30 transition"
-              style={{ background: 'var(--color-surface)' }}
-              onClick={() => router.push(`/eventos/${evento.id}`)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  router.push(`/eventos/${evento.id}`)
-                }
-              }}
-              role="button"
-              tabIndex={0}
-            >
-              <div className="flex items-center gap-4">
+            <div key={evento.id} className="flex items-center gap-2">
+              <div
+                className="flex-1 bg-white rounded-2xl border border-[#1A1510]/8 p-5 shadow-sm flex items-center gap-4 cursor-pointer hover:border-[#C4622D]/30 transition"
+                style={{ background: 'var(--color-surface)' }}
+                onClick={() => router.push(`/eventos/${evento.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    router.push(`/eventos/${evento.id}`)
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+              >
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
                   style={{ background: 'var(--color-accent-pale)' }}
@@ -240,11 +239,9 @@ export default function EventosPage() {
               {canDelete && (
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setConfirmDelete(evento.id)
-                  }}
-                  className="text-xs text-[#1A1510]/40 hover:text-red-500 transition flex-shrink-0"
+                  onClick={() => setConfirmDelete(evento.id)}
+                  className="flex-shrink-0 text-xs font-medium hover:underline px-3 py-2 rounded-xl transition"
+                  style={{ color: '#C44040' }}
                 >
                   Eliminar
                 </button>

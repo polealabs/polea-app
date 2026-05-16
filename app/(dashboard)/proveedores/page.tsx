@@ -364,14 +364,16 @@ export default function ProveedoresPage() {
                     <div className="flex gap-3 justify-end">
                       <button
                         onClick={() => abrirEditarProveedor(p)}
-                        className="text-xs text-[#C4622D] hover:underline font-medium"
+                        className="text-xs font-medium hover:underline"
+                        style={{ color: 'var(--color-accent)' }}
                       >
                         Editar
                       </button>
                       {canDelete && (
                         <button
                           onClick={() => setConfirmDelete(p.id)}
-                          className="text-xs text-[#1A1510]/40 hover:text-red-500 transition"
+                          className="text-xs font-medium hover:underline"
+                          style={{ color: '#C44040' }}
                         >
                           Eliminar
                         </button>

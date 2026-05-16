@@ -130,20 +130,14 @@ function descargarPlantillaVentas() {
   ])
 }
 
-function canalBadgeClass(canal: VentaCabecera['canal']) {
+function canalDotColor(canal: VentaCabecera['canal']): string {
   switch (canal) {
-    case 'WhatsApp':
-      return 'bg-[#25D366] text-white'
-    case 'Instagram':
-      return 'bg-[#E1306C] text-white'
-    case 'Web':
-      return 'bg-[#3B82F6] text-white'
-    case 'Presencial':
-      return 'bg-[#6B7280] text-white'
-    case 'Tienda multimarca':
-      return 'bg-[#D4A853] text-[#1A1510]'
-    default:
-      return 'bg-[#6B7280] text-white'
+    case 'WhatsApp': return '#25D366'
+    case 'Instagram': return '#E1306C'
+    case 'Web': return '#3B82F6'
+    case 'Presencial': return '#6B7280'
+    case 'Tienda multimarca': return '#D4A853'
+    default: return '#8A7D72'
   }
 }
 
@@ -1035,7 +1029,8 @@ export default function VentasPage() {
                   <td className="px-5 py-4 text-[#1A1510]/80">{v.cliente_nombre ?? 'Sin cliente'}</td>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${canalBadgeClass(v.canal)}`}>
+                      <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: 'var(--color-text-soft)' }}>
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: canalDotColor(v.canal) }} />
                         {v.canal}
                       </span>
                       {devolucionesPorVenta[v.id] ? (

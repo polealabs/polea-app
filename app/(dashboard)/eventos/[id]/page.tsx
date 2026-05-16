@@ -573,7 +573,8 @@ export default function EventoDetallePage() {
                               ),
                             )
                           }
-                          className="text-xs text-[#1A1510]/40 hover:text-red-500 transition"
+                          className="text-xs font-medium hover:underline"
+                          style={{ color: '#C44040' }}
                         >
                           ✕
                         </button>
@@ -744,7 +745,8 @@ export default function EventoDetallePage() {
                                 setInventario((data ?? []) as EventoInventario[])
                                 showToast('Producto eliminado del evento')
                               }}
-                              className="text-xs text-[#1A1510]/40 hover:text-red-500 transition"
+                              className="text-xs font-medium hover:underline"
+                          style={{ color: '#C44040' }}
                             >
                               Eliminar
                             </button>
@@ -880,7 +882,8 @@ export default function EventoDetallePage() {
                           <button
                             type="button"
                             onClick={() => void handleEliminarVenta(v.id)}
-                            className="text-xs text-[#1A1510]/40 hover:text-red-500 transition"
+                            className="text-xs font-medium hover:underline"
+                          style={{ color: '#C44040' }}
                           >
                             Eliminar
                           </button>
@@ -996,7 +999,8 @@ export default function EventoDetallePage() {
                           <button
                             type="button"
                             onClick={() => void handleEliminarGasto(g.id)}
-                            className="text-xs text-[#1A1510]/40 hover:text-red-500 transition"
+                            className="text-xs font-medium hover:underline"
+                          style={{ color: '#C44040' }}
                           >
                             Eliminar
                           </button>

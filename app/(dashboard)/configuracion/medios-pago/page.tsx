@@ -353,7 +353,8 @@ export default function MediosPagoPage() {
                             })
                             setShowForm(true)
                           }}
-                          className="text-xs text-[#C4622D] hover:underline font-medium"
+                          className="text-xs font-medium hover:underline"
+                          style={{ color: 'var(--color-accent)' }}
                         >
                           Editar
                         </button>
@@ -362,7 +363,8 @@ export default function MediosPagoPage() {
                         <button
                           type="button"
                           onClick={() => setConfirmDelete(m)}
-                          className="text-xs text-[#1A1510]/40 hover:text-red-500 transition"
+                          className="text-xs font-medium hover:underline"
+                          style={{ color: '#C44040' }}
                         >
                           Eliminar
                         </button>
