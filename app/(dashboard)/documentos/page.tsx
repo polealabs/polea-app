@@ -188,10 +188,10 @@ export default function DocumentosPage() {
           </Link>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-[#EDE5DC] shadow-sm overflow-x-auto">
+        <div className="rounded-2xl border shadow-sm overflow-x-auto" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
           <table className="w-full min-w-[760px] text-sm">
             <thead>
-              <tr className="bg-[#FAF6F0] border-b border-[#EDE5DC]">
+              <tr className="border-b" style={{ background: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
                 <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Número</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Destinatario</th>
                 <th className="text-right px-5 py-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Total</th>
@@ -202,7 +202,7 @@ export default function DocumentosPage() {
             </thead>
             <tbody>
               {documentosFiltrados.map((d) => (
-                <tr key={d.id} className="border-b border-[#EDE5DC]/70 hover:bg-[#FAF6F0]/50">
+                <tr key={d.id} className="border-b hover:bg-[#FAF6F0]/50" style={{ borderColor: 'var(--color-border)' }}>
                   <td className="px-5 py-4 font-semibold text-ink">{d.numero}</td>
                   <td className="px-5 py-4 text-ink">{d.destinatario_nombre}</td>
                   <td className="px-5 py-4 text-right font-semibold text-ink">{formatCOP(d.total)}</td>

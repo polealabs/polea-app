@@ -648,10 +648,10 @@ export default function ConsignacionesPage() {
             }}
           />
 
-          <div className="min-w-0 bg-white border border-[#EDE5DC] rounded-2xl overflow-x-auto">
+          <div className="min-w-0 rounded-2xl overflow-x-auto border" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-[#FAF6F0]">
+                <tr style={{ background: 'var(--color-background)' }}>
                   <th className={thClass}>Nombre</th>
                   <th className={thClass}>Ciudad</th>
                   <th className={thClass}>Contacto</th>
@@ -668,7 +668,7 @@ export default function ConsignacionesPage() {
               </thead>
               <tbody>
                 {consignatarias.map((t) => (
-                  <tr key={t.id} className="border-t border-[#EDE5DC]">
+                  <tr key={t.id} className="border-t" style={{ borderColor: 'var(--color-border)' }}>
                     <td className="px-4 py-3 font-medium">{t.nombre}</td>
                     <td className="px-4 py-3 text-[#4A3F35]">{t.ciudad || '—'}</td>
                     <td className="px-4 py-3 text-[#4A3F35]">{t.contacto || '—'}</td>
@@ -775,10 +775,10 @@ export default function ConsignacionesPage() {
                 ))}
               </select>
 
-              <div className="min-w-0 bg-white border border-[#EDE5DC] rounded-2xl overflow-x-auto">
+              <div className="min-w-0 rounded-2xl overflow-x-auto border" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-[#FAF6F0]">
+                    <tr style={{ background: 'var(--color-background)' }}>
                       <th className={thClass}>Producto</th>
                       <th className={`${thClass} text-right`}>Enviadas</th>
                       <th className={`${thClass} text-right`}>
@@ -801,7 +801,7 @@ export default function ConsignacionesPage() {
                       const liquidadas = Math.max(0, c.cantidad - c.unidades_disponibles - devueltas)
                       const progreso = c.cantidad > 0 ? Math.round((c.unidades_disponibles / c.cantidad) * 100) : 0
                       return (
-                        <tr key={c.id} className="border-t border-[#EDE5DC]">
+                        <tr key={c.id} className="border-t" style={{ borderColor: 'var(--color-border)' }}>
                           <td className="px-4 py-3">{c.producto_nombre}</td>
                           <td className="px-4 py-3 text-right">{c.cantidad}</td>
                           <td className="px-4 py-3 text-right font-semibold">{c.unidades_disponibles}</td>
@@ -828,10 +828,10 @@ export default function ConsignacionesPage() {
           )}
 
           {inventarioVista === 'global' && (
-            <div className="min-w-0 bg-white border border-[#EDE5DC] rounded-2xl overflow-x-auto">
+            <div className="min-w-0 rounded-2xl overflow-x-auto border" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-[#FAF6F0]">
+                  <tr style={{ background: 'var(--color-background)' }}>
                     <th className={thClass}>Producto</th>
                     <th className={`${thClass} text-right`}>Total enviado</th>
                     <th className={`${thClass} text-right`}>
@@ -845,7 +845,7 @@ export default function ConsignacionesPage() {
                 </thead>
                 <tbody>
                   {inventarioGlobal.map((row) => (
-                    <tr key={row.producto_id} className="border-t border-[#EDE5DC]">
+                    <tr key={row.producto_id} className="border-t" style={{ borderColor: 'var(--color-border)' }}>
                       <td className="px-4 py-3 font-medium">{row.nombre}</td>
                       <td className="px-4 py-3 text-right">{row.enviado}</td>
                       <td className="px-4 py-3 text-right font-semibold">{row.disponible}</td>
@@ -926,10 +926,10 @@ export default function ConsignacionesPage() {
               return res
             }}
           />
-          <div className="min-w-0 bg-white border border-[#EDE5DC] rounded-2xl overflow-x-auto">
+          <div className="min-w-0 rounded-2xl overflow-x-auto border" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-[#FAF6F0]">
+                <tr style={{ background: 'var(--color-background)' }}>
                   <th className={thCompactClass}>Fecha</th>
                   <th className={thCompactClass}>Tienda</th>
                   <th className={thCompactClass}>Producto</th>
@@ -943,7 +943,7 @@ export default function ConsignacionesPage() {
               </thead>
               <tbody>
                 {liquidacionesHistorial.map((m) => (
-                  <tr key={m.id} className="border-t border-[#EDE5DC]">
+                  <tr key={m.id} className="border-t" style={{ borderColor: 'var(--color-border)' }}>
                     <td className="px-3 py-3 text-sm">{formatFecha(m.fecha)}</td>
                     <td className="px-3 py-3 text-sm">{m.consignataria_nombre}</td>
                     <td className="px-3 py-3 text-sm">{m.producto_nombre}</td>
@@ -997,10 +997,10 @@ export default function ConsignacionesPage() {
               return res
             }}
           />
-          <div className="min-w-0 bg-white border border-[#EDE5DC] rounded-2xl overflow-x-auto">
+          <div className="min-w-0 rounded-2xl overflow-x-auto border" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-[#FAF6F0]">
+                <tr style={{ background: 'var(--color-background)' }}>
                   <th className={thClass}>Fecha</th>
                   <th className={thClass}>Tienda</th>
                   <th className={thClass}>Producto</th>
@@ -1011,7 +1011,7 @@ export default function ConsignacionesPage() {
               </thead>
               <tbody>
                 {devolucionesFiltradas.map((m) => (
-                  <tr key={m.id} className="border-t border-[#EDE5DC]">
+                  <tr key={m.id} className="border-t" style={{ borderColor: 'var(--color-border)' }}>
                     <td className="px-4 py-3">{formatFecha(m.fecha)}</td>
                     <td className="px-4 py-3">{m.consignataria_nombre}</td>
                     <td className="px-4 py-3">{m.producto_nombre}</td>

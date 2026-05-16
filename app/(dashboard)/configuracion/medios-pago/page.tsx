@@ -306,11 +306,11 @@ export default function MediosPagoPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-[#1A1510]/8 shadow-sm overflow-hidden">
+      <div className="rounded-2xl border shadow-sm overflow-hidden" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[760px]">
             <thead>
-              <tr className="border-b border-[#1A1510]/8 bg-[#FAF6F0]">
+              <tr className="border-b bg-[#FAF6F0]" style={{ background: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">Nombre</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">Tipo</th>
                 <th className="text-right px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">Comisión</th>

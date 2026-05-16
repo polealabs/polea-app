@@ -279,14 +279,14 @@ export default function EquipoPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-[#EDE5DC] shadow-sm overflow-hidden">
+      <div className="rounded-2xl border shadow-sm overflow-hidden" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
         <div className="px-5 py-4 border-b border-[#EDE5DC]">
           <h2 className="text-sm font-semibold text-[#1A1510]">Miembros actuales</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[700px]">
             <thead>
-              <tr className="bg-[#FAF6F0] border-b border-[#EDE5DC]">
+              <tr className="border-b" style={{ background: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
                 <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#8A7D72]">Miembro</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#8A7D72]">Correo</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#8A7D72]">Rol</th>
@@ -352,14 +352,14 @@ export default function EquipoPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-[#EDE5DC] shadow-sm overflow-hidden">
+      <div className="rounded-2xl border shadow-sm overflow-hidden" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
         <div className="px-5 py-4 border-b border-[#EDE5DC]">
           <h2 className="text-sm font-semibold text-[#1A1510]">Invitaciones pendientes</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[700px]">
             <thead>
-              <tr className="bg-[#FAF6F0] border-b border-[#EDE5DC]">
+              <tr className="border-b" style={{ background: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
                 <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#8A7D72]">Email</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#8A7D72]">Rol</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#8A7D72]">Expira</th>

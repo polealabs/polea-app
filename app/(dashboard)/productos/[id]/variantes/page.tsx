@@ -273,11 +273,11 @@ export default function VariantesProductoPage() {
           Este producto no tiene variantes todavia. Agrega un atributo como Talla o Color para comenzar.
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-[#EDE5DC] shadow-sm overflow-hidden">
+        <div className="rounded-2xl border shadow-sm overflow-hidden" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[760px]">
               <thead>
-                <tr className="border-b border-[#EDE5DC]">
+                <tr className="border-b" style={{ background: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
                   <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-[#8A7D72]">Variante</th>
                   <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-[#8A7D72]">SKU</th>
                   <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-[#8A7D72]">Precio</th>

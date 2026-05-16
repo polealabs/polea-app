@@ -1078,7 +1078,7 @@ function EntradasPageContent() {
                   <div className="rounded-xl border border-[#1A1510]/10 overflow-hidden">
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="bg-[#FAF6F0]">
+                        <tr style={{ background: 'var(--color-background)' }}>
                           <th className="text-left px-3 py-2">Cuota</th>
                           <th className="text-left px-3 py-2">Vencimiento</th>
                           <th className="text-right px-3 py-2">Monto</th>

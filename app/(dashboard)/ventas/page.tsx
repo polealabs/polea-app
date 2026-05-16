@@ -982,11 +982,11 @@ export default function VentasPage() {
           </button>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-[#EDE5DC] shadow-sm overflow-hidden">
+        <div className="rounded-2xl border shadow-sm overflow-hidden" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[880px]">
             <thead>
-              <tr className="border-b border-[#EDE5DC] bg-[#FAF6F0]" style={{ background: 'var(--color-background)' }}>
+              <tr className="border-b bg-[#FAF6F0]" style={{ background: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">Fecha</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">Cliente</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-[#1A1510]/50 uppercase tracking-wide">
