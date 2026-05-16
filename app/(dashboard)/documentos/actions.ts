@@ -127,8 +127,9 @@ export async function obtenerDocumento(id: string) {
       .select('*')
       .eq('id', id)
       .eq('tienda_id', tienda.id)
-      .single()
+      .maybeSingle()
     if (error) return { error: error.message }
+    if (!data) return { error: 'Documento no encontrado' }
     return {
       ok: true,
       documento: {

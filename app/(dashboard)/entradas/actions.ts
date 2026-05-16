@@ -129,7 +129,7 @@ export async function registrarEntradaCompleta(payload: {
         .from('producto_variantes')
         .select('stock_actual')
         .eq('id', payload.variante_id)
-        .single()
+        .maybeSingle()
 
       if (variante) {
         await supabase
@@ -251,7 +251,7 @@ export async function registrarPagoCuenta(cuentaId: string, cuotaId?: string, fe
       .select('*, cuotas_pago(*)')
       .eq('id', cuentaId)
       .eq('tienda_id', tienda_id)
-      .single()
+      .maybeSingle()
 
     const cuenta = cuentaRaw as CuentaConCuotas | null
     if (!cuenta) return { error: 'Cuenta no encontrada' }

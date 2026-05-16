@@ -52,7 +52,7 @@ export async function registrarDevolucion(payload: {
         .from('productos')
         .select('stock_actual, unidades_defectuosas')
         .eq('id', payload.producto_original_id)
-        .single()
+        .maybeSingle()
 
       if (prod) {
         const { error: errStock } = await supabase
@@ -71,7 +71,7 @@ export async function registrarDevolucion(payload: {
         .from('productos')
         .select('stock_actual')
         .eq('id', payload.producto_original_id)
-        .single()
+        .maybeSingle()
 
       if (prodOriginal) {
         const { error: errStock } = await supabase
@@ -88,7 +88,7 @@ export async function registrarDevolucion(payload: {
           .from('productos')
           .select('stock_actual')
           .eq('id', payload.producto_cambio_id)
-          .single()
+          .maybeSingle()
 
         if (prodCambio) {
           const { error: errStock } = await supabase

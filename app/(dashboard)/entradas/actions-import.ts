@@ -160,7 +160,7 @@ export async function importarEntradas(filas: Record<string, string>[]) {
         .from('producto_variantes')
         .select('stock_actual')
         .eq('id', vid)
-        .single()
+        .maybeSingle()
       if (variante) {
         await supabase
           .from('producto_variantes')

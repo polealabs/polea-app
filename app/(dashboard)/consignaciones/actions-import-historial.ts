@@ -163,7 +163,7 @@ export async function importarSalidasConsignacion(filas: Record<string, string>[
               .from('producto_variantes')
               .select('stock_actual')
               .eq('id', item.variante_id)
-              .single()
+              .maybeSingle()
             if (varStock) {
               await supabase
                 .from('producto_variantes')
@@ -352,7 +352,7 @@ export async function importarDevolucionesConsignacion(filas: Record<string, str
           .from('producto_variantes')
           .select('stock_actual')
           .eq('id', op.variante_id)
-          .single()
+          .maybeSingle()
         if (varStock) {
           await supabase
             .from('producto_variantes')
@@ -366,7 +366,7 @@ export async function importarDevolucionesConsignacion(filas: Record<string, str
           .from('productos')
           .select('stock_actual')
           .eq('id', op.producto_id)
-          .single()
+          .maybeSingle()
         if (prod) {
           await supabase
             .from('productos')

@@ -227,7 +227,7 @@ export async function cerrarEvento(eventoId: string) {
           .from('producto_variantes')
           .select('stock_actual')
           .eq('id', invRows[0].variante_id)
-          .single()
+          .maybeSingle()
         if (varStock) {
           await supabase
             .from('producto_variantes')

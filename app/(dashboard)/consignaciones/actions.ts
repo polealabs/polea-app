@@ -99,7 +99,7 @@ export async function registrarSalidaMultiple(payload: {
         .select('stock_actual, nombre')
         .eq('id', item.producto_id)
         .eq('tienda_id', tienda_id)
-        .single()
+        .maybeSingle()
       if (!prod) return { error: 'Producto no encontrado' }
 
       let stockDisponible = prod.stock_actual
@@ -109,7 +109,7 @@ export async function registrarSalidaMultiple(payload: {
           .select('stock_actual, nombre')
           .eq('id', item.variante_id)
           .eq('tienda_id', tienda_id)
-          .single()
+          .maybeSingle()
         if (variante) stockDisponible = variante.stock_actual
       }
       if (stockDisponible < item.cantidad) {
@@ -152,7 +152,7 @@ export async function registrarSalidaMultiple(payload: {
           .from('producto_variantes')
           .select('stock_actual')
           .eq('id', item.variante_id)
-          .single()
+          .maybeSingle()
         if (varStock) {
           await supabase
             .from('producto_variantes')
@@ -219,7 +219,7 @@ export async function registrarMovimiento(payload: {
       .select('*, tiendas_consignatarias(porcentaje_comision)')
       .eq('id', payload.consignacion_id)
       .eq('tienda_id', tienda_id)
-      .single()
+      .maybeSingle()
 
     if (!consig) return { error: 'Consignación no encontrada' }
     if (payload.cantidad <= 0) return { error: 'La cantidad debe ser mayor a 0' }
@@ -271,7 +271,7 @@ export async function registrarMovimiento(payload: {
           .from('producto_variantes')
           .select('stock_actual')
           .eq('id', consig.variante_id)
-          .single()
+          .maybeSingle()
         if (varStock) {
           await supabase
             .from('producto_variantes')
@@ -292,7 +292,7 @@ export async function registrarMovimiento(payload: {
             .select('stock_actual')
             .eq('id', consig.producto_id)
             .eq('tienda_id', tienda_id)
-            .single()
+            .maybeSingle()
 
           if (data) {
             await supabase
@@ -348,7 +348,7 @@ export async function registrarLiquidacion(payload: {
       .select('porcentaje_comision')
       .eq('id', payload.consignataria_id)
       .eq('tienda_id', tienda_id)
-      .single()
+      .maybeSingle()
 
     if (!consignataria) return { error: 'Tienda consignataria no encontrada' }
 
