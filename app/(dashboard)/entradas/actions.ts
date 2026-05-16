@@ -43,6 +43,7 @@ export async function crearEntradas(
     revalidatePath('/entradas')
     revalidatePath('/productos')
     revalidatePath('/gastos')
+    revalidatePath('/dashboard')
     return { success: true }
   } catch (e: unknown) {
     return { error: e instanceof Error ? e.message : 'Error desconocido' }
@@ -226,6 +227,7 @@ export async function registrarEntradaCompleta(payload: {
     revalidatePath('/entradas')
     revalidatePath('/productos')
     revalidatePath('/gastos')
+    revalidatePath('/dashboard')
     return { ok: true as const, producto_id, entrada_id: entrada.id }
   } catch (e: unknown) {
     return { error: e instanceof Error ? e.message : 'Error desconocido' }
