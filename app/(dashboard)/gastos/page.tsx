@@ -13,6 +13,8 @@ import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
 import { descargarCSV } from '@/lib/csv'
 import { useToast } from '@/lib/hooks/useToast'
 import { importarGastos } from './actions-import'
+import { obtenerPreferencias } from '@/app/(dashboard)/preferencias/actions'
+import { Paginacion } from '@/components/ui/Paginacion'
 
 const inputClass =
   'w-full px-3 py-2 rounded-lg border border-[#1A1510]/20 bg-white text-[#1A1510] placeholder:text-[#1A1510]/40 focus:outline-none focus:ring-2 focus:ring-[#C4622D]/40 focus:border-[#C4622D] transition text-sm'
@@ -150,6 +152,8 @@ export default function GastosPage() {
     return local.toISOString().slice(0, 10)
   }, [])
   const { toasts, showToast, removeToast } = useToast()
+  const [registrosPorPagina, setRegistrosPorPagina] = useState(20)
+  const [paginaGastos, setPaginaGastos] = useState(1)
 
   const fetchGastos = useCallback(async (tiendaId: string, mes: string) => {
     const supabase = createClient()
@@ -184,6 +188,19 @@ export default function GastosPage() {
     }, 0)
     return () => window.clearTimeout(timeoutId)
   }, [fetchGastos, mesActual, tienda])
+
+  useEffect(() => {
+    void obtenerPreferencias().then((data) => {
+      if (data) {
+        const raw = data as Record<string, unknown>
+        setRegistrosPorPagina(Number(raw.registros_por_pagina ?? 20) || 20)
+      }
+    })
+  }, [])
+
+  useEffect(() => {
+    setPaginaGastos(1)
+  }, [chipTipo, mesActual])
 
   async function handleSubmit(formData: FormData) {
     if (!tipoGasto || !subcategoria) {
@@ -267,6 +284,11 @@ export default function GastosPage() {
   const gastosFiltrados = useMemo(
     () => (chipTipo === 'todos' ? gastos : gastos.filter((g) => gastoCoincideTipoChip(g, chipTipo))),
     [gastos, chipTipo],
+  )
+
+  const gastosPaginados = gastosFiltrados.slice(
+    (paginaGastos - 1) * registrosPorPagina,
+    paginaGastos * registrosPorPagina,
   )
 
   const conteosPorTipo = useMemo(() => {
@@ -619,11 +641,11 @@ export default function GastosPage() {
                 </tr>
               </thead>
               <tbody>
-                {gastosFiltrados.map((gasto, i) => (
+                {gastosPaginados.map((gasto, i) => (
                   <tr
                     key={gasto.id}
                     className={`border-b border-[#1A1510]/5 hover:bg-[#FAF6F0]/60 transition ${
-                      i === gastosFiltrados.length - 1 ? 'border-b-0' : ''
+                      i === gastosPaginados.length - 1 ? 'border-b-0' : ''
                     }`}
                   >
                     <td className="px-5 py-4 text-[#1A1510]/70">{formatFecha(gasto.fecha)}</td>
@@ -700,6 +722,12 @@ export default function GastosPage() {
               </tbody>
             </table>
           </div>
+          <Paginacion
+            total={gastosFiltrados.length}
+            porPagina={registrosPorPagina}
+            pagina={paginaGastos}
+            onChange={setPaginaGastos}
+          />
         </div>
       )}
       <Toast toasts={toasts} onRemove={removeToast} />

@@ -15,6 +15,8 @@ import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
 import { descargarCSV } from '@/lib/csv'
 import { useToast } from '@/lib/hooks/useToast'
 import { importarProductos } from './actions-import'
+import { obtenerPreferencias } from '@/app/(dashboard)/preferencias/actions'
+import { Paginacion } from '@/components/ui/Paginacion'
 
 const inputClass =
   'w-full px-3 py-2 rounded-lg border border-[#1A1510]/20 bg-white text-[#1A1510] placeholder:text-[#1A1510]/40 focus:outline-none focus:ring-2 focus:ring-[#C4622D]/40 focus:border-[#C4622D] transition text-sm'
@@ -473,6 +475,22 @@ export default function ProductosPage() {
     void loadProductos()
   }, [fetchProductos, tienda])
 
+  const [registrosPorPagina, setRegistrosPorPagina] = useState(20)
+  const [paginaProductos, setPaginaProductos] = useState(1)
+
+  useEffect(() => {
+    void obtenerPreferencias().then((data) => {
+      if (data) {
+        const raw = data as Record<string, unknown>
+        setRegistrosPorPagina(Number(raw.registros_por_pagina ?? 20) || 20)
+      }
+    })
+  }, [])
+
+  useEffect(() => {
+    setPaginaProductos(1)
+  }, [filtroActivo, ignorarFiltroQuery])
+
   const filtroQuery = searchParams.get('filtro')
   const filtroActivoReal: FiltroStock =
     !ignorarFiltroQuery && filtroQuery === 'stock-bajo'
@@ -676,6 +694,11 @@ export default function ProductosPage() {
             (p.sku?.toLowerCase().includes(q) ?? false)
           )
         })
+
+  const productosPaginados = productosFiltrados.slice(
+    (paginaProductos - 1) * registrosPorPagina,
+    paginaProductos * registrosPorPagina,
+  )
 
   if (tiendaLoading || loading) {
     return <ModuleTableSkeleton maxWidthClass="max-w-5xl" rows={9} />
@@ -1199,11 +1222,11 @@ export default function ProductosPage() {
               </tr>
             </thead>
             <tbody>
-              {productosFiltrados.map((p, i) => (
+              {productosPaginados.map((p, i) => (
                 <Fragment key={p.id}>
                   <tr
                     className={`border-b border-[#1A1510]/5 hover:bg-[#FAF6F0]/60 transition ${
-                      i === productosFiltrados.length - 1 ? 'border-b-0' : ''
+                      i === productosPaginados.length - 1 && !expandidos.has(p.id) && editando?.id !== p.id ? 'border-b-0' : ''
                     }`}
                   >
                   <td className="px-5 py-4">
@@ -1675,6 +1698,12 @@ export default function ProductosPage() {
             </tbody>
           </table>
           </div>
+          <Paginacion
+            total={productosFiltrados.length}
+            porPagina={registrosPorPagina}
+            pagina={paginaProductos}
+            onChange={setPaginaProductos}
+          />
         </div>
       )}
       <Toast toasts={toasts} onRemove={removeToast} />
