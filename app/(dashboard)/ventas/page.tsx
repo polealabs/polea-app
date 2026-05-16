@@ -16,6 +16,8 @@ import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
 import { descargarCSV } from '@/lib/csv'
 import { useToast } from '@/lib/hooks/useToast'
 import { importarVentas } from './actions-import'
+import { obtenerPreferencias } from '@/app/(dashboard)/preferencias/actions'
+import { Paginacion } from '@/components/ui/Paginacion'
 import type { Cliente, DevolucionVenta, MedioPago, Producto, ProductoVariante, VentaCabecera } from '@/lib/types'
 
 type DevolucionConNombre = DevolucionVenta & {
@@ -187,6 +189,10 @@ export default function VentasPage() {
   const [devSubmitting, setDevSubmitting] = useState(false)
   const [devError, setDevError] = useState<string | null>(null)
 
+  const [diasMaxDevolucion, setDiasMaxDevolucion] = useState(30)
+  const [registrosPorPagina, setRegistrosPorPagina] = useState(20)
+  const [paginaVentas, setPaginaVentas] = useState(1)
+
   const [canal, setCanal] = useState<VentaCabecera['canal']>('WhatsApp')
   const [medioId, setMedioId] = useState('')
   const [envio, setEnvio] = useState(0)
@@ -293,6 +299,20 @@ export default function VentasPage() {
     }, 0)
     return () => window.clearTimeout(timeoutId)
   }, [fetchData, tienda, mesActual])
+
+  useEffect(() => {
+    void obtenerPreferencias().then((data) => {
+      if (data) {
+        const raw = data as Record<string, unknown>
+        setDiasMaxDevolucion(Number(raw.dias_max_devolucion ?? 30) || 30)
+        setRegistrosPorPagina(Number(raw.registros_por_pagina ?? 20) || 20)
+      }
+    })
+  }, [])
+
+  useEffect(() => {
+    setPaginaVentas(1)
+  }, [filtroCanalStr, filtroMedioStr, busquedaCliente, mesActual])
 
   async function handleClienteCreado(cliente: { id: string; nombre: string }) {
     if (!tienda) return
@@ -460,6 +480,10 @@ export default function VentasPage() {
 
   const hayConflictoStock = advertenciasStockPorLinea.some((m) => m != null)
 
+  const puedeRegistrarDevolucion = ventaDetalle
+    ? Math.floor((Date.now() - new Date(ventaDetalle.fecha + 'T12:00:00').getTime()) / 86400000) <= diasMaxDevolucion
+    : false
+
   const maxFecha = toLocalISODateString()
   const hayProductoConStock = productos.some(
     (p) =>
@@ -473,6 +497,11 @@ export default function VentasPage() {
     const matchCliente = !busquedaCliente || (v.cliente_nombre?.toLowerCase() ?? '').includes(busquedaCliente.toLowerCase())
     return matchCanal && matchMedio && matchCliente
   })
+
+  const ventasPaginadas = ventasFiltradas.slice(
+    (paginaVentas - 1) * registrosPorPagina,
+    paginaVentas * registrosPorPagina,
+  )
 
   if (tiendaLoading || loading) {
     return (
@@ -983,7 +1012,7 @@ export default function VentasPage() {
         </div>
       ) : (
         <div className="rounded-2xl border shadow-sm overflow-hidden" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" style={{ minWidth: 0 }}>
             <table className="w-full text-sm min-w-[880px]">
             <thead>
               <tr className="border-b bg-[#FAF6F0]" style={{ background: 'var(--color-background)', borderColor: 'var(--color-border)' }}>
@@ -1018,11 +1047,11 @@ export default function VentasPage() {
               </tr>
             </thead>
             <tbody>
-              {ventasFiltradas.map((v, i) => (
+              {ventasPaginadas.map((v, i) => (
                 <tr
                   key={v.id}
                   className={`border-b border-[#EDE5DC]/70 hover:bg-[#FAF6F0]/60 transition ${
-                    i === ventasFiltradas.length - 1 ? 'border-b-0' : ''
+                    i === ventasPaginadas.length - 1 ? 'border-b-0' : ''
                   }`}
                 >
                   <td className="px-5 py-4 text-[#1A1510]/70">{formatFecha(v.fecha)}</td>
@@ -1076,6 +1105,12 @@ export default function VentasPage() {
             </tbody>
           </table>
           </div>
+          <Paginacion
+            total={ventasFiltradas.length}
+            porPagina={registrosPorPagina}
+            pagina={paginaVentas}
+            onChange={setPaginaVentas}
+          />
         </div>
       )}
 
@@ -1164,14 +1199,20 @@ export default function VentasPage() {
                     Devoluciones ({devoluciones.length})
                   </p>
                   {canEdit && (
-                    <button
-                      type="button"
-                      onClick={() => setShowFormDevolucion((prev) => !prev)}
-                      className="text-xs font-medium px-3 py-1.5 rounded-lg transition"
-                      style={{ background: 'var(--color-accent)', color: 'white' }}
-                    >
-                      + Registrar devolución
-                    </button>
+                    puedeRegistrarDevolucion ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowFormDevolucion((prev) => !prev)}
+                        className="text-xs font-medium px-3 py-1.5 rounded-lg transition"
+                        style={{ background: 'var(--color-accent)', color: 'white' }}
+                      >
+                        + Registrar devolución
+                      </button>
+                    ) : (
+                      <p className="text-xs" style={{ color: 'var(--color-text-faint)' }}>
+                        Plazo vencido ({diasMaxDevolucion} días)
+                      </p>
+                    )
                   )}
                 </div>
 

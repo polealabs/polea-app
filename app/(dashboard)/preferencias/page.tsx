@@ -18,6 +18,8 @@ type PrefForm = {
   dias_sin_compra_alerta: number
   alerta_ventas_bajas: boolean
   porcentaje_alerta_ventas: number
+  dias_max_devolucion: number
+  registros_por_pagina: number
 }
 
 const defaults: PrefForm = {
@@ -29,6 +31,8 @@ const defaults: PrefForm = {
   dias_sin_compra_alerta: 35,
   alerta_ventas_bajas: true,
   porcentaje_alerta_ventas: 80,
+  dias_max_devolucion: 30,
+  registros_por_pagina: 20,
 }
 
 function Toggle({
@@ -76,6 +80,7 @@ export default function PreferenciasPage() {
       void (async () => {
         const data = await obtenerPreferencias()
         if (data) {
+          const raw = data as Record<string, unknown>
           setForm({
             alerta_stock_bajo: Boolean(data.alerta_stock_bajo),
             alerta_sin_movimiento: Boolean(data.alerta_sin_movimiento),
@@ -85,6 +90,8 @@ export default function PreferenciasPage() {
             dias_sin_compra_alerta: Number(data.dias_sin_compra_alerta ?? 35),
             alerta_ventas_bajas: Boolean(data.alerta_ventas_bajas),
             porcentaje_alerta_ventas: Number(data.porcentaje_alerta_ventas ?? 80),
+            dias_max_devolucion: Number(raw.dias_max_devolucion ?? 30) || 30,
+            registros_por_pagina: Number(raw.registros_por_pagina ?? 20) || 20,
           })
         }
         setLoading(false)
@@ -104,6 +111,8 @@ export default function PreferenciasPage() {
     fd.set('dias_sin_compra_alerta', String(form.dias_sin_compra_alerta))
     fd.set('alerta_ventas_bajas', String(form.alerta_ventas_bajas))
     fd.set('porcentaje_alerta_ventas', String(form.porcentaje_alerta_ventas))
+    fd.set('dias_max_devolucion', String(form.dias_max_devolucion))
+    fd.set('registros_por_pagina', String(form.registros_por_pagina))
 
     const res = await guardarPreferencias(fd)
     if (res?.error) {
@@ -124,6 +133,27 @@ export default function PreferenciasPage() {
         <h1 className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>Preferencias</h1>
         <p className="text-sm text-[#8A7D72] mt-1">Configura las alertas inteligentes que quieres recibir.</p>
       </div>
+
+      <section className="bg-white rounded-2xl border border-[#EDE5DC] p-6 space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-[#1A1510]">General</h2>
+          <p className="text-xs text-[#8A7D72] mt-1">Ajusta cómo se muestra la información en los módulos.</p>
+        </div>
+        <div>
+          <p className="text-xs text-[#8A7D72] mb-1">Registros por página en tablas</p>
+          <select
+            value={form.registros_por_pagina}
+            onChange={(e) => setForm((s) => ({ ...s, registros_por_pagina: Number(e.target.value) }))}
+            className={inputClass}
+          >
+            <option value={10}>10 por página</option>
+            <option value={20}>20 por página</option>
+            <option value={30}>30 por página</option>
+            <option value={50}>50 por página</option>
+          </select>
+          <p className="text-xs text-[#8A7D72] mt-1">Aplica a inventario, clientes, ventas, gastos y más</p>
+        </div>
+      </section>
 
       <section className="bg-white rounded-2xl border border-[#EDE5DC] p-6 space-y-4">
         <div>
@@ -238,6 +268,20 @@ export default function PreferenciasPage() {
             <p className="text-sm font-semibold text-[#1E3A2F] mt-1">{form.porcentaje_alerta_ventas}%</p>
           </div>
         )}
+
+        <div className="border-t border-[#EDE5DC] pt-4">
+          <p className="text-xs text-[#8A7D72] mb-1">Plazo máximo para registrar devoluciones (días)</p>
+          <input
+            type="number"
+            min={1}
+            value={form.dias_max_devolucion}
+            onChange={(e) => setForm((s) => ({ ...s, dias_max_devolucion: Number(e.target.value) || 30 }))}
+            className={inputClass}
+          />
+          <p className="text-xs text-[#8A7D72] mt-1">
+            Después de este plazo no se puede registrar una devolución para esa venta
+          </p>
+        </div>
       </section>
 
       <div className="flex justify-end">

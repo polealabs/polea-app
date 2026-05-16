@@ -15,6 +15,8 @@ import { descargarCSV } from '@/lib/csv'
 import { useToast } from '@/lib/hooks/useToast'
 import { importarClientes } from './actions-import'
 import { toLocalISOYearMonthString } from '@/lib/utils'
+import { obtenerPreferencias } from '@/app/(dashboard)/preferencias/actions'
+import { Paginacion } from '@/components/ui/Paginacion'
 
 type ClienteConCompras = Cliente & { total_compras: number }
 
@@ -59,6 +61,8 @@ export default function ClientesPage() {
     hace35: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     mesActualStr: toLocalISOYearMonthString(),
   }))
+  const [registrosPorPagina, setRegistrosPorPagina] = useState(20)
+  const [paginaClientes, setPaginaClientes] = useState(1)
   const { toasts, showToast, removeToast } = useToast()
 
   const fetchClientes = useCallback(async (tiendaId: string, mes: string, filtrarPorMes: boolean) => {
@@ -116,6 +120,19 @@ export default function ClientesPage() {
     }, 0)
     return () => window.clearTimeout(timeoutId)
   }, [fetchClientes, filtroMes, mesActual, tienda])
+
+  useEffect(() => {
+    void obtenerPreferencias().then((data) => {
+      if (data) {
+        const raw = data as Record<string, unknown>
+        setRegistrosPorPagina(Number(raw.registros_por_pagina ?? 20) || 20)
+      }
+    })
+  }, [])
+
+  useEffect(() => {
+    setPaginaClientes(1)
+  }, [chipCliente, busqueda, filtroMes, mesActual])
 
   async function handleSubmit(formData: FormData) {
     const esEdicion = Boolean(editando)
@@ -177,6 +194,11 @@ export default function ClientesPage() {
       return nombre.includes(q) || telefono.includes(q)
     })
   }, [busqueda, clientesPorChip])
+
+  const clientesPaginados = clientesFiltrados.slice(
+    (paginaClientes - 1) * registrosPorPagina,
+    paginaClientes * registrosPorPagina,
+  )
 
   const conteosClientes = useMemo(
     () => ({
@@ -428,11 +450,11 @@ export default function ClientesPage() {
               </tr>
             </thead>
             <tbody>
-              {clientesFiltrados.map((cliente, i) => (
+              {clientesPaginados.map((cliente, i) => (
                 <tr
                   key={cliente.id}
                   className={`border-b border-[#1A1510]/5 hover:bg-[#FAF6F0]/60 transition ${
-                    i === clientesFiltrados.length - 1 ? 'border-b-0' : ''
+                    i === clientesPaginados.length - 1 ? 'border-b-0' : ''
                   }`}
                 >
                   <td className="px-5 py-4 font-medium">
@@ -483,6 +505,12 @@ export default function ClientesPage() {
             </tbody>
           </table>
           </div>
+          <Paginacion
+            total={clientesFiltrados.length}
+            porPagina={registrosPorPagina}
+            pagina={paginaClientes}
+            onChange={setPaginaClientes}
+          />
         </div>
       )}
       <Toast toasts={toasts} onRemove={removeToast} />

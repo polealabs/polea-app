@@ -45,6 +45,8 @@ export async function guardarPreferencias(formData: FormData) {
     dias_sin_movimiento: Number(formData.get('dias_sin_movimiento')) || 30,
     alerta_ventas_bajas: formData.get('alerta_ventas_bajas') === 'true',
     porcentaje_alerta_ventas: Number(formData.get('porcentaje_alerta_ventas')) || 80,
+    dias_max_devolucion: Number(formData.get('dias_max_devolucion')) || 30,
+    registros_por_pagina: Number(formData.get('registros_por_pagina')) || 20,
     updated_at: new Date().toISOString(),
   }
 
