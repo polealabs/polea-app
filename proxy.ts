@@ -22,6 +22,7 @@ export async function proxy(request: NextRequest) {
             return request.cookies.getAll()
           },
           setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value, options))
             response = NextResponse.next({ request })
             cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
           },
@@ -77,6 +78,7 @@ export async function proxy(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value, options))
           response = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
         },
@@ -85,9 +87,9 @@ export async function proxy(request: NextRequest) {
   )
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  const hasSession = !!session
+    data: { user },
+  } = await supabase.auth.getUser()
+  const hasSession = !!user
 
   if (!hasSession && isDashboardRoute) {
     return NextResponse.redirect(new URL('/login', request.url))
