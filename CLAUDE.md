@@ -587,8 +587,8 @@ new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFrac
 
 | Item | Prioridad | Descripción |
 |------|-----------|-------------|
+| **Sistema de suscripciones** | **Alta** | Ver diseño completo en sección 16 |
 | PWA | Media | App instalable en celular |
-| Wompi | Alta | Integración para cobrar suscripciones |
 | Modo POS | Media | Vista rápida de venta para ferias |
 | RLS tiendas | ~~Alta~~ | ~~Resolver referencia circular con miembros~~ ✅ Resuelto con `get_tiendas_usuario()` |
 | Facturación DIAN | Baja | Facturación electrónica |
@@ -631,3 +631,60 @@ git push
 6. **Al agregar nuevos módulos al Sidebar:** editar `components/layout/Sidebar.tsx`.
 
 7. **Timezone:** Colombia es UTC-5. Todos los cálculos de mes deben compensar el offset para evitar que a las 7pm cambie el mes.
+
+---
+
+## 16. DISEÑO: SISTEMA DE SUSCRIPCIONES (pendiente de implementar)
+
+### Decisiones tomadas
+- **Trial:** 30 días, requiere tarjeta desde el inicio (sin cobro durante el trial)
+- **Pago fallido:** notificación por email (Resend) + banner in-app → 42h de gracia → reintento automático a las 40h → si falla: estado `vencida`
+- **Procesador:** Wompi (tokenización de tarjeta para cobro recurrente). Arquitectura abierta para agregar otros procesadores en el futuro.
+- **Periodicidad:** mensual y anual
+- **Descuento anual:** pagan 10 meses, usan 12 (~16.7%). Porcentaje parametrizable desde `/polealabs`.
+- **Precios:** parametrizables desde `/polealabs`. Valores iniciales: $49,000/mes (básico) y $89,000/mes (premium).
+- **Diferencia entre planes:** límites de uso (productos, miembros del equipo) + acceso a módulos
+
+### Tablas nuevas
+
+```sql
+planes (id, nombre, descripcion, precio_mensual, precio_anual, descuento_anual_porcentaje,
+        max_productos, max_miembros, funcionalidades jsonb, activo, orden)
+
+suscripciones (id, tienda_id, plan_id, estado, periodicidad, fecha_inicio, fecha_fin,
+               fecha_proximo_cobro, trial_usado)
+  -- estado: 'trial' | 'activa' | 'gracia' | 'vencida' | 'cancelada'
+  -- periodicidad: 'mensual' | 'anual'
+
+metodos_pago_suscripcion (id, tienda_id, token_wompi, ultimos_4, marca, nombre_titular, activo)
+
+cobros (id, tienda_id, suscripcion_id, plan_id, monto, periodicidad, estado,
+        referencia_wompi, intentos, fecha_cobro)
+  -- estado: 'pendiente' | 'exitoso' | 'fallido'
+
+creditos_suscripcion (id, tienda_id, tipo, valor, motivo, aplicado, otorgado_por)
+  -- tipo: 'mes_gratis' | 'extension_dias'
+  -- Otorgados manualmente desde /polealabs
+```
+
+### Ciclo de vida
+```
+Registro → trial (30d) → activa → gracia (42h) → vencida
+                ↑             ↓
+          cancelada ←─────────┘
+```
+
+### Cron job (Vercel Cron, diario 10am Colombia)
+1. Buscar suscripciones con `fecha_proximo_cobro <= NOW()`
+2. Cobrar token Wompi
+3. Exitoso → extender `fecha_fin` + actualizar `fecha_proximo_cobro`
+4. Fallido → estado `gracia` + `fecha_fin = NOW() + 42h` + email + notificación in-app
+5. Reintento automático a las 40h. Si falla → estado `vencida`
+
+### Fases de implementación
+1. Migración SQL (5 tablas) + admin de planes en `/polealabs`
+2. Flujo de registro con tokenización Wompi (widget post-registro)
+3. Verificación de acceso en `proxy.ts` + página de cuenta bloqueada
+4. Banner de alerta en dashboard para estado `gracia`
+5. Cron job de cobros automáticos (`/api/cron/cobros` + `vercel.json`)
+6. Webhooks Wompi + página de gestión de plan para el usuario (`/suscripcion`)
