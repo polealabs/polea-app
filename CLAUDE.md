@@ -149,7 +149,7 @@ polea-app/
 Next.js 16 deprecó `middleware.ts`. El proxy no usa `@supabase/ssr` para evitar el error `__dirname` en Edge Runtime. Protege todas las rutas del dashboard verificando sesión de Supabase.
 
 ### RLS en Supabase
-- **Tabla `tiendas`**: RLS desactivado temporalmente por referencia circular con `miembros` (política que consulta `miembros` que consulta `tiendas`).
+- **Tabla `tiendas`**: RLS activo. La referencia circular con `miembros` se resolvió con la función `get_tiendas_usuario()` (`SECURITY DEFINER`), que consulta ambas tablas sin RLS y retorna los `tienda_id` del usuario. La política es `id IN (SELECT get_tiendas_usuario())`.
 - **Resto de tablas**: RLS activo con políticas que filtran por `tienda_id IN (SELECT id FROM tiendas WHERE owner_id = auth.uid())`.
 - Las tablas nuevas (eventos, evento_inventario, evento_ventas, evento_gastos) tienen RLS activo.
 
@@ -590,10 +590,10 @@ new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFrac
 | PWA | Media | App instalable en celular |
 | Wompi | Alta | Integración para cobrar suscripciones |
 | Modo POS | Media | Vista rápida de venta para ferias |
-| RLS tiendas | Alta | Resolver referencia circular con miembros |
+| RLS tiendas | ~~Alta~~ | ~~Resolver referencia circular con miembros~~ ✅ Resuelto con `get_tiendas_usuario()` |
 | Facturación DIAN | Baja | Facturación electrónica |
 | Resend dominio | Media | Emails transaccionales con dominio verificado |
-| SinMovimiento con variantes | Baja | Dashboard aún usa `p.stock_actual` para sin movimiento |
+| SinMovimiento con variantes | ~~Baja~~ | ~~Dashboard aún usa `p.stock_actual` para sin movimiento~~ ✅ Resuelto |
 
 ---
 

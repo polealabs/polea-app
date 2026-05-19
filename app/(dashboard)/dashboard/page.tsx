@@ -315,9 +315,11 @@ export default function DashboardPage() {
       .gte('created_at', hace30 + 'T00:00:00')
 
     const idsConMovimiento = new Set((ventasRecientes ?? []).map((v) => v.producto_id))
-    const sinMovimiento = (listaProductos ?? []).filter(
-      (p) => p.stock_actual > 0 && !idsConMovimiento.has(p.id),
-    )
+    const sinMovimiento = (listaProductos ?? []).filter((p) => {
+      const tieneVariantesReal = (variantesData ?? []).some((v) => v.producto_id === p.id)
+      const stockReal = tieneVariantesReal ? (mapaVariantesStock.get(p.id) ?? 0) : p.stock_actual
+      return stockReal > 0 && !idsConMovimiento.has(p.id)
+    })
 
     setVentasHoy(totalHoy)
     setVentasMes(totalMes)
