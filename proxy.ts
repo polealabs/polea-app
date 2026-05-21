@@ -7,6 +7,54 @@ async function isAdmin(supabase: SupabaseClient, email: string): Promise<boolean
   return !!data
 }
 
+async function getAccesoSuscripcion(supabase: SupabaseClient, userId: string): Promise<'ok' | 'bloqueada'> {
+  const { data: tienda } = await supabase
+    .from('tiendas')
+    .select('id, es_beta, beta_hasta')
+    .eq('owner_id', userId)
+    .maybeSingle()
+
+  let tiendaId: string | null = tienda?.id ?? null
+  let esBeta: boolean = tienda?.es_beta ?? false
+  let betaHasta: string | null = tienda?.beta_hasta ?? null
+
+  if (!tiendaId) {
+    const { data: membresia } = await supabase
+      .from('miembros')
+      .select('tienda_id')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (!membresia) return 'ok'
+    tiendaId = membresia.tienda_id
+
+    const { data: tiendaMiembro } = await supabase
+      .from('tiendas')
+      .select('es_beta, beta_hasta')
+      .eq('id', tiendaId)
+      .maybeSingle()
+
+    esBeta = tiendaMiembro?.es_beta ?? false
+    betaHasta = tiendaMiembro?.beta_hasta ?? null
+  }
+
+  if (esBeta && betaHasta && new Date(betaHasta) > new Date()) return 'ok'
+
+  if (!tiendaId) return 'ok'
+
+  const { data: sus } = await supabase
+    .from('suscripciones')
+    .select('estado')
+    .eq('tienda_id', tiendaId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (!sus) return 'ok'
+  if (sus.estado === 'vencida' || sus.estado === 'cancelada') return 'bloqueada'
+  return 'ok'
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -64,7 +112,8 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/preferencias') ||
     pathname.startsWith('/configuracion') ||
     pathname.startsWith('/reportes') ||
-    pathname.startsWith('/eventos')
+    pathname.startsWith('/eventos') ||
+    pathname.startsWith('/suscripcion')
 
   if (!isDashboardRoute && !isAuthRoute) return NextResponse.next()
 
@@ -93,6 +142,20 @@ export async function proxy(request: NextRequest) {
 
   if (!hasSession && isDashboardRoute) {
     return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  if (hasSession && isDashboardRoute) {
+    const skipCheck =
+      pathname.startsWith('/suscripcion') ||
+      pathname.startsWith('/perfil') ||
+      pathname.startsWith('/ayuda')
+
+    if (!skipCheck) {
+      const acceso = await getAccesoSuscripcion(supabase, user!.id)
+      if (acceso === 'bloqueada') {
+        return NextResponse.redirect(new URL('/cuenta-bloqueada', request.url))
+      }
+    }
   }
 
   if (hasSession && isAuthRoute) {

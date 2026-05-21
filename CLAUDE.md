@@ -587,7 +587,7 @@ new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFrac
 
 | Item | Prioridad | Descripción |
 |------|-----------|-------------|
-| **Suscripciones — Fase 2** | **Alta** | `proxy.ts` verifica suscripción + `/cuenta-bloqueada` + `/suscripcion` (ver plan del usuario) |
+| Suscripciones — Fase 2 | ~~Alta~~ | ~~`proxy.ts` verifica suscripción + `/cuenta-bloqueada` + `/suscripcion` (ver plan del usuario)~~ ✅ Implementado |
 | **Suscripciones — Fase 3** | **Alta** | Tokenización Wompi post-registro + cron job de cobros (requiere credenciales Wompi) |
 | **Suscripciones — Fase 4** | **Alta** | Webhooks Wompi + emails Resend + reintentos automáticos |
 | PWA | Media | App instalable en celular |
@@ -698,6 +698,6 @@ Registro → trial (30d) → activa → gracia (42h) → vencida
 | Fase | Estado | Descripción |
 |------|--------|-------------|
 | 1 | ✅ Listo | SQL (5 tablas) + admin de planes `/polealabs/planes` + beta por tienda + badge en app |
-| 2 | Pendiente | `proxy.ts` verifica suscripción + `/cuenta-bloqueada` + `/suscripcion` (gestión de plan) |
+| 2 | ✅ Listo | `proxy.ts` verifica suscripción + `/cuenta-bloqueada` + `/suscripcion` + banner gracia |
 | 3 | Pendiente | Tokenización Wompi post-registro + cron job de cobros (requiere credenciales Wompi) |
 | 4 | Pendiente | Webhooks Wompi + emails Resend + reintentos automáticos |

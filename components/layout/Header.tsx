@@ -308,6 +308,13 @@ export default function Header({ titulo }: Props) {
                   <span>💳</span> Medios de pago
                 </Link>
                 <Link
+                  href="/suscripcion"
+                  onClick={() => setShowPerfil(false)}
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#4A3F35] hover:bg-[#FAF6F0] transition"
+                >
+                  <span>💳</span> Mi suscripción
+                </Link>
+                <Link
                   href="/ayuda"
                   onClick={() => setShowPerfil(false)}
                   className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#4A3F35] hover:bg-[#FAF6F0] transition"
