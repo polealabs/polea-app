@@ -587,13 +587,16 @@ new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFrac
 
 | Item | Prioridad | Descripción |
 |------|-----------|-------------|
-| **Sistema de suscripciones** | **Alta** | Ver diseño completo en sección 16 |
+| **Suscripciones — Fase 2** | **Alta** | `proxy.ts` verifica suscripción + `/cuenta-bloqueada` + `/suscripcion` (ver plan del usuario) |
+| **Suscripciones — Fase 3** | **Alta** | Tokenización Wompi post-registro + cron job de cobros (requiere credenciales Wompi) |
+| **Suscripciones — Fase 4** | **Alta** | Webhooks Wompi + emails Resend + reintentos automáticos |
 | PWA | Media | App instalable en celular |
 | Modo POS | Media | Vista rápida de venta para ferias |
 | RLS tiendas | ~~Alta~~ | ~~Resolver referencia circular con miembros~~ ✅ Resuelto con `get_tiendas_usuario()` |
 | Facturación DIAN | Baja | Facturación electrónica |
 | Resend dominio | Media | Emails transaccionales con dominio verificado |
 | SinMovimiento con variantes | ~~Baja~~ | ~~Dashboard aún usa `p.stock_actual` para sin movimiento~~ ✅ Resuelto |
+| Suscripciones — Fase 1 | ~~Alta~~ | ~~SQL (5 tablas) + admin de planes en `/polealabs/planes` + beta por tienda~~ ✅ Implementado |
 
 ---
 
@@ -681,10 +684,20 @@ Registro → trial (30d) → activa → gracia (42h) → vencida
 4. Fallido → estado `gracia` + `fecha_fin = NOW() + 42h` + email + notificación in-app
 5. Reintento automático a las 40h. Si falla → estado `vencida`
 
+### Beta de usuarios
+
+- **Campos en `tiendas`:** `es_beta boolean default false`, `beta_hasta timestamptz`
+- **Activación:** desde `/polealabs/tiendas/[id]` → panel "Acceso Beta" (toggle + fecha de vencimiento)
+- **Badge en app:** pill "BETA" violeta en el header del dashboard, visible mientras `es_beta = true` y `beta_hasta > NOW()`
+- **Columna en lista:** `/polealabs/tiendas` muestra columna "Beta" con badge si está vigente
+- **Acceso:** los usuarios beta tienen acceso completo; en Fase 2 bypassearán el chequeo de suscripción
+- **Ciclo:** `beta → (vence) → necesita suscribirse` (igual que trial vencido)
+
 ### Fases de implementación
-1. Migración SQL (5 tablas) + admin de planes en `/polealabs`
-2. Flujo de registro con tokenización Wompi (widget post-registro)
-3. Verificación de acceso en `proxy.ts` + página de cuenta bloqueada
-4. Banner de alerta en dashboard para estado `gracia`
-5. Cron job de cobros automáticos (`/api/cron/cobros` + `vercel.json`)
-6. Webhooks Wompi + página de gestión de plan para el usuario (`/suscripcion`)
+
+| Fase | Estado | Descripción |
+|------|--------|-------------|
+| 1 | ✅ Listo | SQL (5 tablas) + admin de planes `/polealabs/planes` + beta por tienda + badge en app |
+| 2 | Pendiente | `proxy.ts` verifica suscripción + `/cuenta-bloqueada` + `/suscripcion` (gestión de plan) |
+| 3 | Pendiente | Tokenización Wompi post-registro + cron job de cobros (requiere credenciales Wompi) |
+| 4 | Pendiente | Webhooks Wompi + emails Resend + reintentos automáticos |

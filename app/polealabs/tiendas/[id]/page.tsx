@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import BetaPanel from './BetaPanel'
 
 export default async function AdminTiendaDetalle({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -84,6 +85,12 @@ export default async function AdminTiendaDetalle({ params }: { params: Promise<{
           </div>
         )}
       </div>
+
+      <BetaPanel
+        tiendaId={tienda.id}
+        esBeta={tienda.es_beta ?? false}
+        betaHasta={tienda.beta_hasta ?? null}
+      />
 
       {miembros && miembros.length > 0 && (
         <div

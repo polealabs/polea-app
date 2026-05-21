@@ -13,6 +13,39 @@ export interface Tienda {
   whatsapp?: string
   moneda?: string
   tema?: string
+  es_beta?: boolean
+  beta_hasta?: string | null
+  created_at: string
+}
+
+export interface Plan {
+  id: string
+  nombre: string
+  descripcion?: string
+  precio_mensual: number
+  precio_anual: number
+  descuento_anual_porcentaje: number
+  max_productos?: number | null
+  max_miembros?: number | null
+  funcionalidades: string[]
+  activo: boolean
+  orden: number
+  created_at: string
+}
+
+export type EstadoSuscripcion = 'trial' | 'activa' | 'gracia' | 'vencida' | 'cancelada'
+export type PeriodicidadSuscripcion = 'mensual' | 'anual'
+
+export interface Suscripcion {
+  id: string
+  tienda_id: string
+  plan_id: string
+  estado: EstadoSuscripcion
+  periodicidad: PeriodicidadSuscripcion
+  fecha_inicio: string
+  fecha_fin: string
+  fecha_proximo_cobro?: string | null
+  trial_usado: boolean
   created_at: string
 }
 

@@ -153,6 +153,11 @@ export default function Header({ titulo }: Props) {
       <h2 className="text-sm font-semibold text-[#1A1510] pl-12 lg:pl-0">{titulo}</h2>
 
       <div className="flex items-center gap-1">
+        {tienda?.es_beta && tienda.beta_hasta && new Date(tienda.beta_hasta) > new Date() && (
+          <span className="mr-1 text-[10px] px-2 py-0.5 rounded-full font-bold tracking-widest bg-violet-500/15 text-violet-400 border border-violet-500/30 uppercase">
+            Beta
+          </span>
+        )}
         <Link
           href="/ayuda"
           className="w-8 h-8 rounded-lg flex items-center justify-center text-[#8A7D72] hover:bg-[#FAF6F0] hover:text-[#1A1510] transition"

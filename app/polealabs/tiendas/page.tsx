@@ -6,7 +6,7 @@ export default async function AdminTiendas() {
 
   const { data: tiendas } = await supabase
     .from('tiendas')
-    .select('id, nombre, ciudad, categoria, whatsapp, email, created_at, owner_id')
+    .select('id, nombre, ciudad, categoria, whatsapp, email, created_at, owner_id, es_beta, beta_hasta')
     .order('created_at', { ascending: false })
 
   const tiendaIds = (tiendas ?? []).map((t) => t.id)
@@ -72,6 +72,7 @@ export default async function AdminTiendas() {
               <th className="px-6 py-3 text-right text-xs text-white/40 uppercase tracking-wide">Productos</th>
               <th className="px-6 py-3 text-right text-xs text-white/40 uppercase tracking-wide">Equipo</th>
               <th className="px-6 py-3 text-left text-xs text-white/40 uppercase tracking-wide">Registro</th>
+              <th className="px-6 py-3 text-left text-xs text-white/40 uppercase tracking-wide">Beta</th>
               <th className="px-6 py-3 text-left text-xs text-white/40 uppercase tracking-wide">Contacto</th>
             </tr>
           </thead>
@@ -100,6 +101,15 @@ export default async function AdminTiendas() {
                     month: 'short',
                     year: 'numeric',
                   })}
+                </td>
+                <td className="px-6 py-4">
+                  {t.es_beta && t.beta_hasta && new Date(t.beta_hasta) > new Date() ? (
+                    <span className="text-xs px-2 py-0.5 rounded-full font-bold tracking-wide bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                      BETA
+                    </span>
+                  ) : (
+                    <span className="text-white/20 text-xs">—</span>
+                  )}
                 </td>
                 <td className="px-6 py-4">
                   {t.whatsapp ? (
