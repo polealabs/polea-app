@@ -33,6 +33,7 @@ export async function crearVentaMulti(payload: {
   plataforma_pago?: string
   medio_pago_id?: string
   envio?: number
+  evento_id?: string
   fecha: string
   lineas: LineaVenta[]
 }) {
@@ -146,6 +147,7 @@ export async function crearVentaMulti(payload: {
         plataforma_pago: payload.plataforma_pago || 'Efectivo',
         medio_pago_id: payload.medio_pago_id || null,
         envio,
+        evento_id: payload.evento_id || null,
         comision_iva: ivaComision,
         fecha: payload.fecha,
         total_bruto,

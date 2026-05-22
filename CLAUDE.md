@@ -73,6 +73,8 @@ polea-app/
 │   │   │   └── [id]/variantes/page.tsx  # Gestión avanzada de atributos
 │   │   ├── entradas/              # Compras de inventario
 │   │   ├── ventas/                # Registro de ventas multi-producto
+│   │   ├── pos/                   # Modo POS — punto de venta rápido para ferias
+│   │   │   └── page.tsx
 │   │   ├── clientes/              # CRM básico
 │   │   │   └── [id]/page.tsx      # Detalle con historial de compras
 │   │   ├── gastos/                # Gastos variables/fijos/financieros
@@ -228,7 +230,7 @@ Este archivo ha tenido problemas recurrentes de encoding. El `.vscode/settings.j
 
 **entradas** — `id, tienda_id, producto_id, proveedor_id, cantidad, costo_unitario, fecha, notas`
 
-**ventas_cabecera** — `id, tienda_id, cliente_id, canal, plataforma_pago, medio_pago_id, fecha, total_bruto, total_neto, total_costo_transaccion, comision_iva, envio`
+**ventas_cabecera** — `id, tienda_id, cliente_id, canal, plataforma_pago, medio_pago_id, fecha, total_bruto, total_neto, total_costo_transaccion, comision_iva, envio, evento_id (nullable → eventos.id)`
 
 **venta_items** — `id, tienda_id, venta_id, producto_id, variante_id, cantidad, precio_venta, descuento, neto, costo_transaccion`
 
@@ -315,6 +317,19 @@ Este archivo ha tenido problemas recurrentes de encoding. El `.vscode/settings.j
 - Campo de envío incluido en base de comisión
 - Devoluciones (defectuoso/cambio) con historial
 - Carga masiva CSV
+- Campo `evento_id` opcional en `ventas_cabecera` para trazabilidad (ventas originadas desde el POS vinculadas a un evento)
+
+### Modo POS (`/pos`)
+- Vista dividida: catálogo de productos (izquierda) + carrito (derecha)
+- **Catálogo**: cuadrícula de tarjetas con búsqueda, badge de cantidad en carrito, stock visible
+- **Filtro por evento**: selector de eventos activos; al seleccionar uno, el catálogo muestra solo los productos del `evento_inventario` con `disponible = cantidad_llevada - cantidad_vendida - cantidad_devuelta > 0`
+- **Variantes**: click en producto con variantes abre modal de selección; click en producto sin variantes lo agrega directamente
+- **Carrito**: controles +/−, eliminar por ítem, descuento global (%), campo de envío ($)
+- **Checkout**: resumen con desglose de comisión del medio de pago, cliente opcional (búsqueda con dropdown), selector de medio de pago
+- **Trazabilidad**: si hay evento seleccionado, la venta se guarda con `evento_id` en `ventas_cabecera`
+- **Post-venta**: limpia carrito y refresca stock automáticamente (re-fetch cliente-side)
+- **Mobile**: tabs alternos Catálogo / Carrito; modal de variantes sube desde abajo (`items-end`)
+- Canal fijo: `'Presencial'`; reutiliza `crearVentaMulti` de `ventas/actions.ts`
 
 ### Clientes
 - CRUD con chips: Todos/Recurrentes/Activos/Sin compras
@@ -591,7 +606,7 @@ new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFrac
 | **Suscripciones — Fase 3** | **Alta** | Tokenización Wompi post-registro + cron job de cobros (requiere credenciales Wompi) |
 | **Suscripciones — Fase 4** | **Alta** | Webhooks Wompi + emails Resend + reintentos automáticos |
 | PWA | Media | App instalable en celular |
-| Modo POS | Media | Vista rápida de venta para ferias |
+| Modo POS | ~~Media~~ | ~~Vista rápida de venta para ferias~~ ✅ Implementado |
 | RLS tiendas | ~~Alta~~ | ~~Resolver referencia circular con miembros~~ ✅ Resuelto con `get_tiendas_usuario()` |
 | Facturación DIAN | Baja | Facturación electrónica |
 | Resend dominio | Media | Emails transaccionales con dominio verificado |
@@ -631,9 +646,11 @@ git push
 
 5. **Medios de pago de eventos:** al cerrar un evento, mapear el medio de pago del evento al tipo de la tabla `medios_pago` usando `mapEventoMedioATipo()` en `eventos/actions.ts`.
 
-6. **Al agregar nuevos módulos al Sidebar:** editar `components/layout/Sidebar.tsx`.
+6. **Al agregar nuevos módulos al Sidebar:** editar `components/layout/Sidebar.tsx` y agregar el título en `components/layout/HeaderWrapper.tsx`.
 
 7. **Timezone:** Colombia es UTC-5. Todos los cálculos de mes deben compensar el offset para evitar que a las 7pm cambie el mes.
+
+8. **`evento_id` en ventas_cabecera:** columna nullable agregada para vincular ventas originadas desde el Modo POS a un evento. El POS escribe directo a `ventas_cabecera` (no a `evento_ventas`). Las ventas del POS con evento vinculado aparecen en los reportes normales de ventas.
 
 ---
 

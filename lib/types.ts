@@ -248,6 +248,7 @@ export interface VentaCabecera {
   plataforma_pago: 'Wompi' | 'Bold' | 'Transferencia' | 'Efectivo' | 'Nequi' | 'Daviplata' | 'Contraentrega'
   medio_pago_id?: string
   envio?: number
+  evento_id?: string | null
   fecha: string
   total_bruto: number
   total_costo_transaccion: number

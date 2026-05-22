@@ -10,6 +10,7 @@ const navItems = [
   { href: '/productos', icon: '◫', label: 'Inventario' },
   { href: '/entradas', icon: '↓', label: 'Entradas' },
   { href: '/ventas', icon: '↗', label: 'Ventas' },
+  { href: '/pos', icon: '⊡', label: 'Modo POS' },
   { href: '/clientes', icon: '◎', label: 'Clientes' },
   { href: '/consignaciones', icon: '🏪', label: 'Tiendas Aliadas' },
   { href: '/eventos', icon: '📅', label: 'Eventos' },

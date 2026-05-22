@@ -9,6 +9,7 @@ const TITULOS: Record<string, string> = {
   '/productos': 'Inventario',
   '/entradas': 'Entradas de stock',
   '/ventas': 'Ventas',
+  '/pos': 'Modo POS',
   '/clientes': 'Clientes',
   '/consignaciones': 'Tiendas Aliadas',
   '/consignaciones/salida': 'Remisión de salida',
