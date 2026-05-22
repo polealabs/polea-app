@@ -617,7 +617,7 @@ new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFrac
 | PWA | Media | App instalable en celular |
 | Modo POS | ~~Media~~ | ~~Vista rápida de venta para ferias~~ ✅ Implementado |
 | RLS tiendas | ~~Alta~~ | ~~Resolver referencia circular con miembros~~ ✅ Resuelto con `get_tiendas_usuario()` |
-| Facturación DIAN | Baja | Facturación electrónica |
+| Facturación DIAN | Baja | Facturación electrónica — ver análisis abajo en sección 16 |
 | Resend dominio | Media | Emails transaccionales con dominio verificado |
 | SinMovimiento con variantes | ~~Baja~~ | ~~Dashboard aún usa `p.stock_actual` para sin movimiento~~ ✅ Resuelto |
 | Suscripciones — Fase 1 | ~~Alta~~ | ~~SQL (5 tablas) + admin de planes en `/polealabs/planes` + beta por tienda~~ ✅ Implementado |
@@ -727,3 +727,66 @@ Registro → trial (30d) → activa → gracia (42h) → vencida
 | 2 | ✅ Listo | `proxy.ts` verifica suscripción + `/cuenta-bloqueada` + `/suscripcion` + banner gracia |
 | 3 | Pendiente | Tokenización Wompi post-registro + cron job de cobros (requiere credenciales Wompi) |
 | 4 | Pendiente | Webhooks Wompi + emails Resend + reintentos automáticos |
+
+---
+
+## 17. DISEÑO: FACTURACIÓN ELECTRÓNICA DIAN (pendiente)
+
+### Decisiones tomadas
+- **Alcance:** cada tienda de Polea puede emitir facturas electrónicas a sus propios compradores (no Polea a sus suscriptores)
+- **Proveedor:** Factus (Brightidea) — API REST en español, maneja XML UBL 2.1, firma digital y CUFE. Pendiente crear cuenta y evaluar precio por factura.
+- **Prerequisito del negocio (no de Polea):** cada tienda necesita NIT + habilitación ante DIAN + resolución de facturación propia. Polea no puede tramitar esto por ellos.
+- **Modelo de cobro:** pendiente definir si el costo de Factus se incluye en el plan Pro o se cobra aparte.
+
+### Flujo previsto
+```
+Tienda configura NIT + resolución en Polea (/perfil o /configuracion)
+    ↓
+Registra una venta → opción "Generar factura electrónica"
+    ↓
+Polea arma el payload → envía a API Factus
+    ↓
+Factus firma y valida ante DIAN → devuelve CUFE
+    ↓
+Polea guarda PDF + CUFE → envía al comprador por email
+```
+
+### Tablas nuevas requeridas
+```sql
+facturas_electronicas (
+  id, tienda_id, venta_id,
+  numero, prefijo, cufe,
+  estado ('pendiente' | 'emitida' | 'rechazada' | 'anulada'),
+  xml_url, pdf_url,
+  fecha_emision, fecha_vencimiento,
+  receptor_nombre, receptor_nit, receptor_email,
+  total_bruto, total_impuestos, total_neto,
+  respuesta_dian jsonb,
+  created_at
+)
+
+config_facturacion (
+  id, tienda_id,
+  resolucion_dian, prefijo, numero_desde, numero_hasta,
+  fecha_inicio_resolucion, fecha_fin_resolucion,
+  numero_actual,
+  activa boolean
+)
+```
+
+### Campos a agregar a `tiendas`
+Ya existen: `nit`, `representante`, `telefono`, `email`, `direccion`. Falta confirmar si se necesita `ciudad_codigo_dane` y `actividad_economica_ciiu` para el XML DIAN.
+
+### Fases de implementación
+
+| Fase | Descripción |
+|------|-------------|
+| 1 | Config fiscal por tienda (resolución, prefijo, rango) + crear cuenta Factus |
+| 2 | Generación de factura desde una venta + envío a Factus + guardar CUFE |
+| 3 | PDF con QR DIAN + envío por email al comprador |
+| 4 | Historial de facturas, notas crédito, manejo de rechazos DIAN |
+
+### Bloqueantes actuales
+1. Crear cuenta en Factus y validar precio por factura
+2. Definir quién asume el costo de la API (¿incluido en plan Pro?)
+3. Confirmar si los clientes actuales ya tienen resolución DIAN
