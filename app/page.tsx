@@ -494,23 +494,20 @@ export default function Home() {
               style={{ animation: 'fadeInUp 0.5s ease forwards' }}
             >
               <span className="w-2 h-2 rounded-full bg-[#3A7D5A] animate-pulse-soft inline-block" />
-              Para emprendedores que quieren claridad financiera
+              Para los que llevan su negocio con todo el peso encima
             </div>
 
             <h1 className="font-serif text-[52px] md:text-[72px] font-medium text-[#1A1510] leading-[1.05] mb-6">
-              Vende más.
+              Tu negocio
               <br />
-              Gana más.
-              <br />
-              <span className="shimmer-text">Sabe exactamente cuánto.</span>
+              merece <span className="shimmer-text">una mano.</span>
             </h1>
 
             <p
               className="text-[#8A7D72] text-xl leading-relaxed mb-10"
               style={{ animation: 'fadeInUp 0.8s ease 0.3s both' }}
             >
-              Registra ventas, controla tu inventario y conoce tu ganancia real. Diseñado para tiendas que
-              venden por WhatsApp, Instagram y presencial.
+              La herramienta que lleva las cuentas por ti, para que tú te concentres en vender.
             </p>
 
             <div className="flex gap-3 flex-wrap" style={{ animation: 'fadeInUp 0.8s ease 0.5s both' }}>
