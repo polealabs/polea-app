@@ -614,7 +614,7 @@ new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFrac
 | Suscripciones — Fase 2 | ~~Alta~~ | ~~`proxy.ts` verifica suscripción + `/cuenta-bloqueada` + `/suscripcion` (ver plan del usuario)~~ ✅ Implementado |
 | **Suscripciones — Fase 3** | **Alta** | Tokenización Wompi post-registro + cron job de cobros (requiere credenciales Wompi) |
 | **Suscripciones — Fase 4** | **Alta** | Webhooks Wompi + emails Resend + reintentos automáticos |
-| PWA | Media | App instalable en celular |
+| PWA | Media | App instalable en celular — ver análisis abajo en sección 18 |
 | Modo POS | ~~Media~~ | ~~Vista rápida de venta para ferias~~ ✅ Implementado |
 | RLS tiendas | ~~Alta~~ | ~~Resolver referencia circular con miembros~~ ✅ Resuelto con `get_tiendas_usuario()` |
 | Facturación DIAN | Baja | Facturación electrónica — ver análisis abajo en sección 16 |
@@ -790,3 +790,43 @@ Ya existen: `nit`, `representante`, `telefono`, `email`, `direccion`. Falta conf
 1. Crear cuenta en Factus y validar precio por factura
 2. Definir quién asume el costo de la API (¿incluido en plan Pro?)
 3. Confirmar si los clientes actuales ya tienen resolución DIAN
+
+---
+
+## 18. DISEÑO: PWA (pendiente)
+
+### Alcance decidido
+**Nivel 1 — Solo instalable:** la app se agrega a la pantalla de inicio del celular y abre sin barra del navegador. Sin soporte offline por ahora.
+
+### Paquete a usar
+`@ducanh2912/next-pwa` — fork mantenido de `next-pwa`, compatible con Next.js App Router.
+
+### Archivos de íconos requeridos
+| Archivo | Tamaño | Uso |
+|---------|--------|-----|
+| `public/icon-192.png` | 192×192 | Android home screen (PWA) |
+| `public/icon-512.png` | 512×512 | Android splash screen (PWA) |
+| `public/icon-maskable-512.png` | 512×512 con safe zone | Android adaptive icon |
+| `public/apple-touch-icon.png` | 180×180 | iPhone home screen |
+| `public/favicon.ico` | 32×32 | Pestaña del navegador |
+| `public/og-image.png` | 1200×630 | Vista previa al compartir en redes |
+
+### Estado actual de íconos
+- Solo existe `public/favicon.svg` — una polea con fondo `#1E3A2F`, rueda en `#FAF6F0`, cuerda en `#C4622D`
+- El `app/layout.tsx` apunta a ese SVG para icon, shortcut y apple
+
+### Íconos pendientes de diseño (Claude Design)
+Los SVGs finales deben venir de Claude Design. Prompts ya redactados:
+
+**Prompt 1 — Ícono de app refinado (base 512×512):**
+> Diseña un ícono de app móvil para **Polea**, una herramienta SaaS de gestión para pequeños negocios colombianos. El concepto visual es una **polea mecánica** (rueda con cuerda). Fondo cuadrado redondeado `#1E3A2F`, rueda concéntrica en `#FAF6F0`, punto central y cuerda en `#C4622D`. Mejora el pulido y la legibilidad a tamaño pequeño. La cuerda puede ser ligeramente curva o con textura trenzada. Estilo limpio, moderno, carácter artesanal sin ser folclórico. Entrega SVG 512×512.
+
+**Prompt 2 — OG Image (1200×630):**
+> Diseña una imagen Open Graph para **Polea**. 1200×630 px horizontal. Izquierda: ícono de polea. Centro-derecha: nombre POLEA en serif elegante `#1E3A2F`, tagline *"La herramienta que lleva las cuentas por ti"* en `#8A7D72`. Fondo crema `#FAF6F0`. Estilo limpio, premium, accesible. Entrega SVG 1200×630.
+
+### Pasos de implementación (una vez lleguen los SVGs)
+1. Guardar SVGs en `public/` y exportar PNGs en los tamaños requeridos
+2. Crear `app/manifest.ts` con nombre, colores, íconos e `id`
+3. Instalar `@ducanh2912/next-pwa` y configurar en `next.config.ts`
+4. Actualizar `app/layout.tsx` con meta tags PWA (theme-color, apple-mobile-web-app-capable, og:image)
+5. Verificar instalabilidad con Chrome DevTools → Application → Manifest
