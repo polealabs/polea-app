@@ -288,6 +288,15 @@ Este archivo ha tenido problemas recurrentes de encoding. El `.vscode/settings.j
 
 ## 8. MÓDULOS IMPLEMENTADOS
 
+### Landing page (`app/page.tsx`)
+- Secciones: navbar, hero, propuesta de valor, pain points (carrusel), funcionalidades, diferenciador, tipos de negocio, precios, CTA final, footer
+- **Copy del hero (vigente):**
+  - Badge: *"Para los que llevan su negocio con todo el peso encima"*
+  - H1: *"Tu negocio merece una mano."* (shimmer en "una mano.")
+  - Subtext: *"La herramienta que lleva las cuentas por ti, para que tú te concentres en vender."*
+- **Concepto de marca:** POLEA como máquina simple — alivia la carga del día a día y multiplica el esfuerzo del emprendedor. El copy evita lo genérico ("crecer", "optimizar") y habla directamente al emprendedor que lo lleva solo.
+- Tagline del navbar/footer: *"Tu tienda, clara"* (dentro del dashboard usa el mismo tagline en el Sidebar)
+
 ### Dashboard
 - KPIs: ventas hoy, este mes, alertas de stock
 - Gráfico con selector semana/mes/año, años dinámicos
