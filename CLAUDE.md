@@ -168,6 +168,9 @@ Next.js 16 deprecó `middleware.ts`. El proxy no usa `@supabase/ssr` para evitar
 ### Anti-flash de temas
 Script inline en `app/layout.tsx` aplica variables CSS desde `localStorage` antes del primer paint para evitar flash del tema por defecto.
 
+### TemaProvider — no hacer fetch en páginas públicas
+`lib/context/TemaContext.tsx` envuelve toda la app y llama a `supabase.auth.getUser()` al montar. Para evitar errores "Failed to fetch" en el landing y otras páginas públicas, `cargarTema()` verifica `window.location.pathname` y retorna temprano si es una ruta pública (`/`, `/login`, `/registro`, `/recuperar*`, `/nueva-contrasena*`, `/invitacion*`). En páginas públicas el tema se toma del `localStorage` o del default sin hacer ninguna llamada de red.
+
 ### Timezone Colombia
 Todos los selectores de mes usan `new Date().getTime() - getTimezoneOffset() * 60000` para evitar que a las 7pm Colombia (medianoche UTC) el mes cambie incorrectamente.
 
