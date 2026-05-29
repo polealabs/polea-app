@@ -40,6 +40,11 @@ export function TemaProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     async function cargarTema() {
+      const pathname = window.location.pathname
+      const isPublicPage = pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/registro') || pathname.startsWith('/recuperar') || pathname.startsWith('/nueva-contrasena') || pathname.startsWith('/invitacion')
+      if (isPublicPage) return
+
+      try {
       const supabase = createClient()
       const {
         data: { user },
@@ -85,6 +90,9 @@ export function TemaProvider({ children }: { children: React.ReactNode }) {
         const tl = tiendaMiembro.tamano_letra as TamanoLetra
         setTamanoState(tl)
         localStorage.setItem('polea_tamano', tl)
+      }
+      } catch {
+        // Falla silenciosamente — usa los valores del localStorage o los defaults
       }
     }
     void cargarTema()
