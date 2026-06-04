@@ -115,9 +115,12 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     const supabase = createClient()
-    void supabase.from('tiendas').select('id').limit(1).then(({ data }) => {
+    void (async () => {
+      // Refresca la sesión para asegurar que las cookies del signUp estén activas
+      await supabase.auth.getSession()
+      const { data } = await supabase.from('tiendas').select('id').limit(1)
       if (data && data.length > 0) router.replace('/dashboard')
-    })
+    })()
   }, [router])
 
   useEffect(() => {
@@ -151,15 +154,15 @@ export default function OnboardingPage() {
     if (!categoria) { setError('Selecciona la categoría de tu negocio'); return }
     setError(null)
     setCreando(true)
+    const fd = new FormData()
+    fd.set('nombre', nombre.trim())
+    fd.set('ciudad', ciudad.trim())
+    fd.set('direccion', direccion.trim())
+    fd.set('categoria', categoria)
+    fd.set('whatsapp', whatsapp.trim())
+    fd.set('moneda', 'COP')
+    if (logoFile) fd.set('logo', logoFile)
     try {
-      const fd = new FormData()
-      fd.set('nombre', nombre.trim())
-      fd.set('ciudad', ciudad.trim())
-      fd.set('direccion', direccion.trim())
-      fd.set('categoria', categoria)
-      fd.set('whatsapp', whatsapp.trim())
-      fd.set('moneda', 'COP')
-      if (logoFile) fd.set('logo', logoFile)
       const result = await crearTienda(fd)
       if (result?.error) {
         setError(result.error)
@@ -167,8 +170,15 @@ export default function OnboardingPage() {
         return
       }
       router.push('/dashboard')
-    } catch {
-      setError('No se pudo conectar. Revisa tu conexión e intenta de nuevo.')
+    } catch (e: unknown) {
+      // NEXT_REDIRECT: el servidor redirigió (sin sesión → /login). Dejar que Next.js navegue.
+      const digest = (e as { digest?: string })?.digest ?? ''
+      if (digest.startsWith('NEXT_REDIRECT')) {
+        const url = digest.split(';')[2] ?? '/login'
+        router.replace(url)
+        return
+      }
+      setError(e instanceof Error ? e.message : 'Error inesperado. Intenta de nuevo.')
       setCreando(false)
     }
   }

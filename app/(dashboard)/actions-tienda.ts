@@ -1,14 +1,13 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation' // usado para redirect('/login') si no hay sesión
 
 export async function crearTienda(formData: FormData) {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  if (!user) return { error: 'Sesión expirada. Recarga la página e inicia sesión de nuevo.' }
 
   const payload: {
     owner_id: string
