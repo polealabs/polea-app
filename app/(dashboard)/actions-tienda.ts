@@ -31,25 +31,10 @@ export async function crearTienda(formData: FormData) {
   if (!payload.nombre) return { error: 'El nombre de la tienda es obligatorio' }
   if (!payload.categoria) return { error: 'La categoría de la tienda es obligatoria' }
 
-  const logoFile = formData.get('logo') as File | null
-  if (logoFile && logoFile.size > 0) {
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(logoFile.type)) {
-      return { error: 'El logo debe ser JPG, PNG o WebP' }
-    }
-    if (logoFile.size > 2 * 1024 * 1024) {
-      return { error: 'El logo no puede superar 2MB' }
-    }
-
-    const ext = logoFile.name.split('.').pop()
-    const path = `${user.id}/logo.${ext}`
-    const { error: uploadError } = await supabase.storage
-      .from('logos')
-      .upload(path, logoFile, { upsert: true })
-    if (uploadError) return { error: 'Error al subir el logo' }
-
-    const { data: urlData } = supabase.storage.from('logos').getPublicUrl(path)
-    payload.logo_url = urlData.publicUrl
-  }
+  // El logo se sube desde el cliente (evita problemas de serialización de File en server actions).
+  // El onboarding pasa la URL resultante como campo logo_url (string).
+  const logoUrl = (formData.get('logo_url') as string)?.trim()
+  if (logoUrl) payload.logo_url = logoUrl
 
   const { error } = await supabase.from('tiendas').insert(payload)
 

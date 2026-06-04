@@ -161,7 +161,28 @@ export default function OnboardingPage() {
     fd.set('categoria', categoria)
     fd.set('whatsapp', whatsapp.trim())
     fd.set('moneda', 'COP')
-    if (logoFile) fd.set('logo', logoFile)
+
+    // Subir logo desde el cliente para evitar problemas de serialización de File en server actions
+    if (logoFile) {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const ext = logoFile.name.split('.').pop() ?? 'jpg'
+          const path = `${user.id}/logo.${ext}`
+          const { error: uploadError } = await supabase.storage
+            .from('logos')
+            .upload(path, logoFile, { upsert: true })
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage.from('logos').getPublicUrl(path)
+            fd.set('logo_url', urlData.publicUrl)
+          }
+        }
+      } catch {
+        // Logo upload falló — continúa sin logo, se puede agregar luego en /perfil
+      }
+    }
+
     try {
       const result = await crearTienda(fd)
       if (result?.error) {
