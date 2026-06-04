@@ -45,6 +45,7 @@ Producción:    https://polea-app.vercel.app
 NEXT_PUBLIC_SUPABASE_URL=https://amzldldwuxtahohueule.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 NEXT_PUBLIC_SITE_URL=https://polea-app.vercel.app
+SUPABASE_SERVICE_ROLE_KEY=...   # Requerido para eliminarCuenta() y otras ops admin
 ```
 
 **Proxy:** El proyecto usa `proxy.ts` en la raíz en lugar de `middleware.ts` por requerimiento de Next.js 16. Protege todas las rutas del dashboard.
@@ -399,10 +400,17 @@ Este archivo ha tenido problemas recurrentes de encoding. El `.vscode/settings.j
 - Tamaño de letra (Normal/Grande)
 - Datos legales
 
+### Perfil (`/perfil`)
+- Editar nombre, datos de tienda, logo, tema y tamaño de letra
+- **Zona de peligro:** botón "Eliminar mi cuenta" con `ConfirmModal`. Al confirmar, borra tienda (cascade), membresías, perfil y el usuario de Supabase Auth vía `createAdminClient()`. Redirige a `/`. Requiere `SUPABASE_SERVICE_ROLE_KEY` en variables de entorno.
+
 ### Auth
 - Login, registro, logout
 - **Recuperar contraseña:** `/recuperar-contrasena` → email → `/nueva-contrasena`
 - Invitaciones de equipo: `/invitacion/[token]`
+- **Registro con barra de fortaleza de contraseña:** al escribir, aparece barra semáforo (rojo/amarillo/verde) basada en longitud + mayúsculas + números + caracteres especiales, más indicador `✓/✗ Mínimo 6 caracteres`.
+- **Correo duplicado:** si ya existe la cuenta, el error se muestra en español: *"Este correo ya está registrado. Intenta iniciar sesión."*
+- **Confirmación de email:** si Supabase requiere confirmación (`data.session === null`), el servidor retorna `{ needsConfirmation: true }` y la página muestra un estado de éxito con el correo ingresado en lugar de redirigir.
 
 ### Admin Panel (`/polealabs`)
 - Overview con métricas globales
