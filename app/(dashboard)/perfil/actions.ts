@@ -108,5 +108,5 @@ export async function eliminarCuenta() {
   const { error } = await admin.auth.admin.deleteUser(user.id)
   if (error) return { error: 'No se pudo eliminar la cuenta. Contacta soporte.' }
 
-  redirect('/')
+  redirect('/cuenta-eliminada')
 }

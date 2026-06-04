@@ -47,7 +47,7 @@ export async function registro(formData: FormData) {
     return { needsConfirmation: true as const }
   }
 
-  redirect('/dashboard')
+  redirect('/onboarding')
 }
 
 export async function logout() {

@@ -14,6 +14,7 @@ export async function crearTienda(formData: FormData) {
     owner_id: string
     nombre: string
     ciudad: string
+    direccion: string
     categoria: string
     whatsapp: string
     moneda: string
@@ -22,6 +23,7 @@ export async function crearTienda(formData: FormData) {
     owner_id: user.id,
     nombre: String(formData.get('nombre') ?? '').trim(),
     ciudad: String(formData.get('ciudad') ?? '').trim(),
+    direccion: String(formData.get('direccion') ?? '').trim(),
     categoria: String(formData.get('categoria') ?? '').trim(),
     whatsapp: String(formData.get('whatsapp') ?? '').trim(),
     moneda: String(formData.get('moneda') ?? 'COP').trim() || 'COP',

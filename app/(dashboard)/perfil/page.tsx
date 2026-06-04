@@ -331,7 +331,7 @@ export default function PerfilPage() {
         </form>
       </div>
       <div className="mt-6 bg-white rounded-2xl border border-red-200 p-6 shadow-sm">
-        <h2 className="text-sm font-semibold text-red-600 mb-1">Zona de peligro</h2>
+        <h2 className="text-sm font-semibold text-red-600 mb-1">⚠ Atención</h2>
         <p className="text-xs text-[var(--color-text-soft)] mb-4">
           Eliminar tu cuenta borra permanentemente todos tus datos: tienda, productos, ventas, gastos y clientes. Esta acción no se puede deshacer.
         </p>
