@@ -54,7 +54,7 @@ export default function RegistroPage() {
         </svg>
       </div>
 
-      <div className="flex items-center gap-3 relative z-10">
+      <Link href="/" className="flex items-center gap-3 relative z-10 hover:opacity-80 transition-opacity">
         <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
           <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.1)" />
           <circle cx="16" cy="14" r="9" fill="none" stroke="#FAF6F0" strokeWidth="2.5" />
@@ -66,7 +66,7 @@ export default function RegistroPage() {
           <p className="font-serif text-xl font-bold text-white leading-none">POLEA</p>
           <p className="text-[10px] text-white/50 uppercase tracking-widest leading-none mt-0.5">Tu tienda, clara</p>
         </div>
-      </div>
+      </Link>
 
       <div className="relative z-10">
         <h2 className="font-serif text-4xl font-medium text-white leading-tight mb-6">
@@ -131,7 +131,7 @@ export default function RegistroPage() {
 
       <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 bg-[#FAF6F0]">
         <div className="w-full max-w-sm">
-          <div className="flex items-center gap-2 mb-10 lg:hidden">
+          <Link href="/" className="flex items-center gap-2 mb-10 lg:hidden hover:opacity-70 transition-opacity">
             <svg width="28" height="28" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
               <rect width="32" height="32" rx="8" fill="#1E3A2F" />
               <circle cx="16" cy="14" r="9" fill="none" stroke="#FAF6F0" strokeWidth="2.5" />
@@ -140,7 +140,7 @@ export default function RegistroPage() {
               <line x1="16" y1="23" x2="16" y2="29" stroke="#C4622D" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
             <p className="font-serif text-xl font-bold text-[#1E3A2F]">POLEA</p>
-          </div>
+          </Link>
 
           <h1 className="font-serif text-3xl font-medium text-[#1E3A2F] mb-2">Crea tu cuenta</h1>
           <p className="text-[#8A7D72] text-sm mb-8">Empieza a gestionar tu tienda en Polea</p>
