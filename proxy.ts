@@ -58,6 +58,13 @@ async function getAccesoSuscripcion(supabase: SupabaseClient, userId: string): P
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Los server actions (POST con header Next-Action) se autentican solos.
+  // Si el proxy los intercepta y redirige, el cliente recibe HTML en lugar
+  // del formato RSC esperado → "An unexpected response was received from the server."
+  if (request.method === 'POST' && request.headers.get('next-action')) {
+    return NextResponse.next()
+  }
+
   if (pathname.startsWith('/polealabs')) {
     let response = NextResponse.next({ request })
 
