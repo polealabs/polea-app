@@ -152,6 +152,19 @@ polea-app/
 ### proxy.ts en lugar de middleware.ts
 Next.js 16 deprecó `middleware.ts`. El proxy no usa `@supabase/ssr` para evitar el error `__dirname` en Edge Runtime. Protege todas las rutas del dashboard verificando sesión de Supabase.
 
+**CRÍTICO — Server actions y el proxy:** Los server actions son requests `POST` con header `Next-Action`. Si el proxy los intercepta e intenta verificar sesión, puede devolver un redirect HTML en lugar de la respuesta RSC esperada → el cliente lanza `"An unexpected response was received from the server."`. Por eso el proxy tiene un early return para estos requests:
+```typescript
+if (request.method === 'POST' && request.headers.get('next-action')) {
+  return NextResponse.next()
+}
+```
+Los server actions se autentican solos (cada uno llama `supabase.auth.getUser()` internamente).
+
+### Upload de archivos en server actions
+En Next.js 16 con Turbopack, los objetos `File` dentro de `FormData` creado manualmente (no desde un `<form>` nativo) **no se serializan correctamente** al pasarse a server actions via llamada programática. Esto hace que `formData.get('logo')` llegue como null o con size 0 en el servidor.
+
+**Patrón correcto para subir archivos desde páginas client-side:** subir el archivo directamente desde el browser a Supabase Storage usando el cliente JS del lado del cliente, obtener la URL pública, y pasar esa URL como string al server action. Ver implementación en `app/(dashboard)/onboarding/page.tsx` → `handleCrear()`.
+
 ### RLS en Supabase
 - **Tabla `tiendas`**: RLS activo. La referencia circular con `miembros` se resolvió con la función `get_tiendas_usuario()` (`SECURITY DEFINER`), que consulta ambas tablas sin RLS y retorna los `tienda_id` del usuario. La política es `id IN (SELECT get_tiendas_usuario())`.
 - **Resto de tablas**: RLS activo con políticas que filtran por `tienda_id IN (SELECT id FROM tiendas WHERE owner_id = auth.uid())`.
@@ -417,9 +430,11 @@ Wizard de 5 pasos mostrado a nuevos usuarios justo después del registro (fondo 
 5. **WhatsApp** — input de teléfono
 6. **Logo** — zona de carga con preview; opcional
 
-Al completar, llama a `crearTienda` en `actions-tienda.ts` y muestra estado de carga: *"Creando tu negocio"* con puntos animados (`.` → `..` → `...`). Al terminar redirige a `/dashboard`.
+Al completar, **el logo se sube desde el cliente** (browser → Supabase Storage directamente) para evitar el problema de serialización de `File` en server actions. La URL resultante se pasa como campo `logo_url` (string) a `crearTienda`. El server action `crearTienda` ya no maneja upload de archivos — solo recibe la URL.
 
-Si el usuario ya tiene tienda y navega a `/onboarding`, se redirige automáticamente a `/dashboard` (check al montar vía `supabase.from('tiendas').select('id')`).
+Muestra estado de carga: *"Creando tu negocio"* con puntos animados (`.` → `..` → `...`). Al terminar navega con `router.push('/dashboard')` (no server-side redirect).
+
+Si el usuario ya tiene tienda y navega a `/onboarding`, se redirige automáticamente a `/dashboard` (check al montar vía `supabase.auth.getSession()` + `supabase.from('tiendas').select('id')`).
 
 ### Perfil (`/perfil`)
 - Editar nombre, datos de tienda, logo, tema y tamaño de letra
