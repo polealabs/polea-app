@@ -408,12 +408,29 @@ Este archivo ha tenido problemas recurrentes de encoding. El `.vscode/settings.j
 - Tamaño de letra (Normal/Grande)
 - Datos legales
 
+### Onboarding (`/onboarding`)
+Wizard de 5 pasos mostrado a nuevos usuarios justo después del registro (fondo verde de marca, tarjeta blanca flotante, rueda de polea decorativa):
+1. **Bienvenida** — pantalla completa con copy motivacional y botón "Empezar"
+2. **Nombre del negocio** — input de texto
+3. **Ciudad y dirección** — dos inputs; ambos campos van al payload de `crearTienda`
+4. **Categoría** — grid de todas las industrias con emoji, selección visual resaltada
+5. **WhatsApp** — input de teléfono
+6. **Logo** — zona de carga con preview; opcional
+
+Al completar, llama a `crearTienda` en `actions-tienda.ts` y muestra estado de carga: *"Creando tu negocio"* con puntos animados (`.` → `..` → `...`). Al terminar redirige a `/dashboard`.
+
+Si el usuario ya tiene tienda y navega a `/onboarding`, se redirige automáticamente a `/dashboard` (check al montar vía `supabase.from('tiendas').select('id')`).
+
 ### Perfil (`/perfil`)
 - Editar nombre, datos de tienda, logo, tema y tamaño de letra
-- **Zona de peligro:** botón "Eliminar mi cuenta" con `ConfirmModal`. Al confirmar, borra tienda (cascade), membresías, perfil y el usuario de Supabase Auth vía `createAdminClient()`. Redirige a `/`. Requiere `SUPABASE_SERVICE_ROLE_KEY` en variables de entorno.
+- **Sección "⚠ Atención":** botón "Eliminar mi cuenta" con `ConfirmModal`. Al confirmar, borra tienda (cascade), membresías, perfil y el usuario de Supabase Auth vía `createAdminClient()`. Redirige a `/cuenta-eliminada`. Requiere `SUPABASE_SERVICE_ROLE_KEY` en variables de entorno.
+
+### Cuenta eliminada (`/cuenta-eliminada`)
+Página pública (fuera del grupo `(dashboard)`) que se muestra tras eliminar la cuenta. Informa que los datos fueron borrados permanentemente. Botones: "Crear una nueva cuenta" (`/registro`) y "Volver al inicio" (`/`).
 
 ### Auth
 - Login, registro, logout
+- **Registro → redirige a `/onboarding`** (no a `/dashboard`) para que el usuario cree su tienda
 - **Recuperar contraseña:** `/recuperar-contrasena` → email → `/nueva-contrasena`
 - Invitaciones de equipo: `/invitacion/[token]`
 - **Registro con barra de fortaleza de contraseña:** al escribir, aparece barra semáforo (rojo/amarillo/verde) basada en longitud + mayúsculas + números + caracteres especiales, más indicador `✓/✗ Mínimo 6 caracteres`.
