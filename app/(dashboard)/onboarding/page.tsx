@@ -105,6 +105,7 @@ export default function OnboardingPage() {
   const [ciudad, setCiudad] = useState('')
   const [direccion, setDireccion] = useState('')
   const [categoria, setCategoria] = useState('')
+  const [categoriaEsOtro, setCategoriaEsOtro] = useState(false)
   const [whatsapp, setWhatsapp] = useState('')
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
@@ -353,25 +354,46 @@ export default function OnboardingPage() {
                     maxHeight: 340,
                   }}
                 >
-                  {INDUSTRIAS.map((ind) => (
-                    <button
-                      key={ind}
-                      type="button"
-                      onClick={() => setCategoria(ind)}
-                      className="flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-center transition cursor-pointer"
-                      style={{
-                        borderColor: categoria === ind ? '#C4622D' : '#EDE5DC',
-                        background: categoria === ind ? '#FDF3ED' : '#FAFAFA',
-                      }}
-                    >
-                      <span className="text-2xl leading-none">{ICONOS[ind] ?? '📋'}</span>
-                      <span className="text-xs font-medium leading-tight" style={{ color: categoria === ind ? '#C4622D' : '#4A3F35' }}>
-                        {ind}
-                      </span>
-                    </button>
-                  ))}
+                  {INDUSTRIAS.map((ind) => {
+                    const selected = ind === 'Otro' ? categoriaEsOtro : (!categoriaEsOtro && categoria === ind)
+                    return (
+                      <button
+                        key={ind}
+                        type="button"
+                        onClick={() => {
+                          if (ind === 'Otro') {
+                            setCategoriaEsOtro(true)
+                            setCategoria('')
+                          } else {
+                            setCategoriaEsOtro(false)
+                            setCategoria(ind)
+                          }
+                        }}
+                        className="flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-center transition cursor-pointer"
+                        style={{
+                          borderColor: selected ? '#C4622D' : '#EDE5DC',
+                          background: selected ? '#FDF3ED' : '#FAFAFA',
+                        }}
+                      >
+                        <span className="text-2xl leading-none">{ICONOS[ind] ?? '📋'}</span>
+                        <span className="text-xs font-medium leading-tight" style={{ color: selected ? '#C4622D' : '#4A3F35' }}>
+                          {ind}
+                        </span>
+                      </button>
+                    )
+                  })}
                 </div>
-                {categoria && (
+                {categoriaEsOtro && (
+                  <input
+                    type="text"
+                    placeholder="Ej: Artesanías, Taller de motos, Papelería…"
+                    value={categoria}
+                    onChange={(e) => setCategoria(e.target.value)}
+                    autoFocus
+                    className={`${inputClass} mt-3`}
+                  />
+                )}
+                {!categoriaEsOtro && categoria && (
                   <p className="text-xs text-[#C4622D] font-medium mt-3">
                     ✓ {categoria}
                   </p>

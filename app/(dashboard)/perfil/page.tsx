@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, type FormEvent } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTienda } from '@/lib/hooks/useTienda'
 import { INDUSTRIAS } from '@/lib/industrias'
 import { actualizarPerfil, actualizarTienda, eliminarCuenta } from './actions'
@@ -17,6 +18,7 @@ const inputClass =
 const labelClass = 'block text-xs font-medium text-[var(--color-text)]/60 mb-1'
 
 export default function PerfilPage() {
+  const router = useRouter()
   const { tienda, loading } = useTienda()
   const { setTemaId } = useTema()
   const { tamano, setTamano } = useTamano()
@@ -31,6 +33,8 @@ export default function PerfilPage() {
   const [temaSeleccionado, setTemaSeleccionado] = useState(tienda?.tema ?? 'bosque')
   const [tamanoSeleccionado, setTamanoSeleccionado] = useState<TamanoLetra>(tamano)
   const [nombreUsuario, setNombreUsuario] = useState('')
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('')
+  const [categoriaCustom, setCategoriaCustom] = useState<string>('')
 
   useEffect(() => {
     if (!tienda?.tema) return
@@ -42,6 +46,18 @@ export default function PerfilPage() {
     const id = window.setTimeout(() => setTamanoSeleccionado(tamano), 0)
     return () => window.clearTimeout(id)
   }, [tamano])
+
+  useEffect(() => {
+    if (!tienda?.categoria) return
+    const cat = tienda.categoria
+    const esCustom = !(INDUSTRIAS as readonly string[]).includes(cat)
+    if (esCustom) {
+      setCategoriaSeleccionada('Otro')
+      setCategoriaCustom(cat)
+    } else {
+      setCategoriaSeleccionada(cat)
+    }
+  }, [tienda?.categoria])
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -98,7 +114,33 @@ export default function PerfilPage() {
     formData.set('nombre', nombreVal)
     formData.set('tema', temaSeleccionado)
     formData.set('tamano_letra', tamanoSeleccionado)
-    if (logoFile) formData.set('logo', logoFile)
+    const categoriaFinal = categoriaSeleccionada === 'Otro' ? categoriaCustom.trim() : categoriaSeleccionada
+    formData.set('categoria', categoriaFinal)
+
+    // Subir logo desde el cliente para evitar problemas de serialización de File en server actions
+    if (logoFile && tienda) {
+      try {
+        const supabase = createClient()
+        const ext = logoFile.name.split('.').pop() ?? 'jpg'
+        const path = `${tienda.id}/logo.${ext}`
+        const { error: uploadError } = await supabase.storage
+          .from('logos')
+          .upload(path, logoFile, { upsert: true })
+        if (uploadError) {
+          setError('Error al subir el logo')
+          showToast('Error al subir el logo', 'error')
+          setSubmitting(false)
+          return
+        }
+        const { data: urlData } = supabase.storage.from('logos').getPublicUrl(path)
+        formData.set('logo_url', urlData.publicUrl)
+      } catch {
+        setError('Error al subir el logo')
+        showToast('Error al subir el logo', 'error')
+        setSubmitting(false)
+        return
+      }
+    }
 
     const res = await actualizarTienda(formData)
     const resPerfil = await actualizarPerfil(formData)
@@ -107,10 +149,11 @@ export default function PerfilPage() {
       const msg = res?.error ?? resPerfil?.error ?? 'No se pudo guardar'
       setError(msg)
       showToast(msg, 'error')
+      setSubmitting(false)
     } else {
       showToast('Cambios guardados')
+      setTimeout(() => router.push('/dashboard'), 1500)
     }
-    setSubmitting(false)
   }
 
   if (loading) {
@@ -188,7 +231,15 @@ export default function PerfilPage() {
           </div>
           <div className="sm:col-span-2">
             <label className={labelClass}>Categoría / industria</label>
-            <select name="categoria" defaultValue={tienda?.categoria ?? ''} className={inputClass}>
+            <select
+              name="categoria"
+              value={categoriaSeleccionada}
+              onChange={(e) => {
+                setCategoriaSeleccionada(e.target.value)
+                if (e.target.value !== 'Otro') setCategoriaCustom('')
+              }}
+              className={inputClass}
+            >
               <option value="">Selecciona una industria</option>
               {INDUSTRIAS.map((ind) => (
                 <option key={ind} value={ind}>
@@ -196,6 +247,15 @@ export default function PerfilPage() {
                 </option>
               ))}
             </select>
+            {categoriaSeleccionada === 'Otro' && (
+              <input
+                type="text"
+                placeholder="Ej: Artesanías, Taller de motos, Papelería…"
+                value={categoriaCustom}
+                onChange={(e) => setCategoriaCustom(e.target.value)}
+                className={`${inputClass} mt-2`}
+              />
+            )}
           </div>
           <div className="sm:col-span-2 mt-1">
             <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-primary)' }}>

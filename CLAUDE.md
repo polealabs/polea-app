@@ -163,7 +163,7 @@ Los server actions se autentican solos (cada uno llama `supabase.auth.getUser()`
 ### Upload de archivos en server actions
 En Next.js 16 con Turbopack, los objetos `File` dentro de `FormData` creado manualmente (no desde un `<form>` nativo) **no se serializan correctamente** al pasarse a server actions via llamada programática. Esto hace que `formData.get('logo')` llegue como null o con size 0 en el servidor.
 
-**Patrón correcto para subir archivos desde páginas client-side:** subir el archivo directamente desde el browser a Supabase Storage usando el cliente JS del lado del cliente, obtener la URL pública, y pasar esa URL como string al server action. Ver implementación en `app/(dashboard)/onboarding/page.tsx` → `handleCrear()`.
+**Patrón correcto para subir archivos desde páginas client-side:** subir el archivo directamente desde el browser a Supabase Storage usando el cliente JS del lado del cliente, obtener la URL pública, y pasar esa URL como string al server action. Ver implementación en `app/(dashboard)/onboarding/page.tsx` → `handleCrear()` y en `app/(dashboard)/perfil/page.tsx` → `handleSubmit()`. En ambos casos el server action recibe `logo_url` (string) — no un `File`.
 
 ### RLS en Supabase
 - **Tabla `tiendas`**: RLS activo. La referencia circular con `miembros` se resolvió con la función `get_tiendas_usuario()` (`SECURITY DEFINER`), que consulta ambas tablas sin RLS y retorna los `tienda_id` del usuario. La política es `id IN (SELECT get_tiendas_usuario())`.
@@ -426,7 +426,7 @@ Wizard de 5 pasos mostrado a nuevos usuarios justo después del registro (fondo 
 1. **Bienvenida** — pantalla completa con copy motivacional y botón "Empezar"
 2. **Nombre del negocio** — input de texto
 3. **Ciudad y dirección** — dos inputs; ambos campos van al payload de `crearTienda`
-4. **Categoría** — grid de todas las industrias con emoji, selección visual resaltada
+4. **Categoría** — grid de todas las industrias con emoji, selección visual resaltada. Al seleccionar "Otro" aparece un input de texto para escribir el nombre personalizado del negocio (`categoriaEsOtro` state + input que setea `categoria` directamente)
 5. **WhatsApp** — input de teléfono
 6. **Logo** — zona de carga con preview; opcional
 
@@ -438,6 +438,9 @@ Si el usuario ya tiene tienda y navega a `/onboarding`, se redirige automáticam
 
 ### Perfil (`/perfil`)
 - Editar nombre, datos de tienda, logo, tema y tamaño de letra
+- **Logo:** se sube desde el cliente (browser → Supabase Storage, path `{tienda.id}/logo.{ext}`), igual que en onboarding. El server action `actualizarTienda` recibe `logo_url` como string, no un `File`.
+- **Categoría "Otro":** el `<select>` de industria es controlado (`categoriaSeleccionada` state). Al seleccionar "Otro" aparece un input de texto (`categoriaCustom` state). Si la tienda ya tenía una categoría personalizada (no en la lista `INDUSTRIAS`), se detecta al cargar y se pre-llena el input. En `handleSubmit` se resuelve: `categoria = categoriaSeleccionada === 'Otro' ? categoriaCustom : categoriaSeleccionada`.
+- **Al guardar:** muestra toast "Cambios guardados" y redirige a `/dashboard` tras 1.5 segundos.
 - **Sección "⚠ Atención":** botón "Eliminar mi cuenta" con `ConfirmModal`. Al confirmar, borra tienda (cascade), membresías, perfil y el usuario de Supabase Auth vía `createAdminClient()`. Redirige a `/cuenta-eliminada`. Requiere `SUPABASE_SERVICE_ROLE_KEY` en variables de entorno.
 
 ### Cuenta eliminada (`/cuenta-eliminada`)
