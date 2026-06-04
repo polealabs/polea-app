@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { redirect } from 'next/navigation' // usado para redirect('/login') si no hay sesión
 
 export async function crearTienda(formData: FormData) {
   const supabase = await createClient()
@@ -55,5 +55,5 @@ export async function crearTienda(formData: FormData) {
   const { error } = await supabase.from('tiendas').insert(payload)
 
   if (error) return { error: error.message }
-  redirect('/dashboard')
+  return { ok: true as const }
 }

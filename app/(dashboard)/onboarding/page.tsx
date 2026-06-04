@@ -151,17 +151,24 @@ export default function OnboardingPage() {
     if (!categoria) { setError('Selecciona la categoría de tu negocio'); return }
     setError(null)
     setCreando(true)
-    const fd = new FormData()
-    fd.set('nombre', nombre.trim())
-    fd.set('ciudad', ciudad.trim())
-    fd.set('direccion', direccion.trim())
-    fd.set('categoria', categoria)
-    fd.set('whatsapp', whatsapp.trim())
-    fd.set('moneda', 'COP')
-    if (logoFile) fd.set('logo', logoFile)
-    const result = await crearTienda(fd)
-    if (result?.error) {
-      setError(result.error)
+    try {
+      const fd = new FormData()
+      fd.set('nombre', nombre.trim())
+      fd.set('ciudad', ciudad.trim())
+      fd.set('direccion', direccion.trim())
+      fd.set('categoria', categoria)
+      fd.set('whatsapp', whatsapp.trim())
+      fd.set('moneda', 'COP')
+      if (logoFile) fd.set('logo', logoFile)
+      const result = await crearTienda(fd)
+      if (result?.error) {
+        setError(result.error)
+        setCreando(false)
+        return
+      }
+      router.push('/dashboard')
+    } catch {
+      setError('No se pudo conectar. Revisa tu conexión e intenta de nuevo.')
       setCreando(false)
     }
   }
