@@ -27,6 +27,7 @@
 | Autenticación | Supabase Auth |
 | Deploy | Vercel (plan Hobby) |
 | PDF | jsPDF + html2canvas |
+| Animaciones | Framer Motion (parallax landing page) |
 | Fuentes | Fraunces (serif) + DM Sans (sans) |
 | Package manager | pnpm |
 
@@ -321,6 +322,13 @@ Este archivo ha tenido problemas recurrentes de encoding. El `.vscode/settings.j
   - Subtext: *"La herramienta que lleva las cuentas por ti, para que tú te concentres en vender."*
 - **Concepto de marca:** POLEA como máquina simple — alivia la carga del día a día y multiplica el esfuerzo del emprendedor. El copy evita lo genérico ("crecer", "optimizar") y habla directamente al emprendedor que lo lleva solo.
 - Tagline del navbar/footer: *"Tu tienda, clara"* (dentro del dashboard usa el mismo tagline en el Sidebar)
+- **Parallax interactivo (framer-motion):**
+  - *Mouse parallax en el hero:* los 3 blobs decorativos, la tarjeta del dashboard y los badges flotantes reaccionan al cursor con `useMotionValue` + `useSpring` + `useTransform`. Blobs: 4%/-3%/2% de la distancia al centro. Dashboard: 1.4%. Badges: dirección opuesta al dashboard (-2.2% / +2.6%).
+  - *Scroll parallax en el hero:* texto sube -50px y dashboard -25px al scrollear 600px (`useScroll` + `useTransform`). La rueda de polea SVG gira con el scroll (`rotate: scrollDeg` en `motion.g`).
+  - *Reveal al entrar al viewport (`whileInView`):* propuesta de valor, features, chips, precios y CTA usan `motion.div` con stagger (`staggerChildren: 0.1`).
+  - *whileHover:* cards de features y precios suben 4-6px con sombra.
+  - *Diferenciador:* texto desliza desde la izquierda (`x: -40→0`), tarjeta desde la derecha (`x: 40→0`).
+  - El IntersectionObserver manual y las clases `.reveal` fueron reemplazados por framer-motion.
 
 ### Dashboard
 - KPIs: ventas hoy, este mes, alertas de stock
