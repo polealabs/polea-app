@@ -448,6 +448,7 @@ Página pública (fuera del grupo `(dashboard)`) que se muestra tras eliminar la
 
 ### Auth
 - Login, registro, logout
+- **Logo en login/registro:** el logo POLEA (panel verde en escritorio + logo móvil en panel derecho) es un `<Link href="/">` que lleva al landing page.
 - **Registro → redirige a `/onboarding`** (no a `/dashboard`) para que el usuario cree su tienda
 - **Recuperar contraseña:** `/recuperar-contrasena` → email → `/nueva-contrasena`
 - Invitaciones de equipo: `/invitacion/[token]`
