@@ -46,6 +46,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://amzldldwuxtahohueule.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 NEXT_PUBLIC_SITE_URL=https://polea-app.vercel.app
 SUPABASE_SERVICE_ROLE_KEY=...   # Requerido para eliminarCuenta() y otras ops admin
+RESEND_API_KEY=...              # ⚠️ En .env.local está guardado como RESEND_API_KEY1 (nombre incorrecto) — renombrar antes de activar emails
 ```
 
 **Proxy:** El proyecto usa `proxy.ts` en la raíz en lugar de `middleware.ts` por requerimiento de Next.js 16. Protege todas las rutas del dashboard.
@@ -165,6 +166,13 @@ Next.js 16 deprecó `middleware.ts`. El proxy no usa `@supabase/ssr` para evitar
 ### Constraints eliminados
 - `gastos_categoria_check`: eliminado para permitir subcategorías libres sin validación de BD.
 - `ventas_cabecera_plataforma_pago_check`: eliminado para soportar medios de pago personalizados.
+
+### Sistema de emails (estado actual)
+- **`lib/email.ts`** — contiene `enviarEmailInvitacion()` usando Resend. Plantilla HTML completa con branding de Polea.
+- **Invitaciones de equipo:** el código llama a `enviarEmailInvitacion()` pero actualmente falla en silencio porque `RESEND_API_KEY` no está definida (la variable en `.env.local` se llama `RESEND_API_KEY1` — nombre incorrecto).
+- **Dominio:** usa `from: 'Polea <onboarding@resend.dev>'` (sandbox de Resend — solo envía a correos verificados en la cuenta Resend). Cambiar al dominio propio cuando esté verificado.
+- **Correos de Auth** (recuperación de contraseña, confirmación): salen desde el dominio de Supabase (`noreply@mail.app.supabase.io`). Para que salgan desde Polea, configurar SMTP personalizado en Supabase usando Resend.
+- **Confirmación de email desactivada** en Supabase desde 2026-06-04 (ver sección Auth).
 
 ### Anti-flash de temas
 Script inline en `app/layout.tsx` aplica variables CSS desde `localStorage` antes del primer paint para evitar flash del tema por defecto.
@@ -411,6 +419,7 @@ Este archivo ha tenido problemas recurrentes de encoding. El `.vscode/settings.j
 - **Registro con barra de fortaleza de contraseña:** al escribir, aparece barra semáforo (rojo/amarillo/verde) basada en longitud + mayúsculas + números + caracteres especiales, más indicador `✓/✗ Mínimo 6 caracteres`.
 - **Correo duplicado:** si ya existe la cuenta, el error se muestra en español: *"Este correo ya está registrado. Intenta iniciar sesión."*
 - **Confirmación de email:** si Supabase requiere confirmación (`data.session === null`), el servidor retorna `{ needsConfirmation: true }` y la página muestra un estado de éxito con el correo ingresado en lugar de redirigir.
+- **⚠️ Confirmación de email deshabilitada temporalmente** en el dashboard de Supabase (Authentication → Providers → Email → "Confirm email" OFF) desde 2026-06-04. Motivo: pruebas del flujo completo de registro sin dominio Resend verificado. Reactivar cuando se configure el dominio propio en Resend.
 
 ### Admin Panel (`/polealabs`)
 - Overview con métricas globales
@@ -629,7 +638,7 @@ new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFrac
 | Modo POS | ~~Media~~ | ~~Vista rápida de venta para ferias~~ ✅ Implementado |
 | RLS tiendas | ~~Alta~~ | ~~Resolver referencia circular con miembros~~ ✅ Resuelto con `get_tiendas_usuario()` |
 | Facturación DIAN | Baja | Facturación electrónica — ver análisis abajo en sección 16 |
-| Resend dominio | Media | Emails transaccionales con dominio verificado |
+| **Resend dominio** | **Media** | Verificar dominio propio en Resend → cambiar `from: 'Polea <onboarding@resend.dev>'` en `lib/email.ts` → renombrar `RESEND_API_KEY1` a `RESEND_API_KEY` en `.env.local` y Vercel → reactivar "Confirm email" en Supabase |
 | SinMovimiento con variantes | ~~Baja~~ | ~~Dashboard aún usa `p.stock_actual` para sin movimiento~~ ✅ Resuelto |
 | Suscripciones — Fase 1 | ~~Alta~~ | ~~SQL (5 tablas) + admin de planes en `/polealabs/planes` + beta por tienda~~ ✅ Implementado |
 
