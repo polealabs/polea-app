@@ -3,9 +3,10 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useTienda } from '@/lib/hooks/useTienda'
 import { INDUSTRIAS } from '@/lib/industrias'
-import { actualizarPerfil, actualizarTienda } from './actions'
+import { actualizarPerfil, actualizarTienda, eliminarCuenta } from './actions'
 import Toast from '@/components/ui/Toast'
 import { useToast } from '@/lib/hooks/useToast'
+import ConfirmModal from '@/components/ui/ConfirmModal'
 import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
 import { TAMANOS_LETRA, TEMAS, type TamanoLetra } from '@/lib/temas'
 import { useTamano, useTema } from '@/lib/context/TemaContext'
@@ -22,6 +23,8 @@ export default function PerfilPage() {
   const { toasts, showToast, removeToast } = useToast()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [logoError, setLogoError] = useState<string | null>(null)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
@@ -327,6 +330,39 @@ export default function PerfilPage() {
           </div>
         </form>
       </div>
+      <div className="mt-6 bg-white rounded-2xl border border-red-200 p-6 shadow-sm">
+        <h2 className="text-sm font-semibold text-red-600 mb-1">Zona de peligro</h2>
+        <p className="text-xs text-[var(--color-text-soft)] mb-4">
+          Eliminar tu cuenta borra permanentemente todos tus datos: tienda, productos, ventas, gastos y clientes. Esta acción no se puede deshacer.
+        </p>
+        <button
+          type="button"
+          onClick={() => setShowDeleteModal(true)}
+          disabled={deleting}
+          className="text-sm font-semibold px-4 py-2 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 transition disabled:opacity-50"
+        >
+          {deleting ? 'Eliminando...' : 'Eliminar mi cuenta'}
+        </button>
+      </div>
+
+      <ConfirmModal
+        open={showDeleteModal}
+        title="¿Eliminar tu cuenta?"
+        message="Se borrarán todos tus datos de forma permanente: tienda, productos, ventas, gastos y clientes. Esta acción no se puede deshacer."
+        confirmLabel="Sí, eliminar mi cuenta"
+        danger
+        onCancel={() => setShowDeleteModal(false)}
+        onConfirm={async () => {
+          setShowDeleteModal(false)
+          setDeleting(true)
+          const result = await eliminarCuenta()
+          if (result?.error) {
+            showToast(result.error, 'error')
+            setDeleting(false)
+          }
+        }}
+      />
+
       <Toast toasts={toasts} onRemove={removeToast} />
     </div>
   )

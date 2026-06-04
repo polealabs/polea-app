@@ -1,7 +1,9 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { TEMAS } from '@/lib/temas'
 
 export async function actualizarTienda(formData: FormData) {
@@ -83,4 +85,28 @@ export async function actualizarPerfil(formData: FormData) {
   if (error) return { error: error.message }
   revalidatePath('/perfil')
   return { ok: true }
+}
+
+export async function eliminarCuenta() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado' }
+
+  // Eliminar tienda del owner (cascade debería limpiar datos relacionados)
+  await supabase.from('tiendas').delete().eq('owner_id', user.id)
+
+  // Eliminar membresías del usuario en otras tiendas
+  await supabase.from('miembros').delete().eq('user_id', user.id)
+
+  // Eliminar perfil
+  await supabase.from('perfiles').delete().eq('id', user.id)
+
+  // Eliminar usuario de Supabase Auth con cliente admin
+  const admin = createAdminClient()
+  const { error } = await admin.auth.admin.deleteUser(user.id)
+  if (error) return { error: 'No se pudo eliminar la cuenta. Contacta soporte.' }
+
+  redirect('/')
 }

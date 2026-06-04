@@ -27,6 +27,10 @@ export async function registro(formData: FormData) {
   })
 
   if (error) {
+    const msg = error.message.toLowerCase()
+    if (msg.includes('already registered') || msg.includes('already been registered') || msg.includes('email address is already used')) {
+      return { error: 'Este correo ya está registrado. Intenta iniciar sesión.' }
+    }
     return { error: error.message }
   }
 
@@ -37,6 +41,10 @@ export async function registro(formData: FormData) {
       id: user.id,
       nombre: nombre || null,
     })
+  }
+
+  if (!data.session) {
+    return { needsConfirmation: true as const }
   }
 
   redirect('/dashboard')
