@@ -6,15 +6,15 @@
   --foreground: #171717;
   --color-primary: #1e3a2f;
   --color-primary-light: #2d4a3e;
-  --color-accent: #c4622d;
-  --color-accent-hover: #e8845a;
-  --color-accent-pale: #f9ede5;
-  --color-background: #faf6f0;
+  --color-accent: #4a90d9;
+  --color-accent-hover: #5c9fe0;
+  --color-accent-pale: #e8f2fb;
+  --color-background: #f4f1ea;
   --color-surface: #ffffff;
-  --color-border: #ede5dc;
-  --color-text: #1a1510;
-  --color-text-soft: #8a7d72;
-  --color-text-faint: #c4b8b0;
+  --color-border: #dcd7ca;
+  --color-text: #16140f;
+  --color-text-soft: #4a463c;
+  --color-text-faint: #6e6860;
   --color-greeting-text: var(--color-text);
   --color-surface-text: var(--color-text);
   --color-card-bg: var(--color-surface);
@@ -24,12 +24,12 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-dm-sans);
+  --font-sans: var(--font-space-grotesk);
   --font-serif: var(--font-fraunces);
 }
 
 body {
-  font-family: var(--font-dm-sans), sans-serif;
+  font-family: var(--font-space-grotesk), sans-serif;
   font-size: var(--font-size-base);
 }
 
@@ -105,7 +105,7 @@ body {
 .animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
 
 .shimmer-text {
-  background: linear-gradient(90deg, #C4622D 0%, #E8845A 30%, #D4A853 60%, #C4622D 100%);
+  background: linear-gradient(90deg, #4A90D9 0%, #5C9FE0 30%, #7BAEDD 60%, #4A90D9 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

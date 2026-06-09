@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { crearTienda } from '../actions-tienda'
 import { INDUSTRIAS } from '@/lib/industrias'
 import { createClient } from '@/lib/supabase/client'
+import { LevaLogo } from '@/components/ui/LevaLogo'
 
 const ICONOS: Record<string, string> = {
   'Restaurante': '🍽️',
@@ -75,7 +76,7 @@ function PolеaDecor({ opacity = 0.06 }: { opacity?: number }) {
       <line x1="40" y1="40" x2="140" y2="140" stroke="#FAF6F0" strokeWidth="5" />
       <line x1="140" y1="40" x2="40" y2="140" stroke="#FAF6F0" strokeWidth="5" />
       <circle cx="90" cy="90" r="28" fill="none" stroke="#FAF6F0" strokeWidth="8" />
-      <circle cx="90" cy="90" r="8" fill="#C4622D" />
+      <circle cx="90" cy="90" r="8" fill="#4A90D9" />
     </svg>
   )
 }
@@ -90,7 +91,7 @@ function Dots({ step }: { step: number }) {
           style={{
             width: i + 1 === step ? 20 : 8,
             height: 8,
-            background: i + 1 <= step ? '#C4622D' : 'rgba(255,255,255,0.25)',
+            background: i + 1 <= step ? '#4A90D9' : 'rgba(255,255,255,0.25)',
           }}
         />
       ))}
@@ -205,7 +206,7 @@ export default function OnboardingPage() {
     }
   }
 
-  const inputClass = 'w-full px-4 py-3.5 rounded-xl border border-[#EDE5DC] bg-white text-[#1A1510] text-base placeholder:text-[#1A1510]/35 focus:outline-none focus:ring-2 focus:ring-[#C4622D]/25 focus:border-[#C4622D] transition'
+  const inputClass = 'w-full px-4 py-3.5 rounded-xl border border-[#DCD7CA] bg-white text-[#16140F] text-base placeholder:text-[#16140F]/35 focus:outline-none focus:ring-2 focus:ring-[#4A90D9]/25 focus:border-[#4A90D9] transition'
 
   // Loading state
   if (creando) {
@@ -219,13 +220,7 @@ export default function OnboardingPage() {
         </div>
         <div className="relative z-10 text-center">
           <div className="flex items-center justify-center gap-2 mb-10">
-            <svg width="36" height="36" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-              <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.1)" />
-              <circle cx="16" cy="14" r="9" fill="none" stroke="#FAF6F0" strokeWidth="2.5" />
-              <circle cx="16" cy="14" r="4" fill="none" stroke="#FAF6F0" strokeWidth="2" />
-              <circle cx="16" cy="14" r="1.5" fill="#C4622D" />
-              <line x1="16" y1="23" x2="16" y2="29" stroke="#C4622D" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
+            <LevaLogo size={36} />
             <p className="font-serif text-2xl font-bold text-white">LEVA</p>
           </div>
           <p className="text-white/50 text-sm uppercase tracking-widest mb-3">Un momento</p>
@@ -249,13 +244,7 @@ export default function OnboardingPage() {
         </div>
         <div className="relative z-10 text-center max-w-md">
           <div className="flex items-center justify-center gap-3 mb-10">
-            <svg width="44" height="44" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-              <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.1)" />
-              <circle cx="16" cy="14" r="9" fill="none" stroke="#FAF6F0" strokeWidth="2.5" />
-              <circle cx="16" cy="14" r="4" fill="none" stroke="#FAF6F0" strokeWidth="2" />
-              <circle cx="16" cy="14" r="1.5" fill="#C4622D" />
-              <line x1="16" y1="23" x2="16" y2="29" stroke="#C4622D" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
+            <LevaLogo size={44} />
             <p className="font-serif text-3xl font-bold text-white tracking-wide">LEVA</p>
           </div>
 
@@ -268,7 +257,7 @@ export default function OnboardingPage() {
 
           <button
             onClick={() => setStep(1)}
-            className="w-full max-w-xs mx-auto flex items-center justify-center gap-2 bg-[#C4622D] hover:bg-[#E8845A] text-white font-semibold py-4 rounded-2xl transition text-base"
+            className="w-full max-w-xs mx-auto flex items-center justify-center gap-2 bg-[#4A90D9] hover:bg-[#5C9FE0] text-white font-semibold py-4 rounded-2xl transition text-base"
           >
             Empezar
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -296,7 +285,7 @@ export default function OnboardingPage() {
 
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           <div className="p-6 sm:p-8">
-            <p className="text-xs font-semibold text-[#8A7D72] uppercase tracking-widest mb-3">
+            <p className="text-xs font-semibold text-[#4A463C] uppercase tracking-widest mb-3">
               Paso {step} de {TOTAL}
             </p>
 
@@ -304,7 +293,7 @@ export default function OnboardingPage() {
             {step === 1 && (
               <div>
                 <h2 className="font-serif text-2xl font-medium text-[#1E3A2F] mb-1">¿Cómo se llama tu negocio?</h2>
-                <p className="text-sm text-[#8A7D72] mb-6">Este nombre aparecerá en tus documentos y reportes.</p>
+                <p className="text-sm text-[#4A463C] mb-6">Este nombre aparecerá en tus documentos y reportes.</p>
                 <input
                   type="text"
                   placeholder="Ej: Vaza Jewelry, Ferretería El Maestro…"
@@ -321,7 +310,7 @@ export default function OnboardingPage() {
             {step === 2 && (
               <div>
                 <h2 className="font-serif text-2xl font-medium text-[#1E3A2F] mb-1">¿Dónde está tu negocio?</h2>
-                <p className="text-sm text-[#8A7D72] mb-6">Útil para tus cotizaciones y facturas.</p>
+                <p className="text-sm text-[#4A463C] mb-6">Útil para tus cotizaciones y facturas.</p>
                 <div className="space-y-3">
                   <input
                     type="text"
@@ -346,7 +335,7 @@ export default function OnboardingPage() {
             {step === 3 && (
               <div>
                 <h2 className="font-serif text-2xl font-medium text-[#1E3A2F] mb-1">¿A qué se dedica tu negocio?</h2>
-                <p className="text-sm text-[#8A7D72] mb-5">Selecciona la categoría que mejor te describe.</p>
+                <p className="text-sm text-[#4A463C] mb-5">Selecciona la categoría que mejor te describe.</p>
                 <div
                   className="grid gap-2 overflow-y-auto pr-1"
                   style={{
@@ -371,12 +360,12 @@ export default function OnboardingPage() {
                         }}
                         className="flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-center transition cursor-pointer"
                         style={{
-                          borderColor: selected ? '#C4622D' : '#EDE5DC',
-                          background: selected ? '#FDF3ED' : '#FAFAFA',
+                          borderColor: selected ? '#4A90D9' : '#DCD7CA',
+                          background: selected ? '#E8F2FB' : '#FAFAFA',
                         }}
                       >
                         <span className="text-2xl leading-none">{ICONOS[ind] ?? '📋'}</span>
-                        <span className="text-xs font-medium leading-tight" style={{ color: selected ? '#C4622D' : '#4A3F35' }}>
+                        <span className="text-xs font-medium leading-tight" style={{ color: selected ? '#4A90D9' : '#4A463C' }}>
                           {ind}
                         </span>
                       </button>
@@ -394,7 +383,7 @@ export default function OnboardingPage() {
                   />
                 )}
                 {!categoriaEsOtro && categoria && (
-                  <p className="text-xs text-[#C4622D] font-medium mt-3">
+                  <p className="text-xs text-[#4A90D9] font-medium mt-3">
                     ✓ {categoria}
                   </p>
                 )}
@@ -405,7 +394,7 @@ export default function OnboardingPage() {
             {step === 4 && (
               <div>
                 <h2 className="font-serif text-2xl font-medium text-[#1E3A2F] mb-1">¿Cuál es tu WhatsApp de negocio?</h2>
-                <p className="text-sm text-[#8A7D72] mb-6">Opcional. Se usa para generar links de contacto directo.</p>
+                <p className="text-sm text-[#4A463C] mb-6">Opcional. Se usa para generar links de contacto directo.</p>
                 <input
                   type="tel"
                   placeholder="Ej: 3001234567"
@@ -421,14 +410,14 @@ export default function OnboardingPage() {
             {step === 5 && (
               <div>
                 <h2 className="font-serif text-2xl font-medium text-[#1E3A2F] mb-1">¿Tienes un logo?</h2>
-                <p className="text-sm text-[#8A7D72] mb-6">Opcional. Aparecerá en cotizaciones y documentos. Puedes subirlo después.</p>
+                <p className="text-sm text-[#4A463C] mb-6">Opcional. Aparecerá en cotizaciones y documentos. Puedes subirlo después.</p>
 
                 {logoPreview ? (
-                  <div className="flex items-center gap-4 mb-4 p-4 bg-[#FAF6F0] rounded-xl border border-[#EDE5DC]">
-                    <img src={logoPreview} alt="Logo" className="w-16 h-16 rounded-lg object-cover border border-[#EDE5DC]" />
+                  <div className="flex items-center gap-4 mb-4 p-4 bg-[#F4F1EA] rounded-xl border border-[#DCD7CA]">
+                    <img src={logoPreview} alt="Logo" className="w-16 h-16 rounded-lg object-cover border border-[#DCD7CA]" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-[#1E3A2F] truncate">{logoFile?.name}</p>
-                      <p className="text-xs text-[#8A7D72] mt-0.5">Logo cargado correctamente</p>
+                      <p className="text-xs text-[#4A463C] mt-0.5">Logo cargado correctamente</p>
                     </div>
                     <button
                       type="button"
@@ -439,15 +428,15 @@ export default function OnboardingPage() {
                     </button>
                   </div>
                 ) : (
-                  <label className="flex flex-col items-center justify-center gap-3 p-8 rounded-xl border-2 border-dashed border-[#EDE5DC] bg-[#FAFAFA] cursor-pointer hover:border-[#C4622D] hover:bg-[#FDF3ED] transition">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8A7D72" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <label className="flex flex-col items-center justify-center gap-3 p-8 rounded-xl border-2 border-dashed border-[#DCD7CA] bg-[#FAFAFA] cursor-pointer hover:border-[#4A90D9] hover:bg-[#E8F2FB] transition">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4A463C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="3" y="3" width="18" height="18" rx="2" />
                       <circle cx="8.5" cy="8.5" r="1.5" />
                       <polyline points="21 15 16 10 5 21" />
                     </svg>
                     <div className="text-center">
-                      <p className="text-sm font-medium text-[#4A3F35]">Haz clic para subir tu logo</p>
-                      <p className="text-xs text-[#8A7D72] mt-1">JPG, PNG o WebP · Máx 2MB · 400×400px recomendado</p>
+                      <p className="text-sm font-medium text-[#4A463C]">Haz clic para subir tu logo</p>
+                      <p className="text-xs text-[#4A463C] mt-1">JPG, PNG o WebP · Máx 2MB · 400×400px recomendado</p>
                     </div>
                     <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLogoChange} className="sr-only" />
                   </label>
@@ -465,12 +454,12 @@ export default function OnboardingPage() {
 
           <div
             className="flex items-center gap-3 px-6 sm:px-8 py-5"
-            style={{ borderTop: '1px solid #F0EAE3', background: '#FAFAFA' }}
+            style={{ borderTop: '1px solid #DCD7CA', background: '#FAFAFA' }}
           >
             <button
               type="button"
               onClick={() => { setError(null); setStep(s => s - 1) }}
-              className="flex items-center gap-1.5 text-sm text-[#8A7D72] hover:text-[#4A3F35] transition px-3 py-2 rounded-lg hover:bg-[#EDE5DC]/60"
+              className="flex items-center gap-1.5 text-sm text-[#4A463C] hover:text-[#16140F] transition px-3 py-2 rounded-lg hover:bg-[#DCD7CA]/60"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -489,7 +478,7 @@ export default function OnboardingPage() {
                   setError(null)
                   setStep(s => s + 1)
                 }}
-                className="flex items-center gap-2 bg-[#C4622D] hover:bg-[#E8845A] text-white font-semibold px-6 py-2.5 rounded-xl transition text-sm"
+                className="flex items-center gap-2 bg-[#4A90D9] hover:bg-[#5C9FE0] text-white font-semibold px-6 py-2.5 rounded-xl transition text-sm"
               >
                 Continuar
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

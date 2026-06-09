@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { registro } from '../actions'
+import { LevaLogo } from '@/components/ui/LevaLogo'
 
 function calcularFortaleza(pwd: string) {
   if (!pwd) return null
@@ -41,27 +42,21 @@ export default function RegistroPage() {
   }
 
   const panelIzquierdo = (
-    <div className="hidden lg:flex lg:w-1/2 bg-[#1E3A2F] flex-col justify-between p-12 relative overflow-hidden">
+    <div className="hidden lg:flex lg:w-1/2 bg-[#0D0D0D] flex-col justify-between p-12 relative overflow-hidden">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5">
         <svg width="400" height="400" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="90" cy="90" r="70" fill="none" stroke="#FAF6F0" strokeWidth="10" />
-          <line x1="90" y1="20" x2="90" y2="160" stroke="#FAF6F0" strokeWidth="5" />
-          <line x1="20" y1="90" x2="160" y2="90" stroke="#FAF6F0" strokeWidth="5" />
-          <line x1="40" y1="40" x2="140" y2="140" stroke="#FAF6F0" strokeWidth="5" />
-          <line x1="140" y1="40" x2="40" y2="140" stroke="#FAF6F0" strokeWidth="5" />
-          <circle cx="90" cy="90" r="28" fill="none" stroke="#FAF6F0" strokeWidth="8" />
-          <circle cx="90" cy="90" r="8" fill="#C4622D" />
+          <circle cx="90" cy="90" r="70" fill="none" stroke="#F4F1EA" strokeWidth="10" />
+          <line x1="90" y1="20" x2="90" y2="160" stroke="#F4F1EA" strokeWidth="5" />
+          <line x1="20" y1="90" x2="160" y2="90" stroke="#F4F1EA" strokeWidth="5" />
+          <line x1="40" y1="40" x2="140" y2="140" stroke="#F4F1EA" strokeWidth="5" />
+          <line x1="140" y1="40" x2="40" y2="140" stroke="#F4F1EA" strokeWidth="5" />
+          <circle cx="90" cy="90" r="28" fill="none" stroke="#F4F1EA" strokeWidth="8" />
+          <circle cx="90" cy="90" r="8" fill="#4A90D9" />
         </svg>
       </div>
 
       <Link href="/" className="flex items-center gap-3 relative z-10 hover:opacity-80 transition-opacity">
-        <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-          <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.1)" />
-          <circle cx="16" cy="14" r="9" fill="none" stroke="#FAF6F0" strokeWidth="2.5" />
-          <circle cx="16" cy="14" r="4" fill="none" stroke="#FAF6F0" strokeWidth="2" />
-          <circle cx="16" cy="14" r="1.5" fill="#C4622D" />
-          <line x1="16" y1="23" x2="16" y2="29" stroke="#C4622D" strokeWidth="2.5" strokeLinecap="round" />
-        </svg>
+        <LevaLogo size={32} />
         <div>
           <p className="font-serif text-xl font-bold text-white leading-none">LEVA</p>
           <p className="text-[10px] text-white/50 uppercase tracking-widest leading-none mt-0.5">Tu negocio, sin enredos.</p>
@@ -72,7 +67,7 @@ export default function RegistroPage() {
         <h2 className="font-serif text-4xl font-medium text-white leading-tight mb-6">
           Crece con orden,
           <br />
-          <span className="text-[#C4622D]">vende con claridad.</span>
+          <span className="text-[#4A90D9]">vende con claridad.</span>
         </h2>
         <p className="text-white/60 text-base leading-relaxed max-w-sm">
           Empieza hoy con Leva y centraliza inventario, ventas y rentabilidad de tu tienda.
@@ -98,7 +93,7 @@ export default function RegistroPage() {
     return (
       <div className="min-h-screen flex">
         {panelIzquierdo}
-        <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 bg-[#FAF6F0]">
+        <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 bg-[#F4F1EA]">
           <div className="w-full max-w-sm text-center">
             <div className="w-16 h-16 rounded-full bg-[#E8F5EE] flex items-center justify-center mx-auto mb-6">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3A7D5A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -106,16 +101,16 @@ export default function RegistroPage() {
               </svg>
             </div>
             <h1 className="font-serif text-2xl font-medium text-[#1E3A2F] mb-3">Revisa tu correo</h1>
-            <p className="text-[#8A7D72] text-sm leading-relaxed mb-2">
+            <p className="text-[#4A463C] text-sm leading-relaxed mb-2">
               Te enviamos un enlace de confirmación a
             </p>
             <p className="text-[#1E3A2F] font-semibold text-sm mb-6">{emailIngresado}</p>
-            <p className="text-[#8A7D72] text-xs leading-relaxed mb-8">
+            <p className="text-[#4A463C] text-xs leading-relaxed mb-8">
               Abre el correo y haz clic en el enlace para activar tu cuenta. Si no lo ves, revisa la carpeta de spam.
             </p>
             <Link
               href="/login"
-              className="inline-block w-full bg-[#C4622D] hover:bg-[#E8845A] text-white font-semibold py-3 rounded-xl transition text-sm text-center"
+              className="inline-block w-full bg-[#4A90D9] hover:bg-[#5C9FE0] text-white font-semibold py-3 rounded-xl transition text-sm text-center"
             >
               Ir a iniciar sesión
             </Link>
@@ -129,35 +124,29 @@ export default function RegistroPage() {
     <div className="min-h-screen flex">
       {panelIzquierdo}
 
-      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 bg-[#FAF6F0]">
+      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 bg-[#F4F1EA]">
         <div className="w-full max-w-sm">
           <Link href="/" className="flex items-center gap-2 mb-10 lg:hidden hover:opacity-70 transition-opacity">
-            <svg width="28" height="28" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-              <rect width="32" height="32" rx="8" fill="#1E3A2F" />
-              <circle cx="16" cy="14" r="9" fill="none" stroke="#FAF6F0" strokeWidth="2.5" />
-              <circle cx="16" cy="14" r="4" fill="none" stroke="#FAF6F0" strokeWidth="2" />
-              <circle cx="16" cy="14" r="1.5" fill="#C4622D" />
-              <line x1="16" y1="23" x2="16" y2="29" stroke="#C4622D" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
+            <LevaLogo size={28} />
             <p className="font-serif text-xl font-bold text-[#1E3A2F]">LEVA</p>
           </Link>
 
           <h1 className="font-serif text-3xl font-medium text-[#1E3A2F] mb-2">Crea tu cuenta</h1>
-          <p className="text-[#8A7D72] text-sm mb-8">Empieza a gestionar tu tienda en Leva</p>
+          <p className="text-[#4A463C] text-sm mb-8">Empieza a gestionar tu tienda en Leva</p>
 
           <form action={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs font-semibold text-[#4A3F35] mb-1.5">Nombre completo</label>
+              <label className="block text-xs font-semibold text-[#4A463C] mb-1.5">Nombre completo</label>
               <input
                 type="text"
                 name="nombre"
                 placeholder="Tu nombre"
-                className="w-full px-4 py-3 rounded-xl border border-[#EDE5DC] bg-white text-sm text-[#1A1510] focus:outline-none focus:ring-2 focus:ring-[#C4622D]/20 focus:border-[#C4622D] transition"
+                className="w-full px-4 py-3 rounded-xl border border-[#DCD7CA] bg-white text-sm text-[#16140F] focus:outline-none focus:ring-2 focus:ring-[#4A90D9]/20 focus:border-[#4A90D9] transition"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#4A3F35] mb-1.5">Correo electrónico</label>
+              <label className="block text-xs font-semibold text-[#4A463C] mb-1.5">Correo electrónico</label>
               <input
                 type="email"
                 name="email"
@@ -165,12 +154,12 @@ export default function RegistroPage() {
                 placeholder="tu@correo.com"
                 value={emailIngresado}
                 onChange={(e) => setEmailIngresado(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-[#EDE5DC] bg-white text-sm text-[#1A1510] focus:outline-none focus:ring-2 focus:ring-[#C4622D]/20 focus:border-[#C4622D] transition"
+                className="w-full px-4 py-3 rounded-xl border border-[#DCD7CA] bg-white text-sm text-[#16140F] focus:outline-none focus:ring-2 focus:ring-[#4A90D9]/20 focus:border-[#4A90D9] transition"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#4A3F35] mb-1.5">Contraseña</label>
+              <label className="block text-xs font-semibold text-[#4A463C] mb-1.5">Contraseña</label>
               <input
                 type="password"
                 name="password"
@@ -178,11 +167,11 @@ export default function RegistroPage() {
                 placeholder="Mínimo 6 caracteres"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-[#EDE5DC] bg-white text-sm text-[#1A1510] focus:outline-none focus:ring-2 focus:ring-[#C4622D]/20 focus:border-[#C4622D] transition"
+                className="w-full px-4 py-3 rounded-xl border border-[#DCD7CA] bg-white text-sm text-[#16140F] focus:outline-none focus:ring-2 focus:ring-[#4A90D9]/20 focus:border-[#4A90D9] transition"
               />
               {password && (
                 <div className="mt-2">
-                  <div className="h-1.5 rounded-full bg-[#EDE5DC] overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-[#DCD7CA] overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-300"
                       style={{ width: fortaleza?.ancho ?? '0%', backgroundColor: fortaleza?.color }}
@@ -211,20 +200,20 @@ export default function RegistroPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#C4622D] hover:bg-[#E8845A] disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition text-sm"
+              className="w-full bg-[#4A90D9] hover:bg-[#5C9FE0] disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition text-sm"
             >
               {loading ? 'Creando cuenta...' : 'Crear cuenta'}
             </button>
           </form>
 
-          <p className="text-center text-sm text-[#8A7D72] mt-6">
+          <p className="text-center text-sm text-[#4A463C] mt-6">
             ¿Ya tienes cuenta?{' '}
-            <Link href="/login" className="text-[#C4622D] font-semibold hover:underline">
+            <Link href="/login" className="text-[#4A90D9] font-semibold hover:underline">
               Iniciar sesión
             </Link>
           </p>
 
-          <p className="text-center text-xs text-[#8A7D72]/50 mt-8">
+          <p className="text-center text-xs text-[#4A463C]/50 mt-8">
             Al registrarte aceptas nuestros <a href="#" className="hover:underline">Términos de uso</a> y{' '}
             <a href="#" className="hover:underline">Política de privacidad</a>
           </p>

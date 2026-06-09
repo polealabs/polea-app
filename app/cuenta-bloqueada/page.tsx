@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { LevaLogo } from '@/components/ui/LevaLogo'
 
 export default async function CuentaBloqueadaPage() {
   const supabase = await createClient()
@@ -36,17 +37,11 @@ export default async function CuentaBloqueadaPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF6F0] flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-[#F4F1EA] flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-md space-y-8 text-center">
         <div className="flex items-center justify-center gap-3">
-          <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-            <rect width="32" height="32" rx="8" fill="#1E3A2F" />
-            <circle cx="16" cy="14" r="9" fill="none" stroke="#FAF6F0" strokeWidth="2.5" />
-            <circle cx="16" cy="14" r="4" fill="none" stroke="#FAF6F0" strokeWidth="2" />
-            <circle cx="16" cy="14" r="1.5" fill="#C4622D" />
-            <line x1="16" y1="23" x2="16" y2="29" stroke="#C4622D" strokeWidth="2.5" strokeLinecap="round" />
-          </svg>
-          <p className="font-serif text-xl font-bold text-[#1A1510] leading-none">LEVA</p>
+          <LevaLogo size={32} />
+          <p className="font-serif text-xl font-bold text-[#16140F] leading-none">LEVA</p>
         </div>
 
         <div className="w-16 h-16 rounded-full bg-[#C44040]/10 flex items-center justify-center mx-auto">
@@ -57,8 +52,8 @@ export default async function CuentaBloqueadaPage() {
         </div>
 
         <div>
-          <h1 className="text-2xl font-bold text-[#1A1510]">Tu cuenta está pausada</h1>
-          <p className="text-[#6A5D52] mt-2 text-sm leading-relaxed">
+          <h1 className="text-2xl font-bold text-[#16140F]">Tu cuenta está pausada</h1>
+          <p className="text-[#4A463C] mt-2 text-sm leading-relaxed">
             {tienda ? (
               <>La suscripción de <strong>{tienda.nombre}</strong> ha vencido.</>
             ) : (
@@ -66,7 +61,7 @@ export default async function CuentaBloqueadaPage() {
             )}
           </p>
           {planNombre && fechaVencimiento && (
-            <p className="text-[#9A8C80] text-xs mt-2">
+            <p className="text-[#6E6860] text-xs mt-2">
               Plan {planNombre} · Venció el{' '}
               {new Date(`${fechaVencimiento}`).toLocaleDateString('es-CO', {
                 day: 'numeric',
@@ -77,13 +72,13 @@ export default async function CuentaBloqueadaPage() {
           )}
         </div>
 
-        <div className="bg-white rounded-2xl border border-[#EDE5DC] p-6 text-left space-y-3">
-          <p className="text-sm font-semibold text-[#1A1510]">¿Qué pasó?</p>
-          <p className="text-sm text-[#6A5D52] leading-relaxed">
+        <div className="bg-white rounded-2xl border border-[#DCD7CA] p-6 text-left space-y-3">
+          <p className="text-sm font-semibold text-[#16140F]">¿Qué pasó?</p>
+          <p className="text-sm text-[#4A463C] leading-relaxed">
             No pudimos procesar el pago de tu suscripción. Para reactivar tu cuenta y recuperar acceso
             a todos tus datos, contáctanos y lo resolvemos rápido.
           </p>
-          <p className="text-xs text-[#9A8C80]">
+          <p className="text-xs text-[#6E6860]">
             Tus datos están seguros — no se ha eliminado nada.
           </p>
         </div>
@@ -91,21 +86,21 @@ export default async function CuentaBloqueadaPage() {
         <div className="space-y-3">
           <a
             href="mailto:polealabs@gmail.com?subject=Reactivar%20mi%20cuenta%20Leva"
-            className="block w-full py-3 rounded-xl bg-[#C4622D] text-white text-sm font-semibold hover:bg-[#A8521F] transition text-center"
+            className="block w-full py-3 rounded-xl bg-[#4A90D9] text-white text-sm font-semibold hover:bg-[#5C9FE0] transition text-center"
           >
             Contactar a Leva para reactivar
           </a>
           <Link
             href="/suscripcion"
-            className="block w-full py-3 rounded-xl border border-[#EDE5DC] text-[#4A3F35] text-sm font-medium hover:bg-[#F3ECE4] transition text-center"
+            className="block w-full py-3 rounded-xl border border-[#DCD7CA] text-[#4A463C] text-sm font-medium hover:bg-[#E8F2FB] transition text-center"
           >
             Ver detalles de mi suscripción
           </Link>
         </div>
 
-        <p className="text-xs text-[#9A8C80]">
+        <p className="text-xs text-[#6E6860]">
           ¿Ya resolviste el pago?{' '}
-          <Link href="/dashboard" className="text-[#C4622D] hover:underline">
+          <Link href="/dashboard" className="text-[#4A90D9] hover:underline">
             Intentar ingresar de nuevo
           </Link>
         </p>
