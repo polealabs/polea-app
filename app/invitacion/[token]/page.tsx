@@ -216,8 +216,8 @@ export default function InvitacionPage() {
     <div className="min-h-screen bg-[#FAF6F0] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="font-serif text-4xl font-bold text-[#1E3A2F]">POLEA</h1>
-          <p className="text-xs text-[#8A7D72] uppercase tracking-widest mt-1">Tu tienda, clara</p>
+          <h1 className="font-serif text-4xl font-bold text-[#1E3A2F]">LEVA</h1>
+          <p className="text-xs text-[#8A7D72] uppercase tracking-widest mt-1">Tu negocio, sin enredos.</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-[#EDE5DC] overflow-hidden">

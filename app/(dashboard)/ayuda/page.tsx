@@ -24,7 +24,7 @@ const GUIAS: GuiaModulo[] = [
     id: 'inicio',
     icon: '🚀',
     titulo: 'Primeros pasos',
-    subtitulo: 'Cómo configurar Polea por primera vez',
+    subtitulo: 'Cómo configurar Leva por primera vez',
     pasos: [
       {
         titulo: 'Configura tu perfil de tienda',
@@ -36,21 +36,21 @@ const GUIAS: GuiaModulo[] = [
       {
         titulo: 'Configura tus medios de pago',
         descripcion:
-          'Ve a tu foto de perfil → Medios de pago. Carga los medios por defecto o crea los tuyos con su nombre, comisión y si cobran IVA. Esto permite que Polea calcule automáticamente cuánto te cobran en cada venta.',
+          'Ve a tu foto de perfil → Medios de pago. Carga los medios por defecto o crea los tuyos con su nombre, comisión y si cobran IVA. Esto permite que Leva calcule automáticamente cuánto te cobran en cada venta.',
         link: '/configuracion/medios-pago',
         linkLabel: 'Ir a Medios de pago →',
       },
       {
         titulo: 'Carga tus productos',
         descripcion:
-          'Ve a Inventario y crea tus productos uno a uno, o usa la carga masiva CSV para importarlos todos de una vez. Agrega el precio de venta y el costo del producto para que Polea pueda calcular tu margen.',
+          'Ve a Inventario y crea tus productos uno a uno, o usa la carga masiva CSV para importarlos todos de una vez. Agrega el precio de venta y el costo del producto para que Leva pueda calcular tu margen.',
         link: '/productos',
         linkLabel: 'Ir a Inventario →',
       },
       {
         titulo: 'Registra tu inventario inicial',
         descripcion:
-          'Ve a Entradas y registra el inventario que tienes actualmente. Selecciona el producto, la cantidad y el costo unitario. Polea actualizará el stock automáticamente.',
+          'Ve a Entradas y registra el inventario que tienes actualmente. Selecciona el producto, la cantidad y el costo unitario. Leva actualizará el stock automáticamente.',
         link: '/entradas',
         linkLabel: 'Ir a Entradas →',
       },
@@ -59,10 +59,10 @@ const GUIAS: GuiaModulo[] = [
       {
         pregunta: '¿Puedo importar mis productos desde Excel?',
         respuesta:
-          'Sí. En el módulo de Inventario encontrarás el botón "Cargar CSV". Descarga la plantilla, llena los datos y súbela. Polea acepta archivos separados por coma o punto y coma.',
+          'Sí. En el módulo de Inventario encontrarás el botón "Cargar CSV". Descarga la plantilla, llena los datos y súbela. Leva acepta archivos separados por coma o punto y coma.',
       },
       {
-        pregunta: '¿Cuántos usuarios pueden usar Polea?',
+        pregunta: '¿Cuántos usuarios pueden usar Leva?',
         respuesta:
           'Puedes invitar a tu equipo desde el módulo Equipo. Cada persona tiene un rol: Admin, Vendedor o Solo lectura.',
       },
@@ -87,7 +87,7 @@ const GUIAS: GuiaModulo[] = [
       {
         titulo: 'Calcular el precio de venta',
         descripcion:
-          'Usa la calculadora integrada haciendo clic en "🧮 Calcular precio" junto al campo de precio. Ingresa tus costos y Polea te sugerirá un precio según el margen típico de tu industria.',
+          'Usa la calculadora integrada haciendo clic en "🧮 Calcular precio" junto al campo de precio. Ingresa tus costos y Leva te sugerirá un precio según el margen típico de tu industria.',
       },
       {
         titulo: 'Filtros de stock',
@@ -131,12 +131,12 @@ const GUIAS: GuiaModulo[] = [
       {
         titulo: 'Producto nuevo',
         descripcion:
-          'Si es la primera vez que recibes este producto, selecciona "Producto nuevo" en el toggle. Polea creará el producto en Inventario y registrará la entrada al mismo tiempo.',
+          'Si es la primera vez que recibes este producto, selecciona "Producto nuevo" en el toggle. Leva creará el producto en Inventario y registrará la entrada al mismo tiempo.',
       },
       {
         titulo: 'Cuentas por pagar',
         descripcion:
-          'En el tab "Por pagar" puedes ver todas las facturas pendientes de pago. Haz clic en "Registrar pago" para marcar una cuota o factura como pagada — Polea registrará el gasto automáticamente.',
+          'En el tab "Por pagar" puedes ver todas las facturas pendientes de pago. Haz clic en "Registrar pago" para marcar una cuota o factura como pagada — Leva registrará el gasto automáticamente.',
       },
     ],
     faqs: [
@@ -165,7 +165,7 @@ const GUIAS: GuiaModulo[] = [
       {
         titulo: 'Medios de pago y comisiones',
         descripcion:
-          'Polea calcula automáticamente la comisión de cada medio de pago (incluyendo IVA sobre la comisión). El total neto es lo que realmente recibes en tu bolsillo.',
+          'Leva calcula automáticamente la comisión de cada medio de pago (incluyendo IVA sobre la comisión). El total neto es lo que realmente recibes en tu bolsillo.',
       },
       {
         titulo: 'Campo de envío',
@@ -286,7 +286,7 @@ const GUIAS: GuiaModulo[] = [
       {
         titulo: 'Liquidar ventas',
         descripcion:
-          'Al final del mes, ve al tab "Liquidaciones" → "Nueva liquidación". Selecciona la tienda, el mes y cuánto vendieron. Polea calcula la comisión y tu neto automáticamente.',
+          'Al final del mes, ve al tab "Liquidaciones" → "Nueva liquidación". Selecciona la tienda, el mes y cuánto vendieron. Leva calcula la comisión y tu neto automáticamente.',
       },
       {
         titulo: 'Crear cuenta de cobro desde liquidación',
@@ -337,7 +337,7 @@ const GUIAS: GuiaModulo[] = [
       {
         pregunta: '¿Cómo comparto una cotización por WhatsApp?',
         respuesta:
-          'Descarga el PDF y compártelo manualmente desde tu celular. En el futuro Polea tendrá integración directa con WhatsApp.',
+          'Descarga el PDF y compártelo manualmente desde tu celular. En el futuro Leva tendrá integración directa con WhatsApp.',
       },
       {
         pregunta: '¿Los documentos tienen numeración automática?',
@@ -354,7 +354,7 @@ const GUIAS: GuiaModulo[] = [
       {
         titulo: 'Invitar a un miembro',
         descripcion:
-          'Ve a Equipo → ingresa el email y el rol. Copia el link de invitación y compártelo. La persona debe crear su cuenta en Polea y aceptar la invitación.',
+          'Ve a Equipo → ingresa el email y el rol. Copia el link de invitación y compártelo. La persona debe crear su cuenta en Leva y aceptar la invitación.',
       },
       {
         titulo: 'Roles disponibles',
@@ -410,7 +410,7 @@ export default function AyudaPage() {
         Centro de ayuda
       </h1>
       <p className="text-sm mb-8" style={{ color: 'var(--color-text-soft)' }}>
-        Guías y preguntas frecuentes sobre cada módulo de Polea.
+        Guías y preguntas frecuentes sobre cada módulo de Leva.
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">

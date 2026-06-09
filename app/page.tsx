@@ -1,812 +1,696 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import {
-  motion,
-  useMotionValue,
-  useSpring,
-  useTransform,
-  useScroll,
-} from 'framer-motion'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
 const WA_URL = 'https://wa.me/573014140381'
 
-const painPoints = [
-  {
-    icon: (
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C4622D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
-      </svg>
-    ),
-    titulo: 'No sé cuánto gané este mes',
-    texto: 'Entre comisiones de Wompi, descuentos y gastos, al final del mes no sabes si tu negocio fue rentable.',
-  },
-  {
-    icon: (
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C4622D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-      </svg>
-    ),
-    titulo: 'Mi inventario siempre está desactualizado',
-    texto: 'Vendes por WhatsApp, Instagram y en físico — y nunca sabes exactamente cuánto te queda en stock.',
-  },
-  {
-    icon: (
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C4622D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" />
-      </svg>
-    ),
-    titulo: 'Llevo todo en Excel y ya no aguanto',
-    texto: 'Hojas de cálculo, cuadernos, notas de voz. Tu negocio ya creció más que eso.',
-  },
-  {
-    icon: (
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C4622D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
-    ),
-    titulo: 'No sé cuáles son mis mejores clientes',
-    texto: 'Tienes clientes que compran todo el tiempo pero no sabes quiénes son ni cuándo fue su última compra.',
-  },
-  {
-    icon: (
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C4622D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-      </svg>
-    ),
-    titulo: 'Cada fin de mes es un caos',
-    texto: 'Juntar ventas, gastos y facturas de todas partes para saber cómo te fue — un proceso que te roba horas.',
-  },
-]
-
-const propuestaValor = [
-  {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C4622D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-      </svg>
-    ),
-    titulo: 'Configuración en minutos',
-    texto: 'Sin instalaciones ni cursos. Crea tu cuenta y empieza hoy.',
-  },
-  {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C4622D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
-      </svg>
-    ),
-    titulo: 'Estado de resultados automático',
-    texto: 'Tu P&L mes a mes sin necesidad de un contador.',
-  },
-  {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C4622D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-      </svg>
-    ),
-    titulo: 'Stock en tiempo real',
-    texto: 'Se actualiza solo con cada venta y cada entrada de mercancía.',
-  },
-  {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C4622D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" />
-      </svg>
-    ),
-    titulo: 'Comisiones automáticas',
-    texto: 'Wompi, Bold, Nequi — Polea calcula lo que te cobran y te muestra tu neto.',
-  },
-]
-
-const features = [
-  {
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1E3A2F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" />
-      </svg>
-    ),
-    titulo: 'Ventas multicanal',
-    texto: 'Registra ventas de WhatsApp, Instagram, web y presencial en segundos.',
-    badge: 'Solo en Polea ✦',
-    extra: 'Calcula automáticamente las comisiones de Wompi, Bold y Nequi.',
-  },
-  {
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1E3A2F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-      </svg>
-    ),
-    titulo: 'Inventario en tiempo real',
-    texto: 'El stock se actualiza automáticamente con cada venta. Alertas cuando un producto está por agotarse.',
-  },
-  {
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1E3A2F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
-      </svg>
-    ),
-    titulo: 'Estado de resultados',
-    texto: 'Ve tu utilidad real mes a mes. Ventas, costos y gastos en un reporte claro que cualquiera entiende.',
-  },
-  {
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1E3A2F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
-    ),
-    titulo: 'Clientes y recurrencia',
-    texto: 'Historial de compras por cliente. Alertas cuando un cliente frecuente lleva tiempo sin comprar.',
-  },
-  {
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1E3A2F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-      </svg>
-    ),
-    titulo: 'Control de gastos',
-    texto: 'Registra cada gasto por categoría. Sabe exactamente en qué se va el dinero del negocio.',
-  },
-  {
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1E3A2F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
-      </svg>
-    ),
-    titulo: 'Importa desde Excel',
-    texto: '¿Vienes de hojas de cálculo? Importa tus productos, clientes e historial en minutos con CSV.',
-  },
-]
-
-// Animation variants
-const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as const } },
+/* ── SVG Components ── */
+function CamMark({ style }: { style?: React.CSSProperties }) {
+  return (
+    <svg viewBox="0 0 100 100" style={style}>
+      <g style={{ transform: 'rotate(26deg)', transformOrigin: '50px 50px' }}>
+        <path fill="currentColor" fillRule="evenodd" d="M50 9 C 65 9, 80 30, 80 54 C 80 76, 67 93, 50 93 C 33 93, 20 76, 20 54 C 20 30, 35 9, 50 9 Z M50 60 m -12 0 a 12 12 0 1 0 24 0 a 12 12 0 1 0 -24 0 Z" />
+      </g>
+    </svg>
+  )
 }
 
-const stagger = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.1 } },
+function CamGhost({ style }: { style?: React.CSSProperties }) {
+  return (
+    <svg viewBox="0 0 100 100" style={style}>
+      <g style={{ transform: 'rotate(26deg)', transformOrigin: '50px 50px' }}>
+        <path fill="none" stroke="currentColor" strokeWidth="1.4" fillRule="evenodd" d="M50 9 C 65 9, 80 30, 80 54 C 80 76, 67 93, 50 93 C 33 93, 20 76, 20 54 C 20 30, 35 9, 50 9 Z M50 60 m -12 0 a 12 12 0 1 0 24 0 a 12 12 0 1 0 -24 0 Z" />
+      </g>
+    </svg>
+  )
 }
+
+/* ── Feature Icons ── */
+function IcVentas() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="24" height="24"><path d="M6 8h12l-1.1 12H7.1L6 8Z" /><path d="M9 8a3 3 0 0 1 6 0" /></svg> }
+function IcInventario() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="24" height="24"><rect x="3.5" y="12.5" width="7" height="7" rx="1" /><rect x="13.5" y="12.5" width="7" height="7" rx="1" /><rect x="8.5" y="4.5" width="7" height="7" rx="1" /></svg> }
+function IcGastos() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="24" height="24"><ellipse cx="10" cy="8" rx="6" ry="2.6" /><path d="M4 8v8c0 1.4 2.7 2.6 6 2.6 1 0 2-.1 2.8-.3" /><path d="M16 14v6m3-3h-6" /></svg> }
+function IcReportes() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="24" height="24"><path d="M4 4v16h16" /><path d="M8 16v-4M12 16V8M16 16v-6" /></svg> }
+function IcAliadas() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="24" height="24"><circle cx="9" cy="12" r="5.2" /><circle cx="15" cy="12" r="5.2" /></svg> }
+function IcEventos() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="24" height="24"><path d="M4 20L12 5l8 15" /><path d="M12 5v15" /><path d="M4 20h16" /></svg> }
+function IcJoyeria() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="21" height="21"><path d="M12 3.5l7.5 6L12 20.5 4.5 9.5 12 3.5Z" /><path d="M4.5 9.5h15" /></svg> }
+function IcRopa() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="21" height="21"><path d="M9 4l3 2 3-2 5 3.5-2.5 3-2-1.2V20H8V9.3L6 10.5 3.5 7.5 9 4Z" /></svg> }
+function IcCosmeticos() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="21" height="21"><path d="M12 3.5c3.2 4.2 5 6.4 5 9.3a5 5 0 0 1-10 0c0-2.9 1.8-5.1 5-9.3Z" /></svg> }
+function IcFerreteria() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="21" height="21"><path d="M8.5 3.5h7L20 12l-4.5 8.5h-7L4 12 8.5 3.5Z" /><circle cx="12" cy="12" r="3" /></svg> }
+function IcRestaurantes() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="21" height="21"><path d="M7 3.5v17M5 3.5v5a2 2 0 0 0 4 0v-5" /><path d="M17 3.5c-1.8 0-3 2.2-3 5s1.2 4 3 4.2V20.5" /></svg> }
+function IcArtesanias() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="21" height="21"><path d="M12 3v18M3 12h18M6 6l12 12M18 6L6 18" /></svg> }
 
 export default function Home() {
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [cardActiva, setCardActiva] = useState(0)
   const [scrolled, setScrolled] = useState(false)
-  const heroRef = useRef<HTMLElement | null>(null)
-
-  // Mouse parallax motion values
-  const mouseX = useMotionValue(0)
-  const mouseY = useMotionValue(0)
-  const smoothX = useSpring(mouseX, { stiffness: 150, damping: 30 })
-  const smoothY = useSpring(mouseY, { stiffness: 150, damping: 30 })
-
-  // Decorative blobs follow mouse at different speeds
-  const blob1X = useTransform(smoothX, (x) => x * 0.04)
-  const blob1Y = useTransform(smoothY, (y) => y * 0.04)
-  const blob2X = useTransform(smoothX, (x) => x * -0.03)
-  const blob2Y = useTransform(smoothY, (y) => y * -0.03)
-  const blob3X = useTransform(smoothX, (x) => x * 0.02)
-  const blob3Y = useTransform(smoothY, (y) => y * 0.02)
-
-  // Dashboard card follows mouse gently
-  const dashMouseX = useTransform(smoothX, (x) => x * 0.014)
-  const dashMouseY = useTransform(smoothY, (y) => y * 0.014)
-
-  // Floating badges go opposite to dashboard
-  const badge1X = useTransform(smoothX, (x) => x * -0.022)
-  const badge1Y = useTransform(smoothY, (y) => y * -0.022)
-  const badge2X = useTransform(smoothX, (x) => x * 0.026)
-  const badge2Y = useTransform(smoothY, (y) => y * 0.026)
-
-  // Scroll-based transforms
-  const { scrollY } = useScroll()
-  const scrollDeg = useTransform(scrollY, (v) => v * 0.3)
-  const heroTextY = useTransform(scrollY, [0, 600], [0, -50])
-  const heroDashScrollY = useTransform(scrollY, [0, 600], [0, -25])
-
-  function handleHeroMouseMove(e: React.MouseEvent<HTMLElement>) {
-    const rect = heroRef.current?.getBoundingClientRect()
-    if (!rect) return
-    mouseX.set(e.clientX - rect.left - rect.width / 2)
-    mouseY.set(e.clientY - rect.top - rect.height / 2)
-  }
-
-  function handleHeroMouseLeave() {
-    mouseX.set(0)
-    mouseY.set(0)
-  }
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    const fn = () => setScrolled(window.scrollY > 40)
+    window.addEventListener('scroll', fn, { passive: true })
+    return () => window.removeEventListener('scroll', fn)
+  }, [])
+
+  useEffect(() => {
+    document.body.style.background = '#F4F1EA'
+    return () => { document.body.style.background = '' }
   }, [])
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* 1. NAVBAR */}
-      <header>
-        <nav
-          className={`fixed top-0 left-0 right-0 z-50 h-16 transition-all duration-300 ${
-            scrolled
-              ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-[#EDE5DC]'
-              : 'bg-transparent'
-          }`}
+    <>
+      <style>{`
+        /* ── Leva Landing tokens ── */
+        .lv{
+          --crow:#0D0D0D;--graphite:#1A1A1A;--graphite-2:#202020;
+          --champagne:#E8DFC4;--champ-deep:#C9BE9A;--smoke:#5A5A5A;
+          --paper:#F4F1EA;--paper-2:#ECE8DE;--line:#DCD7CA;--line-dk:#262626;
+          --ink:#16140F;--ink-2:#4A463C;
+          --on-dark:#E8DFC4;--on-dark-2:rgba(232,223,196,0.52);
+          --accent:#4A90D9;--accent-on-blk:#5C9FE0;--accent-ink:#2F6DB0;
+          --accent-soft:rgba(74,144,217,0.12);--accent-soft-dk:rgba(92,159,224,0.16);
+          --success:#27AE60;
+          --wm:var(--font-rubik,'Rubik',system-ui,sans-serif);
+          --head:var(--font-space-grotesk,system-ui,sans-serif);
+          --body:var(--font-space-grotesk,system-ui,sans-serif);
+          --mono:ui-monospace,'Cascadia Code','Courier New',monospace;
+          --maxw:1180px;--gutter:40px;
+        }
+        .lv *{box-sizing:border-box}
+        .lv{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.62}
+        .lv h1,.lv h2,.lv h3,.lv h4{font-family:var(--head);font-weight:600;margin:0}
+        .lv p{margin:0}
+        .lv a{color:inherit;text-decoration:none}
+
+        /* wrap */
+        .lv .wrap{max-width:var(--maxw);margin:0 auto;padding:0 var(--gutter)}
+
+        /* wordmark */
+        .lv .wm{font-family:var(--wm);font-weight:700;text-transform:uppercase;letter-spacing:0.16em;padding-left:0.16em;line-height:1}
+
+        /* buttons */
+        .lv .btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--body);font-weight:600;font-size:15px;padding:13px 22px;border-radius:11px;cursor:pointer;border:1px solid transparent;transition:transform .16s ease,background .16s ease,border-color .16s ease,color .16s ease;white-space:nowrap}
+        .lv .btn:active{transform:translateY(1px)}
+        .lv .btn-primary{background:var(--accent);color:#1a1206;border-color:var(--accent)}
+        .lv .btn-primary:hover{background:var(--accent-on-blk);border-color:var(--accent-on-blk)}
+        .lv .btn-ghost-dark{background:transparent;color:var(--on-dark);border-color:rgba(232,223,196,0.28)}
+        .lv .btn-ghost-dark:hover{border-color:var(--champagne);background:rgba(232,223,196,0.06)}
+        .lv .btn-ghost-light{background:transparent;color:var(--ink);border-color:var(--line)}
+        .lv .btn-ghost-light:hover{border-color:var(--ink);background:#fff}
+        .lv .btn-sm{padding:9px 15px;font-size:13.5px;border-radius:9px}
+        .lv .arr{font-family:var(--mono);font-size:0.9em}
+
+        /* nav */
+        .lv .lv-nav{position:sticky;top:0;z-index:60;border-bottom:1px solid rgba(232,223,196,0.10);transition:background .3s ease}
+        .lv .nav-inner{display:flex;align-items:center;gap:24px;max-width:var(--maxw);margin:0 auto;padding:16px var(--gutter)}
+        .lv .nav-brand{display:flex;align-items:center;gap:11px}
+        .lv .nav-mk{width:30px;height:30px;color:var(--accent-on-blk)}
+        .lv .nav-mk svg{width:100%;height:100%;display:block}
+        .lv .nav-links{display:flex;gap:30px;margin:0 auto;font-size:14.5px;color:var(--on-dark-2)}
+        .lv .nav-links a{transition:color .15s ease}
+        .lv .nav-links a:hover{color:var(--champagne)}
+        .lv .nav-cta{display:flex;align-items:center;gap:10px}
+        .lv .signin{font-size:14.5px;color:var(--on-dark-2);transition:color .15s}
+        .lv .signin:hover{color:var(--champagne)}
+
+        /* hero */
+        .lv .hero{position:relative;background:var(--crow);color:var(--on-dark);min-height:calc(100vh - 63px);display:flex;align-items:center;padding:64px 0 80px;overflow:hidden}
+        .lv .cam-ghost{position:absolute;right:-120px;top:50%;transform:translateY(-50%);width:620px;height:620px;color:rgba(92,159,224,0.05);pointer-events:none}
+        .lv .cam-ghost svg{width:100%;height:100%}
+        .lv .hero-grid{position:relative;z-index:2;display:grid;grid-template-columns:1.02fr 0.98fr;gap:54px;align-items:center;width:100%}
+        .lv .kicker{display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--on-dark-2);border:1px solid rgba(232,223,196,0.16);border-radius:999px;padding:7px 14px}
+        .lv .kicker .dot{width:7px;height:7px;border-radius:50%;background:var(--accent-on-blk)}
+        .lv .hero h1{font-family:var(--head);font-weight:600;font-size:clamp(44px,6.4vw,82px);line-height:1.0;letter-spacing:-0.03em;color:var(--champagne);margin:26px 0 0;max-width:13ch}
+        .lv .hero h1 .soft{color:var(--accent-on-blk)}
+        .lv .hero .sub{font-size:clamp(17px,2vw,20px);line-height:1.6;color:var(--on-dark-2);margin:26px 0 0;max-width:42ch}
+        .lv .hero .actions{display:flex;gap:14px;margin-top:38px;flex-wrap:wrap}
+        .lv .hero .trust{display:flex;align-items:center;gap:14px;margin-top:30px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--on-dark-2)}
+        .lv .hero .trust .sep{width:4px;height:4px;border-radius:50%;background:rgba(232,223,196,0.3)}
+
+        /* entrance */
+        .lv .reveal{opacity:1;transform:none}
+        @media(prefers-reduced-motion:no-preference){
+          .lv .reveal{animation:lvRise .7s cubic-bezier(.2,.7,.2,1) backwards}
+          .lv .d1{animation-delay:.04s}.lv .d2{animation-delay:.14s}.lv .d3{animation-delay:.24s}
+          .lv .d4{animation-delay:.34s}.lv .d5{animation-delay:.46s}
+        }
+        @keyframes lvRise{from{transform:translateY(16px)}to{transform:none}}
+
+        /* dashboard mockup */
+        .lv .dash{position:relative;background:var(--graphite);border:1px solid #2b2b2b;border-radius:20px;padding:22px;box-shadow:0 50px 90px -40px rgba(0,0,0,0.7)}
+        .lv .dwin{display:flex;align-items:center;gap:9px;margin-bottom:20px}
+        .lv .dwin i{width:10px;height:10px;border-radius:50%;background:#3a3a3a;display:block}
+        .lv .durl{margin-left:auto;font-family:var(--mono);font-size:11px;color:#6a655a;background:#111;border-radius:6px;padding:5px 12px;letter-spacing:0.04em}
+        .lv .dtop{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px}
+        .lv .dk{font-family:var(--mono);font-size:10.5px;letter-spacing:0.12em;text-transform:uppercase;color:#7c766a}
+        .lv .dbig{font-family:var(--head);font-weight:600;font-size:34px;letter-spacing:-0.02em;color:var(--champagne);margin-top:6px}
+        .lv .dchg{font-size:13px;font-weight:600;color:var(--accent-on-blk);margin-top:4px}
+        .lv .dutil{text-align:right}
+        .lv .duk{font-family:var(--mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#7c766a}
+        .lv .duv{font-family:var(--head);font-weight:600;font-size:19px;color:var(--success);margin-top:5px}
+        .lv .bars{display:flex;align-items:flex-end;gap:8px;height:88px;margin:6px 0 20px}
+        .lv .bars i{flex:1;background:rgba(232,223,196,0.10);border-radius:4px 4px 0 0}
+        .lv .bars i.on{background:var(--accent)}
+        .lv .drow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+        .lv .mini{background:#151515;border:1px solid #262626;border-radius:13px;padding:14px 15px}
+        .lv .mk2{font-family:var(--mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:#7c766a}
+        .lv .mv{font-family:var(--head);font-weight:600;font-size:19px;margin-top:7px;color:var(--champagne)}
+        .lv .mv.pos{color:var(--success)}
+        .lv .dlist{background:#151515;border:1px solid #262626;border-radius:13px;padding:4px 15px}
+        .lv .dli{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid #232323;font-size:13.5px}
+        .lv .dli:last-child{border-bottom:none}
+        .lv .dlt{color:#cfc9ba}
+        .lv .dch{font-family:var(--mono);font-size:10px;color:#7c766a;margin-left:8px;letter-spacing:0.04em}
+        .lv .dlr{font-weight:600;color:var(--champagne)}
+        .lv .dash-chip{position:absolute;background:var(--crow);border:1px solid #2c2c2c;border-radius:12px;padding:11px 14px;box-shadow:0 20px 40px -18px rgba(0,0,0,0.8);display:flex;align-items:center;gap:10px}
+        .lv .dci{width:30px;height:30px;border-radius:8px;background:var(--accent-soft-dk);color:var(--accent-on-blk);display:flex;align-items:center;justify-content:center}
+        .lv .dci svg{width:16px;height:16px}
+        .lv .dck{font-family:var(--mono);font-size:9.5px;letter-spacing:0.08em;text-transform:uppercase;color:#7c766a}
+        .lv .dcv{font-family:var(--head);font-weight:600;font-size:15px;color:var(--champagne);margin-top:1px}
+        .lv .chip-tl{top:-22px;left:-26px}
+        .lv .chip-br{bottom:-24px;right:-22px}
+
+        /* sections */
+        .lv .band{padding:108px 0;border-bottom:1px solid var(--line)}
+        .lv .sec-head{max-width:62ch}
+        .lv .idx{font-family:var(--mono);font-size:12px;letter-spacing:0.14em;color:var(--accent-ink);text-transform:uppercase}
+        .lv .sec-head h2{font-family:var(--head);font-weight:600;font-size:clamp(30px,4vw,46px);line-height:1.05;letter-spacing:-0.025em;color:var(--ink);margin:18px 0 0}
+        .lv .lede{font-size:18px;line-height:1.6;color:var(--ink-2);margin:20px 0 0;max-width:54ch}
+        .lv .sec-head.center{margin:0 auto;text-align:center}
+        .lv .sec-head.center .lede{margin-left:auto;margin-right:auto}
+
+        /* problema */
+        .lv .prob-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:54px}
+        .lv .prob{background:#fff;border:1px solid var(--line);border-radius:16px;padding:30px 28px 28px;display:flex;flex-direction:column}
+        .lv .prob .q{font-family:var(--head);font-weight:600;font-size:21px;line-height:1.22;letter-spacing:-0.01em;color:var(--ink);padding-bottom:22px}
+        .lv .prob .pain{font-size:14.5px;color:var(--ink-2);line-height:1.55;padding-bottom:22px}
+        .lv .sol{margin-top:auto;border-top:1px solid var(--line);padding-top:20px;display:flex;gap:13px;align-items:flex-start}
+        .lv .sol .badge{flex-shrink:0;font-family:var(--mono);font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent-soft);border-radius:6px;padding:5px 8px;margin-top:2px}
+        .lv .stext{font-size:14.5px;color:var(--ink);line-height:1.5}
+        .lv .stext b{color:var(--ink);font-weight:600}
+
+        /* funciones */
+        .lv .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-top:54px}
+        .lv .feat{background:var(--paper);padding:34px 30px;transition:background .18s ease}
+        .lv .feat:hover{background:#fff}
+        .lv .fi{width:46px;height:46px;border-radius:12px;background:var(--accent-soft);color:var(--accent-ink);display:flex;align-items:center;justify-content:center}
+        .lv .feat h3{font-family:var(--head);font-weight:600;font-size:19px;letter-spacing:-0.01em;margin:20px 0 8px;color:var(--ink)}
+        .lv .feat p{font-size:14.5px;color:var(--ink-2);line-height:1.55}
+
+        /* pasos */
+        .lv .dark-band{background:var(--crow);color:var(--on-dark);border-bottom:none}
+        .lv .dark-band .sec-head h2{color:var(--champagne)}
+        .lv .dark-band .idx{color:var(--accent-on-blk)}
+        .lv .dark-band .lede{color:var(--on-dark-2)}
+        .lv .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:56px;position:relative}
+        .lv .step .n{font-family:var(--head);font-weight:600;font-size:15px;width:42px;height:42px;border-radius:50%;border:1px solid rgba(232,223,196,0.22);display:flex;align-items:center;justify-content:center;color:var(--accent-on-blk)}
+        .lv .step h3{font-family:var(--head);font-weight:600;font-size:22px;letter-spacing:-0.01em;color:var(--champagne);margin:22px 0 10px}
+        .lv .step > p{font-size:15px;color:var(--on-dark-2);line-height:1.6;max-width:34ch}
+        .lv .line-link{position:absolute;top:21px;left:54px;right:-22px;height:1px;background:repeating-linear-gradient(90deg,rgba(232,223,196,0.22) 0 6px,transparent 6px 12px)}
+
+        /* industrias */
+        .lv .ind-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:50px}
+        .lv .ind{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;display:flex;align-items:center;gap:16px;transition:border-color .16s,transform .16s;cursor:default}
+        .lv .ind:hover{border-color:var(--accent);transform:translateY(-2px)}
+        .lv .ii{width:40px;height:40px;border-radius:10px;background:var(--graphite);color:var(--accent-on-blk);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .lv .it{font-family:var(--head);font-weight:600;font-size:17px;color:var(--ink);display:block}
+        .lv .ic{font-family:var(--mono);font-size:11px;color:var(--smoke);letter-spacing:0.04em;margin-top:2px;display:block}
+        .lv .photos{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:14px;margin-top:50px}
+        .lv .ph-tall{height:300px;background:#e8e3da;border-radius:14px;display:flex;align-items:center;justify-content:center}
+        .lv .ph-sq{height:300px;background:#e8e3da;border-radius:14px;display:flex;align-items:center;justify-content:center}
+        .lv .photo-note{font-family:var(--mono);font-size:11px;letter-spacing:0.06em;color:var(--smoke);margin-top:16px}
+
+        /* prueba social */
+        .lv .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:52px}
+        .lv .metric{border-top:2px solid var(--ink);padding-top:20px}
+        .lv .mn{font-family:var(--head);font-weight:600;font-size:clamp(38px,5vw,54px);letter-spacing:-0.03em;color:var(--ink);line-height:1}
+        .lv .ml{font-size:14.5px;color:var(--ink-2);margin-top:10px;max-width:26ch}
+        .lv .testi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-top:30px}
+        .lv .testi{background:#fff;border:1px solid var(--line);border-radius:16px;padding:30px 30px 26px}
+        .lv .quote{font-family:var(--head);font-weight:500;font-size:20px;line-height:1.4;letter-spacing:-0.01em;color:var(--ink)}
+        .lv .by{display:flex;align-items:center;gap:13px;margin-top:24px}
+        .lv .av{width:42px;height:42px;border-radius:50%;background:var(--graphite);color:var(--champagne);display:flex;align-items:center;justify-content:center;font-family:var(--head);font-weight:600;font-size:15px;flex-shrink:0}
+        .lv .who .nm{font-weight:600;font-size:14.5px;color:var(--ink);display:block}
+        .lv .who .role{font-family:var(--mono);font-size:11px;color:var(--smoke);letter-spacing:0.03em;margin-top:2px;display:block}
+        .lv .eg-tag{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.1em;text-transform:uppercase;color:var(--smoke);border:1px solid var(--line);border-radius:999px;padding:5px 12px;margin-top:22px}
+        .lv .eg-dot{width:6px;height:6px;border-radius:50%;background:var(--champ-deep)}
+
+        /* precios */
+        .lv .price-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:54px;max-width:880px;margin-left:auto;margin-right:auto}
+        .lv .plan{border:1px solid var(--line);border-radius:20px;background:#fff;padding:34px 32px;display:flex;flex-direction:column}
+        .lv .plan.pro{background:var(--crow);border-color:var(--crow);color:var(--on-dark)}
+        .lv .pname{font-family:var(--mono);font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:var(--smoke)}
+        .lv .plan.pro .pname{color:var(--accent-on-blk)}
+        .lv .price-num{font-family:var(--head);font-weight:600;font-size:44px;letter-spacing:-0.03em;color:var(--ink);margin:16px 0 2px;line-height:1}
+        .lv .plan.pro .price-num{color:var(--champagne)}
+        .lv .price-num small{font-family:var(--body);font-size:15px;font-weight:400;color:var(--smoke);letter-spacing:0}
+        .lv .plan.pro .price-num small{color:var(--on-dark-2)}
+        .lv .pdesc{font-size:14.5px;color:var(--ink-2);margin-top:12px;min-height:44px}
+        .lv .plan.pro .pdesc{color:var(--on-dark-2)}
+        .lv .plan ul{list-style:none;padding:0;margin:24px 0 28px;display:flex;flex-direction:column;gap:13px}
+        .lv .plan li{display:flex;gap:11px;align-items:flex-start;font-size:14.5px;color:var(--ink)}
+        .lv .plan.pro li{color:var(--champagne)}
+        .lv .ck{color:var(--accent-ink);flex-shrink:0;margin-top:1px;font-weight:700}
+        .lv .plan.pro .ck{color:var(--accent-on-blk)}
+        .lv .plan .btn{margin-top:auto;justify-content:center}
+        .lv .badge-pro{font-family:var(--mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#1a1206;background:var(--accent-on-blk);border-radius:6px;padding:4px 9px;align-self:flex-start;margin-bottom:14px;display:inline-block}
+        .lv .price-foot{text-align:center;font-family:var(--mono);font-size:11.5px;letter-spacing:0.04em;color:var(--smoke);margin-top:26px}
+
+        /* CTA final */
+        .lv .cta-final{background:var(--crow);color:var(--on-dark);text-align:center;padding:120px 0;position:relative;overflow:hidden}
+        .lv .cta-ghost{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:520px;height:520px;color:rgba(92,159,224,0.05)}
+        .lv .cta-ghost svg{width:100%;height:100%}
+        .lv .cta-inner{position:relative;z-index:2}
+        .lv .cta-final h2{font-family:var(--head);font-weight:600;font-size:clamp(34px,5vw,62px);line-height:1.02;letter-spacing:-0.03em;color:var(--champagne);max-width:16ch;margin:0 auto}
+        .lv .cta-final > .cta-inner > p{font-size:18px;color:var(--on-dark-2);margin:22px auto 0;max-width:44ch}
+        .lv .cta-final .actions{display:flex;gap:14px;justify-content:center;margin-top:38px;flex-wrap:wrap}
+        .lv .reassure{font-family:var(--mono);font-size:11.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--on-dark-2);margin-top:28px}
+
+        /* footer */
+        .lv .foot{background:var(--crow);color:var(--on-dark);padding:70px 0 46px;border-top:1px solid var(--line-dk)}
+        .lv .foot-top{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:32px;padding-bottom:48px;border-bottom:1px solid var(--line-dk)}
+        .lv .pbrand{display:flex;align-items:center;gap:11px;margin-bottom:16px}
+        .lv .pmk{width:30px;height:30px;color:var(--champagne)}
+        .lv .pmk svg{width:100%;height:100%}
+        .lv .pblurb{font-size:14px;color:var(--on-dark-2);line-height:1.6;max-width:32ch}
+        .lv .made{font-family:var(--mono);font-size:11px;letter-spacing:0.06em;color:#6a655a;margin-top:18px}
+        .lv .fcol h4{font-family:var(--mono);font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#6a655a;font-weight:400;margin-bottom:16px}
+        .lv .fcol a{display:block;font-size:14px;color:var(--on-dark-2);padding:6px 0;transition:color .15s}
+        .lv .fcol a:hover{color:var(--champagne)}
+        .lv .foot-bot{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-top:26px;flex-wrap:wrap}
+        .lv .copy{font-family:var(--mono);font-size:11.5px;color:#6a655a;letter-spacing:0.04em}
+        .lv .socials{display:flex;gap:10px}
+        .lv .socials a{width:34px;height:34px;border-radius:9px;border:1px solid var(--line-dk);display:flex;align-items:center;justify-content:center;color:var(--on-dark-2);transition:all .15s}
+        .lv .socials a:hover{border-color:var(--champagne);color:var(--champagne)}
+        .lv .socials svg{width:16px;height:16px}
+
+        /* mobile nav */
+        .lv .mobile-menu{display:none;background:#111;border-top:1px solid rgba(232,223,196,0.10);padding:16px 40px 24px}
+        .lv .mobile-menu a{display:block;font-size:15px;color:rgba(232,223,196,0.52);padding:12px 0;transition:color .15s}
+        .lv .mobile-menu a:hover{color:var(--champagne)}
+        .lv .mobile-menu .mrow{display:flex;gap:24px;margin-top:16px;padding-top:16px;border-top:1px solid rgba(232,223,196,0.10)}
+        .lv .nav-toggle{display:none;background:none;border:none;cursor:pointer;padding:8px;flex-direction:column;gap:5px}
+        .lv .nav-toggle span{display:block;width:22px;height:1px;background:var(--champagne)}
+
+        /* responsive */
+        @media(max-width:940px){ .lv .hero-grid{grid-template-columns:1fr;gap:44px} }
+        @media(max-width:880px){ .lv .nav-links{display:none} .lv .signin{display:none} .lv .nav-toggle{display:flex} .lv .mobile-menu{display:block} }
+        @media(max-width:860px){ .lv .prob-grid{grid-template-columns:1fr} .lv .feat-grid{grid-template-columns:repeat(2,1fr)} .lv .steps{grid-template-columns:1fr} .lv .line-link{display:none} .lv .ind-grid{grid-template-columns:repeat(2,1fr)} .lv .testi-grid{grid-template-columns:1fr} }
+        @media(max-width:760px){ .lv .band{padding:76px 0} .lv .cta-final{padding:88px 0} .lv .foot-top{grid-template-columns:1fr 1fr} .lv .photos{grid-template-columns:1fr 1fr} .lv .ph-tall{grid-column:1/-1;height:240px} .lv .ph-sq{height:180px} }
+        @media(max-width:720px){ .lv .price-grid{grid-template-columns:1fr} }
+        @media(max-width:680px){ .lv .metrics{grid-template-columns:1fr} .lv{--gutter:22px} }
+        @media(max-width:560px){ .lv .feat-grid{grid-template-columns:1fr} .lv .ind-grid{grid-template-columns:1fr} }
+        @media(max-width:520px){ .lv .dash-chip{display:none} }
+        @media(max-width:480px){ .lv .foot-top{grid-template-columns:1fr} }
+      `}</style>
+
+      <div className="lv">
+
+        {/* ════════ NAV ════════ */}
+        <header
+          className="lv-nav"
+          style={{ background: scrolled ? 'rgba(13,13,13,0.92)' : 'rgba(13,13,13,0.72)', backdropFilter: 'blur(14px)' }}
         >
-          <div className="w-full h-full flex items-center justify-between px-8 md:px-16">
-            <div className="flex items-center gap-3">
-              <svg width="28" height="28" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-                <rect width="32" height="32" rx="8" fill="#1E3A2F" />
-                <circle cx="16" cy="14" r="9" fill="none" stroke="#FAF6F0" strokeWidth="2.5" />
-                <circle cx="16" cy="14" r="4" fill="none" stroke="#FAF6F0" strokeWidth="2" />
-                <circle cx="16" cy="14" r="1.5" fill="#C4622D" />
-                <line x1="16" y1="23" x2="16" y2="29" stroke="#C4622D" strokeWidth="2.5" strokeLinecap="round" />
-              </svg>
-              <div>
-                <p className="font-serif text-xl font-bold text-[#1E3A2F] leading-none">POLEA</p>
-                <p className="text-[10px] text-[#8A7D72] uppercase tracking-widest leading-none mt-0.5">Tu tienda, clara</p>
-              </div>
-            </div>
+          <div className="nav-inner">
+            <Link href="/" className="nav-brand" aria-label="Leva — inicio">
+              <span className="nav-mk"><CamMark /></span>
+              <span className="wm" style={{ fontSize: 21, color: 'var(--champagne)' }}>Leva</span>
+            </Link>
 
-            <div className="hidden md:flex items-center gap-8">
-              <Link href="#funcionalidades" className="text-sm text-[#4A3F35] hover:text-[#1E3A2F] transition font-medium">Funcionalidades</Link>
-              <Link href="#precios" className="text-sm text-[#4A3F35] hover:text-[#1E3A2F] transition font-medium">Precios</Link>
-              <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="text-sm text-[#4A3F35] hover:text-[#1E3A2F] transition font-medium">Contacto</a>
-            </div>
+            <nav className="nav-links">
+              <a href="#problema">Por qué Leva</a>
+              <a href="#funciones">Funciones</a>
+              <a href="#como">Cómo funciona</a>
+              <a href="#precios">Precios</a>
+            </nav>
 
-            <div className="hidden md:flex items-center gap-3">
-              <Link href="/login" className="text-[#C4622D] border border-[#C4622D] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#F9EDE5] transition">Iniciar sesión</Link>
-              <Link href="/registro" className="bg-[#C4622D] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#E8845A] transition">Prueba ya</Link>
+            <div className="nav-cta">
+              <Link href="/login" className="signin">Entrar</Link>
+              <Link href="/registro" className="btn btn-primary btn-sm">Prueba gratis</Link>
             </div>
 
             <button
               type="button"
-              className="md:hidden p-2 rounded-lg border border-[#EDE5DC] text-[#1E3A2F]"
-              aria-expanded={mobileOpen}
+              className="nav-toggle"
               aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'}
               onClick={() => setMobileOpen((o) => !o)}
             >
-              <span className="block w-5 h-0.5 bg-[#1E3A2F] mb-1" />
-              <span className="block w-5 h-0.5 bg-[#1E3A2F] mb-1" />
-              <span className="block w-5 h-0.5 bg-[#1E3A2F]" />
+              <span /><span />
             </button>
           </div>
-        </nav>
 
-        {mobileOpen && (
-          <div className="md:hidden border-t border-[#EDE5DC] px-6 py-4 flex flex-col gap-3 bg-white">
-            <Link href="#funcionalidades" className="text-sm text-[#4A3F35] font-medium py-2" onClick={() => setMobileOpen(false)}>Funcionalidades</Link>
-            <Link href="#precios" className="text-sm text-[#4A3F35] font-medium py-2" onClick={() => setMobileOpen(false)}>Precios</Link>
-            <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="text-sm text-[#4A3F35] font-medium py-2" onClick={() => setMobileOpen(false)}>Contacto</a>
-            <hr className="border-[#EDE5DC]" />
-            <Link href="/login" className="text-[#C4622D] border border-[#C4622D] px-4 py-2 rounded-lg text-sm font-medium text-center hover:bg-[#F9EDE5] transition" onClick={() => setMobileOpen(false)}>Iniciar sesión</Link>
-            <Link href="/registro" className="bg-[#C4622D] text-white px-4 py-2 rounded-lg text-sm font-semibold text-center hover:bg-[#E8845A] transition" onClick={() => setMobileOpen(false)}>Prueba ya</Link>
-          </div>
-        )}
-      </header>
-
-      {/* 2. HERO */}
-      <section
-        ref={heroRef}
-        onMouseMove={handleHeroMouseMove}
-        onMouseLeave={handleHeroMouseLeave}
-        className="min-h-screen flex items-center pt-8 relative overflow-hidden"
-        style={{ background: '#FAF6F0' }}
-      >
-        {/* Decorative blobs — mouse parallax */}
-        <motion.div
-          style={{ x: blob1X, y: blob1Y, background: 'radial-gradient(circle, #C4622D22 0%, transparent 70%)' }}
-          className="absolute -left-32 top-1/4 w-96 h-96 rounded-full opacity-30 pointer-events-none"
-        />
-        <motion.div
-          style={{ x: blob2X, y: blob2Y, background: 'radial-gradient(circle, #1E3A2F33 0%, transparent 70%)' }}
-          className="absolute -right-20 top-10 w-72 h-72 rounded-full opacity-20 pointer-events-none"
-        />
-        <motion.div
-          style={{ x: blob3X, y: blob3Y, background: 'radial-gradient(circle, #D4A85333 0%, transparent 70%)' }}
-          className="absolute left-8 bottom-20 w-48 h-48 rounded-full opacity-20 pointer-events-none"
-        />
-
-        <div className="w-full max-w-6xl mx-auto px-8 grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-16 items-center py-28 relative z-10">
-
-          {/* Text column — scroll parallax */}
-          <motion.div
-            initial={{ opacity: 0, x: -24 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-            style={{ y: heroTextY }}
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
-              className="inline-flex items-center gap-2 bg-white border border-[#EDE5DC] rounded-full px-5 py-2 text-sm text-[#4A3F35] font-medium mb-6 shadow-sm"
-            >
-              <span className="w-2 h-2 rounded-full bg-[#3A7D5A] animate-pulse-soft inline-block" />
-              Para los que llevan su negocio con todo el peso encima
-            </motion.div>
-
-            <h1 className="font-serif text-[52px] md:text-[72px] font-medium text-[#1A1510] leading-[1.05] mb-6">
-              Tu negocio
-              <br />
-              merece <span className="shimmer-text">una mano.</span>
-            </h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3, ease: 'easeOut' }}
-              className="text-[#8A7D72] text-xl leading-relaxed mb-10"
-            >
-              La herramienta que lleva las cuentas por ti, para que tú te concentres en vender.
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.5, ease: 'easeOut' }}
-              className="flex gap-3 flex-wrap"
-            >
-              <Link href="/registro" className="bg-[#C4622D] text-white px-8 py-4 rounded-xl text-base font-semibold hover:bg-[#E8845A] transition-all hover:shadow-lg hover:-translate-y-0.5 transform">
-                Prueba ya
-              </Link>
-              <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="border border-[#1E3A2F] text-[#1E3A2F] px-8 py-4 rounded-xl text-base font-semibold hover:bg-[#1E3A2F] hover:text-white transition-all hover:shadow-lg hover:-translate-y-0.5 transform">
-                Agenda tu demo
-              </a>
-            </motion.div>
-          </motion.div>
-
-          {/* Dashboard column — scroll + mouse parallax */}
-          <motion.div
-            initial={{ opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
-            style={{ y: heroDashScrollY, overflow: 'visible' }}
-            className="relative"
-          >
-            {/* Polea decoration — rotates with scroll */}
-            <div className="absolute top-0 right-0 pointer-events-none opacity-[0.06] hidden xl:block -z-10">
-              <svg width="360" height="360" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
-                <style>{`
-                  .polea-rope-left { animation: polea-rope-up 8s ease-in-out infinite; }
-                  .polea-rope-right { animation: polea-rope-down 8s ease-in-out infinite; }
-                  @keyframes polea-rope-up { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-12px); } }
-                  @keyframes polea-rope-down { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(12px); } }
-                `}</style>
-                <rect x="75" y="8" width="30" height="10" rx="3" fill="#1E3A2F" />
-                <rect x="87" y="18" width="6" height="18" rx="3" fill="#1E3A2F" />
-                <g className="polea-rope-left">
-                  <line x1="46" y1="90" x2="46" y2="165" stroke="#C4622D" strokeWidth="3" strokeLinecap="round" />
-                </g>
-                <g className="polea-rope-right">
-                  <line x1="134" y1="90" x2="134" y2="150" stroke="#C4622D" strokeWidth="3" strokeLinecap="round" strokeDasharray="6 3" />
-                </g>
-                <motion.g style={{ transformOrigin: '90px 90px', rotate: scrollDeg }}>
-                  <circle cx="90" cy="90" r="44" fill="none" stroke="#1E3A2F" strokeWidth="8" />
-                  <line x1="90" y1="47" x2="90" y2="133" stroke="#1E3A2F" strokeWidth="3" opacity="0.5" />
-                  <line x1="47" y1="90" x2="133" y2="90" stroke="#1E3A2F" strokeWidth="3" opacity="0.5" />
-                  <line x1="59" y1="59" x2="121" y2="121" stroke="#1E3A2F" strokeWidth="3" opacity="0.35" />
-                  <line x1="121" y1="59" x2="59" y2="121" stroke="#1E3A2F" strokeWidth="3" opacity="0.35" />
-                  <circle cx="90" cy="90" r="18" fill="none" stroke="#1E3A2F" strokeWidth="6" />
-                  <circle cx="90" cy="90" r="5" fill="#C4622D" />
-                </motion.g>
-              </svg>
+          {mobileOpen && (
+            <div className="mobile-menu">
+              <a href="#problema" onClick={() => setMobileOpen(false)}>Por qué Leva</a>
+              <a href="#funciones" onClick={() => setMobileOpen(false)}>Funciones</a>
+              <a href="#como" onClick={() => setMobileOpen(false)}>Cómo funciona</a>
+              <a href="#precios" onClick={() => setMobileOpen(false)}>Precios</a>
+              <div className="mrow">
+                <Link href="/login" style={{ color: 'rgba(232,223,196,0.52)', fontSize: 14 }}>Entrar</Link>
+                <Link href="/registro" style={{ color: 'var(--accent-on-blk)', fontSize: 14 }}>Prueba gratis →</Link>
+              </div>
             </div>
+          )}
+        </header>
 
-            <div className="absolute inset-0 bg-[#C4622D]/10 rounded-3xl blur-3xl scale-110" />
+        {/* ════════ HERO ════════ */}
+        <section className="hero" id="top">
+          <div className="cam-ghost"><CamGhost /></div>
+          <div className="wrap">
+            <div className="hero-grid">
 
-            {/* Dashboard card — mouse parallax (outer) + CSS float (inner) */}
-            <motion.div style={{ x: dashMouseX, y: dashMouseY }}>
-              <div className="relative animate-float">
-                <div className="bg-[#1E3A2F] rounded-2xl p-5 shadow-2xl">
-                  <div className="bg-[#FAF6F0] rounded-xl p-5 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="font-serif text-base font-medium text-[#1A1510]">Dashboard</span>
-                      <div className="w-8 h-8 rounded-full bg-[#C4622D] flex items-center justify-center text-white text-sm font-bold">P</div>
+              {/* copy */}
+              <div className="hero-copy">
+                <span className="kicker reveal d1">
+                  <span className="dot" />
+                  Un producto de Polea · Hecho en Cali
+                </span>
+                <h1 className="reveal d2">
+                  Tu negocio,<br /><span className="soft">sin enredos.</span>
+                </h1>
+                <p className="sub reveal d3">
+                  Registra ventas, controla tu inventario y conoce tu ganancia real. Todo en un solo lugar — diseñado para tiendas colombianas que venden por WhatsApp, Instagram y en su local.
+                </p>
+                <div className="actions reveal d4">
+                  <Link href="/registro" className="btn btn-primary">Prueba gratis <span className="arr">→</span></Link>
+                  <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="btn btn-ghost-dark">Ver demo</a>
+                </div>
+                <div className="trust reveal d5">
+                  <span>Sin tarjeta</span><span className="sep" />
+                  <span>Listo en 5 minutos</span><span className="sep" />
+                  <span>En español</span>
+                </div>
+              </div>
+
+              {/* dashboard mockup */}
+              <div className="hero-visual reveal d4">
+                <div className="dash">
+                  <div className="dwin">
+                    <i /><i /><i />
+                    <span className="durl">app.leva.co</span>
+                  </div>
+                  <div className="dtop">
+                    <div>
+                      <div className="dk">Ventas de mayo</div>
+                      <div className="dbig">$4.850.000</div>
+                      <div className="dchg">↑ 12% vs. abril</div>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { label: 'Hoy', value: '$520K', color: '#C4622D' },
-                        { label: 'Este mes', value: '$6.1M', color: '#1E3A2F' },
-                        { label: 'Stock bajo', value: '3', color: '#C44040' },
-                      ].map((kpi, i) => (
-                        <div key={kpi.label} className="bg-white rounded-lg p-3 shadow-sm" style={{ animation: `countUp 0.5s ease ${0.8 + i * 0.15}s both` }}>
-                          <p className="text-[11px] text-[#8A7D72]">{kpi.label}</p>
-                          <p className="font-serif text-lg font-medium" style={{ color: kpi.color }}>{kpi.value}</p>
-                        </div>
-                      ))}
+                    <div className="dutil">
+                      <div className="duk">Utilidad real</div>
+                      <div className="duv">$1.920.000</div>
                     </div>
-                    <div className="bg-white rounded-lg p-3 shadow-sm">
-                      <p className="text-[11px] text-[#8A7D72] mb-2">Últimas ventas</p>
-                      {[
-                        { prod: 'Aretes luna', canal: 'WhatsApp', neto: '$81.5K', delay: '1.1s' },
-                        { prod: 'Collar sol', canal: 'Instagram', neto: '$115K', delay: '1.25s' },
-                        { prod: 'Anillo', canal: 'Presencial', neto: '$62K', delay: '1.4s' },
-                      ].map((v) => (
-                        <div key={v.prod} className="flex items-center justify-between py-1.5 border-b border-[#FAF6F0] last:border-0" style={{ animation: `fadeInUp 0.4s ease ${v.delay} both` }}>
-                          <span className="text-[11px] text-[#1A1510] font-medium">{v.prod}</span>
-                          <span className="text-[10px] bg-[#E8F5EE] text-[#3A7D5A] px-2 py-0.5 rounded-full">{v.canal}</span>
-                          <span className="text-[11px] font-bold text-[#1E3A2F]">{v.neto}</span>
-                        </div>
-                      ))}
-                    </div>
+                  </div>
+                  <div className="bars">
+                    <i style={{ height: '38%' }} /><i style={{ height: '54%' }} /><i style={{ height: '42%' }} />
+                    <i style={{ height: '66%' }} /><i style={{ height: '50%' }} /><i style={{ height: '74%' }} />
+                    <i className="on" style={{ height: '100%' }} /><i style={{ height: '60%' }} />
+                  </div>
+                  <div className="drow">
+                    <div className="mini"><div className="mk2">Flujo de caja</div><div className="mv pos">+ $1.920.000</div></div>
+                    <div className="mini"><div className="mk2">En inventario</div><div className="mv">$8.340.000</div></div>
+                  </div>
+                  <div className="dlist">
+                    <div className="dli"><span className="dlt">Anillo oro 18k <span className="dch">WhatsApp</span></span><span className="dlr">$320.000</span></div>
+                    <div className="dli"><span className="dlt">Aretes perla <span className="dch">Local</span></span><span className="dlr">$95.000</span></div>
+                    <div className="dli"><span className="dlt">Cadena plata <span className="dch">Instagram</span></span><span className="dlr">$140.000</span></div>
+                  </div>
+                  {/* floating chips */}
+                  <div className="dash-chip chip-tl">
+                    <span className="dci"><IcReportes /></span>
+                    <span><div className="dck">Margen</div><div className="dcv">39,6 %</div></span>
+                  </div>
+                  <div className="dash-chip chip-br">
+                    <span className="dci"><IcInventario /></span>
+                    <span><div className="dck">Stock bajo</div><div className="dcv">3 productos</div></span>
                   </div>
                 </div>
               </div>
-            </motion.div>
 
-            {/* Badge "Neto este mes" — entrance + mouse parallax opposite */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 1.5, ease: 'easeOut' }}
-              className="absolute -bottom-4 -left-6"
-            >
-              <motion.div style={{ x: badge1X, y: badge1Y }}>
-                <div className="bg-white rounded-xl shadow-xl p-4 border border-[#EDE5DC]">
-                  <p className="text-xs text-[#8A7D72]">Neto este mes</p>
-                  <p className="font-serif text-xl font-medium text-[#1E3A2F]">$6.1M</p>
-                  <p className="text-xs text-[#3A7D5A] mt-0.5">↑ 23% vs mes anterior</p>
-                </div>
-              </motion.div>
-            </motion.div>
-
-            {/* Badge "Comisión Wompi" — entrance + mouse parallax same dir */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 1.7, ease: 'easeOut' }}
-              className="absolute top-4 -right-16"
-            >
-              <motion.div style={{ x: badge2X, y: badge2Y }}>
-                <div className="bg-[#1E3A2F] rounded-xl shadow-xl p-4">
-                  <p className="text-xs text-white/60">Comisión Wompi</p>
-                  <p className="font-serif text-base font-medium text-white">-$4.488</p>
-                  <p className="text-xs text-[#E8845A]">Calculado automático</p>
-                </div>
-              </motion.div>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* 3. PROPUESTA DE VALOR */}
-      <section className="bg-white py-20 border-b border-[#EDE5DC]">
-        <div className="max-w-7xl mx-auto px-6">
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.5 }}
-            className="text-center text-xs uppercase tracking-widest text-[#8A7D72] mb-10 font-medium"
-          >
-            Toma decisiones con información real
-          </motion.p>
-          <motion.div
-            variants={stagger}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-80px' }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-6"
-          >
-            {propuestaValor.map((item, i) => (
-              <motion.div key={i} variants={fadeUp} className="text-center">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 mx-auto" style={{ background: '#FAF6F0', border: '1px solid #EDE5DC' }}>
-                  {item.icon}
-                </div>
-                <p className="text-base font-semibold text-[#1E3A2F] mb-2">{item.titulo}</p>
-                <p className="text-sm text-[#8A7D72] leading-relaxed">{item.texto}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* 4. PAIN POINTS */}
-      <section id="problema" className="py-16" style={{ background: '#FAF6F0' }}>
-        <div className="max-w-7xl mx-auto px-6">
-          <motion.h2
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="font-serif text-[36px] text-center text-[#1A1510] mb-3"
-          >
-            ¿Te suena familiar?
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-center text-[#8A7D72] mb-16"
-          >
-            Si gestionas un negocio, seguro has pasado por esto.
-          </motion.p>
-
-          <div className="relative max-w-2xl mx-auto py-8">
-            <div
-              key={cardActiva}
-              className="bg-white rounded-2xl p-8 border border-[#EDE5DC] shadow-sm flex flex-col justify-center transition-all duration-300"
-              style={{ animation: 'fadeInUp 0.4s ease forwards' }}
-            >
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style={{ background: '#FAF6F0', border: '1px solid #EDE5DC' }}>
-                {painPoints[cardActiva].icon}
-              </div>
-              <h3 className="font-serif text-[22px] font-medium text-[#1A1510] mb-2">{painPoints[cardActiva].titulo}</h3>
-              <p className="text-[#8A7D72] leading-relaxed">{painPoints[cardActiva].texto}</p>
             </div>
           </div>
+        </section>
 
-          <div className="flex items-center justify-center gap-6 mt-8">
-            <button type="button" onClick={() => setCardActiva((v) => (v - 1 + painPoints.length) % painPoints.length)} className="w-11 h-11 rounded-full border border-[#EDE5DC] bg-white flex items-center justify-center text-[#8A7D72] hover:bg-[#FAF6F0] transition text-xl shadow-sm">‹</button>
-            <div className="flex gap-2">
-              {painPoints.map((_, i) => (
-                <button key={i} type="button" onClick={() => setCardActiva(i)} className={`h-2 rounded-full transition-all duration-300 ${i === cardActiva ? 'bg-[#C4622D] w-8' : 'bg-[#EDE5DC] w-2 hover:bg-[#C4B8B0]'}`} />
+        {/* ════════ 01 · PROBLEMA ════════ */}
+        <section className="band" id="problema">
+          <div className="wrap">
+            <div className="sec-head">
+              <span className="idx">01 — El problema</span>
+              <h2>Llevas el negocio en la cabeza. Y eso cansa.</h2>
+              <p className="lede">Vendes por WhatsApp, por Instagram y en el local. Pero a fin de mes, las cuentas claras no aparecen por ningún lado. Leva las pone frente a ti.</p>
+            </div>
+            <div className="prob-grid">
+              <article className="prob">
+                <div className="q">¿Sabes cuánto ganaste este mes?</div>
+                <p className="pain">No es lo que entró a la caja. Es lo que de verdad te quedó después de costos y gastos — y casi nunca alcanza el tiempo para sacar la cuenta.</p>
+                <div className="sol"><span className="badge">Leva</span><span className="stext">Tu <b>utilidad real</b> calculada sola, cada día. Sin Excel, sin adivinar.</span></div>
+              </article>
+              <article className="prob">
+                <div className="q">¿Cuánto tienes en inventario?</div>
+                <p className="pain">Plata quieta en mercancía que no rota, o quedarte sin lo que más se vende justo cuando el cliente lo pide. Las dos cosas duelen.</p>
+                <div className="sol"><span className="badge">Leva</span><span className="stext">Sabes <b>qué tienes, qué rota y qué reponer</b> — con alertas de stock bajo.</span></div>
+              </article>
+              <article className="prob">
+                <div className="q">¿Cuánto gastaste de verdad?</div>
+                <p className="pain">Arriendo, proveedores, domicilios, datos del celular. Gastos pequeños que sumados se comen la ganancia sin que te des cuenta.</p>
+                <div className="sol"><span className="badge">Leva</span><span className="stext">Cada gasto registrado y <b>restado a tu ganancia</b>, para que no haya sorpresas.</span></div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        {/* ════════ 02 · FUNCIONES ════════ */}
+        <section className="band" id="funciones">
+          <div className="wrap">
+            <div className="sec-head">
+              <span className="idx">02 — Funciones</span>
+              <h2>Todo tu negocio, en seis módulos.</h2>
+              <p className="lede">Lo justo y necesario para una tienda que crece. Nada de menús infinitos ni palabras de contador.</p>
+            </div>
+            <div className="feat-grid">
+              {[
+                { icon: <IcVentas />, t: 'Ventas', d: 'Registra cada venta en segundos, por canal y por producto. WhatsApp, Instagram o local — todo cuenta en el mismo lugar.' },
+                { icon: <IcInventario />, t: 'Inventario', d: 'Qué tienes, qué se mueve y qué reponer. Cada venta descuenta del stock sola, con alertas cuando algo se está acabando.' },
+                { icon: <IcGastos />, t: 'Gastos', d: 'Arriendo, proveedores, domicilios. Anota cada salida y míralas restadas a tu ganancia, sin cuentas a mano.' },
+                { icon: <IcReportes />, t: 'Reportes P&L', d: 'Pérdidas y ganancias en lenguaje claro. Cuánto vendiste, cuánto gastaste y cuánto te quedó — listo para mirar.' },
+                { icon: <IcAliadas />, t: 'Tiendas aliadas', d: 'Trabajas con otra tienda o dejas mercancía en consignación. Lleva la cuenta de lo tuyo en cada punto, sin enredos.' },
+                { icon: <IcEventos />, t: 'Eventos y ferias', d: 'Saca tu inventario a una feria y vuelve con las cuentas cuadradas. Mide cuánto vendiste y cuánto te dejó cada evento.' },
+              ].map((f) => (
+                <div key={f.t} className="feat">
+                  <div className="fi">{f.icon}</div>
+                  <h3>{f.t}</h3>
+                  <p>{f.d}</p>
+                </div>
               ))}
             </div>
-            <button type="button" onClick={() => setCardActiva((v) => (v + 1) % painPoints.length)} className="w-11 h-11 rounded-full border border-[#EDE5DC] bg-white flex items-center justify-center text-[#8A7D72] hover:bg-[#FAF6F0] transition text-xl shadow-sm">›</button>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* 5. FUNCIONALIDADES */}
-      <section id="funcionalidades" className="bg-white py-20 max-w-7xl mx-auto px-6">
-        <motion.h2
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="font-serif text-[36px] text-center mb-2"
-        >
-          Todo lo que necesitas
-        </motion.h2>
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-center text-[#8A7D72] mb-12"
-        >
-          Poderoso para crecer, simple para empezar.
-        </motion.p>
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: '-80px' }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
-          {features.map((feature) => (
-            <motion.div
-              key={feature.titulo}
-              variants={fadeUp}
-              whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.08)' }}
-              className="bg-[#FAF6F0] rounded-2xl p-6 border border-[#EDE5DC] hover:border-[#C4622D]/30 cursor-default transition-colors duration-300"
-            >
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{ background: '#FAF6F0', border: '1px solid #EDE5DC' }}>
-                {feature.icon}
+        {/* ════════ 03 · CÓMO FUNCIONA ════════ */}
+        <section className="band dark-band" id="como">
+          <div className="wrap">
+            <div className="sec-head">
+              <span className="idx">03 — Cómo funciona</span>
+              <h2>Tres pasos. Cinco minutos al día.</h2>
+              <p className="lede">No necesitas saber de contabilidad. Si sabes usar WhatsApp, sabes usar Leva.</p>
+            </div>
+            <div className="steps">
+              <div className="step" style={{ position: 'relative' }}>
+                <div className="line-link" />
+                <div className="n">1</div>
+                <h3>Registra tus ventas</h3>
+                <p>Apenas vendes, lo anotas en segundos. Por canal, por producto, en efectivo o transferencia.</p>
               </div>
-              <h3 className="font-semibold text-[#1E3A2F] mb-2">{feature.titulo}</h3>
-              <p className="text-sm text-[#8A7D72]">{feature.texto}</p>
-              {feature.badge && <span className="inline-block mt-3 text-xs bg-[#C4622D] text-white px-2.5 py-1 rounded-full font-medium">{feature.badge}</span>}
-              {feature.extra && <p className="text-sm text-[#8A7D72] mt-2">{feature.extra}</p>}
-            </motion.div>
-          ))}
-        </motion.div>
-      </section>
-
-      {/* 6. DIFERENCIADOR */}
-      <section className="bg-[#1E3A2F] py-20 px-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <motion.div
-            initial={{ opacity: 0, x: -40 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <div className="inline-flex bg-[#C4622D]/20 text-[#E8845A] text-xs px-3 py-1 rounded-full font-medium mb-4">✦ Solo en Polea</div>
-            <h2 className="font-serif text-[32px] text-white leading-tight mb-4">Sabe exactamente cuánto te cuesta cada venta</h2>
-            <p className="text-[#FAF6F0]/70 leading-relaxed mb-6">
-              Polea calcula automáticamente las comisiones de Wompi (2.99% + $900), Bold (2.99%), Nequi y más. Registras la venta y ves al instante cuánto entra limpio.
-            </p>
-            <Link href="/registro" className="text-[#E8845A] font-semibold hover:underline inline-flex items-center gap-1">Prueba ya →</Link>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 40 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="bg-white rounded-2xl p-5 shadow-xl"
-          >
-            <p className="text-xs text-[#8A7D72] mb-4 font-medium uppercase tracking-wide">Resumen de venta</p>
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-[#8A7D72]">Total bruto</span>
-                <span className="text-[#1A1510] font-medium">$120.000</span>
+              <div className="step" style={{ position: 'relative' }}>
+                <div className="line-link" />
+                <div className="n">2</div>
+                <h3>Controla tu inventario</h3>
+                <p>Leva descuenta del stock solo y te avisa cuando algo se está agotando. Siempre sabes qué tienes.</p>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-[#8A7D72]">Plataforma</span>
-                <span className="bg-[#FAF6F0] text-[#4A3F35] px-2 py-0.5 rounded-full text-xs font-medium">Wompi</span>
-              </div>
-              <div className="flex justify-between text-sm text-[#C44040]">
-                <span>Comisión (2.99% + $900)</span>
-                <span className="font-medium">-$4.488</span>
-              </div>
-              <div className="border-t border-[#EDE5DC] pt-3 flex justify-between">
-                <span className="font-semibold text-[#1A1510]">Neto a recibir</span>
-                <span className="font-bold text-[#3A7D5A] text-lg">$115.512</span>
+              <div className="step">
+                <div className="n">3</div>
+                <h3>Ve tus ganancias reales</h3>
+                <p>Abres la app y ahí está: lo que vendiste, lo que gastaste y lo que de verdad te quedó.</p>
               </div>
             </div>
-          </motion.div>
-        </div>
-      </section>
+          </div>
+        </section>
 
-      {/* 7. TIPOS DE NEGOCIO */}
-      <section className="bg-[#FAF6F0] py-16 text-center px-6">
-        <motion.h2
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.6 }}
-          className="font-serif text-[32px] mb-3"
-        >
-          Hecho para tu tipo de negocio
-        </motion.h2>
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-[#8A7D72] mb-8"
-        >
-          Tu industria, tu ritmo, tu herramienta.
-        </motion.p>
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: '-60px' }}
-          className="flex flex-wrap justify-center gap-2.5 max-w-3xl mx-auto"
-        >
-          {[
-            'Joyería', 'Ropa y calzado', 'Restaurante', 'Cafetería', 'Spa', 'Peluquería',
-            'Ferretería', 'Accesorios', 'Cosméticos', 'Artesanías', 'Tienda de regalos',
-            'Floristería', 'Suplementos', 'y más...',
-          ].map((chip) => (
-            <motion.span
-              key={chip}
-              variants={{
-                hidden: { opacity: 0, scale: 0.88 },
-                show: { opacity: 1, scale: 1, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } },
-              }}
-              className="bg-white border border-[#EDE5DC] rounded-full px-4 py-2 text-sm text-[#4A3F35] hover:border-[#C4622D] hover:text-[#C4622D] transition cursor-default"
-            >
-              {chip}
-            </motion.span>
-          ))}
-        </motion.div>
-      </section>
-
-      {/* 8. PRECIOS */}
-      <section id="precios" className="bg-white py-20 px-6">
-        <motion.h2
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.6 }}
-          className="font-serif text-[36px] text-center mb-2"
-        >
-          Planes y precios
-        </motion.h2>
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-center text-[#8A7D72] mb-12"
-        >
-          Sin sorpresas. Sin contratos. Cancela cuando quieras.
-        </motion.p>
-        <div className="flex justify-center gap-6 flex-wrap">
-          <motion.div
-            initial={{ opacity: 0, y: 32 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.08)' }}
-            className="bg-[#FAF6F0] rounded-2xl p-8 border border-[#EDE5DC] w-full max-w-sm"
-          >
-            <p className="text-xs uppercase text-[#8A7D72] tracking-wide mb-2">Plan Básico</p>
-            <p className="font-serif text-[48px] font-medium text-[#1A1510] leading-none">$49.000</p>
-            <p className="text-sm text-[#8A7D72] mb-6">COP / mes</p>
-            <ul className="space-y-3 text-sm text-[#4A3F35]">
-              {['Inventario y productos', 'Registro de ventas multicanal', 'Control de gastos', 'Gestión de clientes', 'Dashboard con KPIs', 'Carga masiva desde Excel'].map((item) => (
-                <li key={item} className="flex gap-2"><span className="text-[#C4622D] font-bold">✓</span>{item}</li>
+        {/* ════════ 04 · PARA QUIÉN ════════ */}
+        <section className="band" id="paraquien">
+          <div className="wrap">
+            <div className="sec-head">
+              <span className="idx">04 — Para quién es</span>
+              <h2>Hecho para tu tipo de negocio.</h2>
+              <p className="lede">Si vendes producto y necesitas saber cuánto ganas, Leva es para ti. Estas son las tiendas que más lo usan.</p>
+            </div>
+            <div className="ind-grid">
+              {[
+                { icon: <IcJoyeria />, t: 'Joyería', sub: 'oro, plata, accesorios' },
+                { icon: <IcRopa />, t: 'Ropa', sub: 'boutiques y showrooms' },
+                { icon: <IcCosmeticos />, t: 'Cosméticos', sub: 'maquillaje y cuidado' },
+                { icon: <IcFerreteria />, t: 'Ferretería', sub: 'herramientas e insumos' },
+                { icon: <IcRestaurantes />, t: 'Restaurantes', sub: 'cocinas y cafés' },
+                { icon: <IcArtesanias />, t: 'Artesanías', sub: 'hecho a mano' },
+              ].map((ind) => (
+                <div key={ind.t} className="ind">
+                  <span className="ii">{ind.icon}</span>
+                  <span>
+                    <span className="it">{ind.t}</span>
+                    <span className="ic">{ind.sub}</span>
+                  </span>
+                </div>
               ))}
-            </ul>
-            <Link href="/registro" className="block w-full text-center mt-6 border border-[#C4622D] text-[#C4622D] hover:bg-[#F9EDE5] rounded-xl py-3 text-sm font-semibold transition">Comenzar</Link>
-          </motion.div>
+            </div>
+            <div className="photos">
+              <div className="ph-tall">
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--smoke)', letterSpacing: '0.1em' }}>Foto · dueña de tienda</span>
+              </div>
+              <div className="ph-sq">
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--smoke)', letterSpacing: '0.1em' }}>Foto · producto</span>
+              </div>
+              <div className="ph-sq">
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--smoke)', letterSpacing: '0.1em' }}>Foto · local</span>
+              </div>
+            </div>
+            <p className="photo-note">↑ Reemplaza con fotos reales de comerciantes — luz natural, fondo del local, sin stock genérico.</p>
+          </div>
+        </section>
 
-          <motion.div
-            initial={{ opacity: 0, y: 32 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            whileHover={{ y: -6, boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}
-            className="bg-[#1E3A2F] rounded-2xl p-8 border border-[#1E3A2F] w-full max-w-sm relative overflow-hidden"
-          >
-            <span className="absolute top-4 right-4 bg-[#C4622D] text-white text-xs px-3 py-1 rounded-full font-medium">Más popular</span>
-            <p className="text-xs uppercase text-white/50 tracking-wide mb-2">Plan Pro</p>
-            <p className="font-serif text-[48px] font-medium text-white leading-none">$89.000</p>
-            <p className="text-sm text-white/50 mb-6">COP / mes</p>
-            <ul className="space-y-3 text-sm text-white/90">
-              {['Todo lo del plan Básico', 'Estado de resultados (P&L)', 'Reportes exportables en PDF', 'Notificaciones inteligentes', 'Gestión de equipo y roles', 'Soporte prioritario'].map((item) => (
-                <li key={item} className="flex gap-2"><span className="text-[#E8845A] font-bold">✓</span>{item}</li>
-              ))}
-            </ul>
-            <Link href="/registro" className="block w-full text-center mt-6 bg-[#C4622D] hover:bg-[#E8845A] text-white rounded-xl py-3 text-sm font-semibold transition">Prueba ya</Link>
-          </motion.div>
-        </div>
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="text-sm text-[#8A7D72] mt-8 text-center"
-        >
-          ¿Tienes dudas?{' '}
-          <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="text-[#C4622D] font-medium hover:underline">Agenda una demo →</a>
-        </motion.p>
-      </section>
+        {/* ════════ 05 · PRUEBA SOCIAL ════════ */}
+        <section className="band" id="historias">
+          <div className="wrap">
+            <div className="sec-head">
+              <span className="idx">05 — Historias</span>
+              <h2>Negocios que ya tienen las cuentas claras.</h2>
+            </div>
+            <div className="metrics">
+              <div className="metric"><div className="mn">+2.400</div><div className="ml">negocios activos en Colombia</div></div>
+              <div className="metric"><div className="mn">$18.000M</div><div className="ml">en ventas registradas con Leva</div></div>
+              <div className="metric"><div className="mn">5 min</div><div className="ml">al día, en promedio, es todo lo que toma</div></div>
+            </div>
+            <div className="testi-grid">
+              <figure className="testi" style={{ margin: 0 }}>
+                <div className="quote">&ldquo;Por primera vez sé cuánto gano de verdad. Antes creía que me iba bien y la plata no aparecía. Ahora veo en qué se me iba.&rdquo;</div>
+                <figcaption className="by">
+                  <span className="av">M</span>
+                  <span className="who"><span className="nm">Marcela R.</span><span className="role">Joyería · Cali</span></span>
+                </figcaption>
+              </figure>
+              <figure className="testi" style={{ margin: 0 }}>
+                <div className="quote">&ldquo;Dejé los cuadernos y tres grupos de WhatsApp. Todo está en un solo lugar y mi socio ve lo mismo que yo.&rdquo;</div>
+                <figcaption className="by">
+                  <span className="av">J</span>
+                  <span className="who"><span className="nm">Julián O.</span><span className="role">Ropa · Medellín</span></span>
+                </figcaption>
+              </figure>
+            </div>
+            <span className="eg-tag"><span className="eg-dot" />Métricas e historias de ejemplo · reemplazar con datos reales</span>
+          </div>
+        </section>
 
-      {/* 9. CTA FINAL */}
-      <section
-        className="py-20 text-center px-6"
-        style={{ background: 'linear-gradient(135deg, #C4622D 0%, #E8845A 50%, #C4622D 100%)', backgroundSize: '200% 200%', animation: 'shimmer 4s ease infinite' }}
-      >
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <h2 className="font-serif text-[36px] md:text-[44px] text-white leading-tight mb-4 whitespace-pre-line">
-            {`¿Listo para conocer\nla ganancia real\nde tu negocio?`}
-          </h2>
-          <p className="text-white/80 text-lg mb-8 max-w-xl mx-auto">
-            Únete a los negocios colombianos que ya manejan sus operaciones con claridad.
-          </p>
-          <div className="flex justify-center gap-4 flex-wrap">
-            <Link href="/registro" className="bg-[#1E3A2F] text-white px-8 py-4 rounded-xl text-sm font-semibold hover:bg-[#2D4A3E] transition shadow-lg inline-flex items-center justify-center">Prueba ya</Link>
-            <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="border-2 border-white text-white px-8 py-4 rounded-xl text-sm font-semibold hover:bg-white hover:text-[#C4622D] transition inline-flex items-center justify-center">Hablar con ventas</a>
+        {/* ════════ 06 · PRECIOS ════════ */}
+        <section className="band" id="precios">
+          <div className="wrap">
+            <div className="sec-head center">
+              <span className="idx">06 — Precios</span>
+              <h2>Empieza gratis. Crece cuando quieras.</h2>
+              <p className="lede">Sin contratos ni letra pequeña. Prueba todo lo que necesitas sin pagar un peso.</p>
+            </div>
+            <div className="price-grid">
+              <div className="plan">
+                <div className="pname">Plan Gratis</div>
+                <div className="price-num">$0<small> / siempre</small></div>
+                <p className="pdesc">Para arrancar a poner las cuentas en orden hoy mismo.</p>
+                <ul>
+                  <li><span className="ck">✓</span> Registro de ventas ilimitado</li>
+                  <li><span className="ck">✓</span> Control de inventario básico</li>
+                  <li><span className="ck">✓</span> Reporte de ganancia del mes</li>
+                  <li><span className="ck">✓</span> Un usuario</li>
+                </ul>
+                <Link href="/registro" className="btn btn-ghost-light">Crear cuenta gratis</Link>
+              </div>
+              <div className="plan pro">
+                <span className="badge-pro">Recomendado</span>
+                <div className="pname">Plan Pro</div>
+                <div className="price-num">$39.900<small> / mes</small></div>
+                <p className="pdesc">Para el negocio que ya rueda y quiere ver más a fondo.</p>
+                <ul>
+                  <li><span className="ck">✓</span> Todo lo del plan Gratis</li>
+                  <li><span className="ck">✓</span> Reportes P&amp;L y flujo de caja</li>
+                  <li><span className="ck">✓</span> Tiendas aliadas y eventos</li>
+                  <li><span className="ck">✓</span> Varios usuarios y respaldo</li>
+                </ul>
+                <Link href="/registro" className="btn btn-primary">Empezar prueba de 14 días</Link>
+              </div>
+            </div>
+            <p className="price-foot">Precios de referencia (placeholder) · ajustar al lanzar</p>
           </div>
-        </motion.div>
-      </section>
+        </section>
 
-      {/* 10. FOOTER */}
-      <footer className="bg-[#1A1510] py-12 px-6">
-        <div className="max-w-7xl mx-auto flex justify-between items-start flex-wrap gap-8">
-          <div>
-            <p className="font-serif text-xl text-white">POLEA</p>
-            <p className="text-xs text-white/40 mt-1">Tu tienda, clara</p>
-            <p className="text-xs text-white/30 mt-4">© 2026 Polealabs · Cali, Colombia</p>
+        {/* ════════ 07 · CTA FINAL ════════ */}
+        <section className="cta-final" id="demo">
+          <div className="cta-ghost"><CamGhost /></div>
+          <div className="cta-inner wrap">
+            <h2>Empieza hoy gratis.</h2>
+            <p>Tu negocio, sin enredos — y con las cuentas claras desde la primera venta.</p>
+            <div className="actions">
+              <Link href="/registro" className="btn btn-primary">Prueba gratis <span className="arr">→</span></Link>
+              <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="btn btn-ghost-dark">Hablar con nosotros</a>
+            </div>
+            <p className="reassure">Sin tarjeta · Sin contratos · Cancela cuando quieras</p>
           </div>
-          <div className="flex flex-col text-sm text-white/50 space-y-2">
-            <Link href="#funcionalidades" className="hover:text-white/80">Funcionalidades</Link>
-            <Link href="#precios" className="hover:text-white/80">Precios</Link>
-            <Link href="/login" className="hover:text-white/80">Iniciar sesión</Link>
-            <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="hover:text-white/80">Contacto</a>
+        </section>
+
+        {/* ════════ FOOTER ════════ */}
+        <footer className="foot">
+          <div className="wrap">
+            <div className="foot-top">
+              <div className="fcol">
+                <div className="pbrand">
+                  <span className="pmk"><CamMark /></span>
+                  <span className="wm" style={{ fontSize: 19, color: 'var(--champagne)', letterSpacing: '0.18em' }}>Polea</span>
+                </div>
+                <p className="pblurb">Tecnología que multiplica el esfuerzo del emprendedor latinoamericano. Leva es nuestro primer producto.</p>
+                <p className="made">Cali, Colombia · 2026</p>
+              </div>
+              <div className="fcol">
+                <h4>Producto</h4>
+                <a href="#funciones">Funciones</a>
+                <a href="#como">Cómo funciona</a>
+                <a href="#precios">Precios</a>
+                <a href="#">Descargar app</a>
+              </div>
+              <div className="fcol">
+                <h4>Empresa</h4>
+                <a href="#">Sobre Polea</a>
+                <a href="#">Blog</a>
+                <a href="#">Trabaja con nosotros</a>
+                <a href="#">Contacto</a>
+              </div>
+              <div className="fcol">
+                <h4>Soporte</h4>
+                <a href="#">Centro de ayuda</a>
+                <a href={WA_URL} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                <a href="#">Términos</a>
+                <a href="#">Privacidad</a>
+              </div>
+            </div>
+            <div className="foot-bot">
+              <span className="copy">© 2026 Polea S.A.S. · Leva® es un producto de Polea.</span>
+              <div className="socials">
+                <a href="#" aria-label="Instagram">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3.5" y="3.5" width="17" height="17" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17" cy="7" r="1" fill="currentColor" stroke="none" /></svg>
+                </a>
+                <a href={WA_URL} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 20l1.4-4A8 8 0 1 1 8 18.6L4 20Z" /></svg>
+                </a>
+                <a href="#" aria-label="TikTok">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 4v9.5a3.5 3.5 0 1 1-3-3.46" /><path d="M14 4c.6 2.3 2.2 3.8 4.5 4" /></svg>
+                </a>
+              </div>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-white/50">soporte@polealabs.com</p>
-            <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="text-sm text-white/50 hover:text-white/80 block mt-1">{WA_URL.replace('https://', '')}</a>
-            <p className="text-xs text-white/30 mt-4">Hecho con ♥ en Colombia</p>
-          </div>
-        </div>
-      </footer>
-    </div>
+        </footer>
+
+      </div>
+    </>
   )
 }

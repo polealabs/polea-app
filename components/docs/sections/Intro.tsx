@@ -3,12 +3,12 @@ export default function Intro() {
     <section className="space-y-6">
       <header>
         <p className="text-xs uppercase tracking-[2px] text-[#8A7D72]">Introducción</p>
-        <h1 className="font-serif text-3xl text-[#1A1510] mt-1">¿Qué es Polea?</h1>
+        <h1 className="font-serif text-3xl text-[#1A1510] mt-1">¿Qué es Leva?</h1>
       </header>
 
       <div className="bg-white rounded-2xl border border-[#EDE5DC] p-6 space-y-4">
         <p className="text-sm text-[#4A3F35] leading-relaxed">
-          Polea es un SaaS administrativo para tiendas colombianas multicanal. Centraliza
+          Leva es un SaaS administrativo para tiendas colombianas multicanal. Centraliza
           inventario, ventas, costos y gastos en una sola operación diaria.
         </p>
         <div>
@@ -29,7 +29,7 @@ export default function Intro() {
       <div className="bg-[#F9EDE5] rounded-2xl border border-[#E8845A]/20 p-6">
         <p className="text-sm text-[#4A3F35]">
           <span className="font-semibold text-[#1E3A2F]">Caso 0:</span> Vaza Jewelry reemplazó 7 hojas de
-          Google Sheets por un flujo único en Polea para vender, controlar stock y entender margen.
+          Google Sheets por un flujo único en Leva para vender, controlar stock y entender margen.
         </p>
       </div>
 
@@ -42,7 +42,7 @@ export default function Intro() {
             <tr className="bg-[#FAF6F0] border-b border-[#EDE5DC]">
               <th className="text-left px-6 py-3 text-[#8A7D72] font-semibold">Plataforma</th>
               <th className="text-left px-6 py-3 text-[#8A7D72] font-semibold">Fortaleza</th>
-              <th className="text-left px-6 py-3 text-[#8A7D72] font-semibold">Brecha vs Polea</th>
+              <th className="text-left px-6 py-3 text-[#8A7D72] font-semibold">Brecha vs Leva</th>
             </tr>
           </thead>
           <tbody>

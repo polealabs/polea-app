@@ -53,7 +53,7 @@ export default async function AdminOverview() {
     <div className="max-w-7xl mx-auto space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-white">Overview</h1>
-        <p className="text-white/40 text-sm mt-1">Estado global de Polea</p>
+        <p className="text-white/40 text-sm mt-1">Estado global de Leva</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

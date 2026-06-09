@@ -13,7 +13,7 @@ const groups: { title: string; items: Item[] }[] = [
   {
     title: 'Producto',
     items: [
-      { key: 'intro', label: '¿Qué es Polea?' },
+      { key: 'intro', label: '¿Qué es Leva?' },
       { key: 'usuarios', label: 'Usuarios objetivo' },
       { key: 'features', label: 'Módulos' },
       { key: 'precios', label: 'Precios' },
@@ -43,7 +43,7 @@ export default function DocsSidebar({ active, onChange }: DocsSidebarProps) {
     <aside className="w-60 min-h-screen bg-[#2D4A3E] flex flex-col">
       <div className="px-7 py-8 border-b border-white/10">
         <span className="font-serif text-[28px] font-bold text-[#FAF6F0] tracking-tight block leading-none">
-          POLEA
+          LEVA
         </span>
         <span className="text-[11px] text-white/40 uppercase tracking-widest mt-1 block">
           Documentación interna

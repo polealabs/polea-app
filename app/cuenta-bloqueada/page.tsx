@@ -46,7 +46,7 @@ export default async function CuentaBloqueadaPage() {
             <circle cx="16" cy="14" r="1.5" fill="#C4622D" />
             <line x1="16" y1="23" x2="16" y2="29" stroke="#C4622D" strokeWidth="2.5" strokeLinecap="round" />
           </svg>
-          <p className="font-serif text-xl font-bold text-[#1A1510] leading-none">POLEA</p>
+          <p className="font-serif text-xl font-bold text-[#1A1510] leading-none">LEVA</p>
         </div>
 
         <div className="w-16 h-16 rounded-full bg-[#C44040]/10 flex items-center justify-center mx-auto">
@@ -90,10 +90,10 @@ export default async function CuentaBloqueadaPage() {
 
         <div className="space-y-3">
           <a
-            href="mailto:polealabs@gmail.com?subject=Reactivar%20mi%20cuenta%20Polea"
+            href="mailto:polealabs@gmail.com?subject=Reactivar%20mi%20cuenta%20Leva"
             className="block w-full py-3 rounded-xl bg-[#C4622D] text-white text-sm font-semibold hover:bg-[#A8521F] transition text-center"
           >
-            Contactar a Polea para reactivar
+            Contactar a Leva para reactivar
           </a>
           <Link
             href="/suscripcion"

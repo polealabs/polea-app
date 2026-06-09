@@ -279,7 +279,7 @@ export default function Header({ titulo }: Props) {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[#1A1510] truncate">Polea</p>
+                    <p className="text-sm font-semibold text-[#1A1510] truncate">Leva</p>
                     <p className="text-xs text-[#8A7D72] truncate">{tienda?.categoria ?? 'Sin categoría'}</p>
                     {tienda?.ciudad && <p className="text-xs text-[#8A7D72]">{tienda.ciudad}</p>}
                   </div>

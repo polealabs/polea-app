@@ -33,6 +33,6 @@ export default function HeaderWrapper() {
   const titulo =
     TITULOS[pathname] ??
     Object.entries(TITULOS).find(([base]) => pathname.startsWith(base))?.[1] ??
-    'Polea'
+    'Leva'
   return <Header titulo={titulo} />
 }

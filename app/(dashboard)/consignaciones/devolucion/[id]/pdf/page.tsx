@@ -381,7 +381,7 @@ export default function DevolucionPdfPage() {
 
         <div style={{ background: '#1E3A2F', padding: '12px 32px', textAlign: 'center' }}>
           <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)' }}>
-            Documento generado por Polea · {new Date().toLocaleDateString('es-CO')}
+            Documento generado por Leva · {new Date().toLocaleDateString('es-CO')}
           </p>
         </div>
       </div>

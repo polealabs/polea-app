@@ -21,7 +21,7 @@ export const TEMAS: Tema[] = [
   {
     id: 'bosque',
     nombre: 'Bosque',
-    descripcion: 'El tema original de Polea',
+    descripcion: 'El tema original de Leva',
     colores: {
       primary: '#1E3A2F',
       primaryLight: '#2D4A3E',

@@ -73,7 +73,7 @@ export default async function SuscripcionPage() {
           <div>
             <p className="font-semibold text-violet-800 text-sm">Acceso Beta activo</p>
             <p className="text-violet-600 text-xs mt-0.5">
-              Tienes acceso completo a Polea como usuario beta hasta el{' '}
+              Tienes acceso completo a Leva como usuario beta hasta el{' '}
               {new Date(tienda.beta_hasta!).toLocaleDateString('es-CO', {
                 day: 'numeric',
                 month: 'long',

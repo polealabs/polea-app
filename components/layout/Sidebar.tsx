@@ -104,7 +104,7 @@ export default function Sidebar() {
             )}
           </span>
           <span className="text-[11px] text-white/40 uppercase tracking-widest mt-1 block">
-            Tu tienda, clara
+            Tu negocio, sin enredos.
           </span>
         </div>
 

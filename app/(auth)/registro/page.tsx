@@ -63,8 +63,8 @@ export default function RegistroPage() {
           <line x1="16" y1="23" x2="16" y2="29" stroke="#C4622D" strokeWidth="2.5" strokeLinecap="round" />
         </svg>
         <div>
-          <p className="font-serif text-xl font-bold text-white leading-none">POLEA</p>
-          <p className="text-[10px] text-white/50 uppercase tracking-widest leading-none mt-0.5">Tu tienda, clara</p>
+          <p className="font-serif text-xl font-bold text-white leading-none">LEVA</p>
+          <p className="text-[10px] text-white/50 uppercase tracking-widest leading-none mt-0.5">Tu negocio, sin enredos.</p>
         </div>
       </Link>
 
@@ -75,7 +75,7 @@ export default function RegistroPage() {
           <span className="text-[#C4622D]">vende con claridad.</span>
         </h2>
         <p className="text-white/60 text-base leading-relaxed max-w-sm">
-          Empieza hoy con Polea y centraliza inventario, ventas y rentabilidad de tu tienda.
+          Empieza hoy con Leva y centraliza inventario, ventas y rentabilidad de tu tienda.
         </p>
 
         <div className="flex gap-8 mt-10">
@@ -90,7 +90,7 @@ export default function RegistroPage() {
         </div>
       </div>
 
-      <p className="text-white/30 text-xs relative z-10">© 2026 Polea · Cali, Colombia</p>
+      <p className="text-white/30 text-xs relative z-10">© 2026 Leva · Una solución de Polea</p>
     </div>
   )
 
@@ -139,11 +139,11 @@ export default function RegistroPage() {
               <circle cx="16" cy="14" r="1.5" fill="#C4622D" />
               <line x1="16" y1="23" x2="16" y2="29" stroke="#C4622D" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
-            <p className="font-serif text-xl font-bold text-[#1E3A2F]">POLEA</p>
+            <p className="font-serif text-xl font-bold text-[#1E3A2F]">LEVA</p>
           </Link>
 
           <h1 className="font-serif text-3xl font-medium text-[#1E3A2F] mb-2">Crea tu cuenta</h1>
-          <p className="text-[#8A7D72] text-sm mb-8">Empieza a gestionar tu tienda en Polea</p>
+          <p className="text-[#8A7D72] text-sm mb-8">Empieza a gestionar tu tienda en Leva</p>
 
           <form action={handleSubmit} className="space-y-5">
             <div>

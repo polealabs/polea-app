@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DM_Sans, Fraunces } from "next/font/google";
+import { DM_Sans, Fraunces, Space_Grotesk, Rubik } from "next/font/google";
 import "./globals.css";
 import { TemaProvider } from "@/lib/context/TemaContext";
 
@@ -15,9 +15,21 @@ const fraunces = Fraunces({
   variable: "--font-fraunces",
 });
 
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-space-grotesk",
+});
+
+const rubik = Rubik({
+  subsets: ["latin"],
+  weight: ["700"],
+  variable: "--font-rubik",
+});
+
 export const metadata: Metadata = {
-  title: 'Polea',
-  description: 'Tu tienda, clara',
+  title: 'Leva',
+  description: 'Tu negocio, sin enredos.',
   icons: {
     icon: '/favicon.svg',
     shortcut: '/favicon.svg',
@@ -68,7 +80,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${dmSans.variable} ${fraunces.variable} min-h-full bg-cream text-ink flex flex-col font-sans`}
+        className={`${dmSans.variable} ${fraunces.variable} ${spaceGrotesk.variable} ${rubik.variable} min-h-full bg-cream text-ink flex flex-col font-sans`}
       >
         <TemaProvider>{children}</TemaProvider>
       </body>

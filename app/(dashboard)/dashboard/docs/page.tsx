@@ -23,7 +23,7 @@ export default function DashboardDocsPage() {
   return (
     <div className="h-screen bg-[#FAF6F0]">
       <div className="md:hidden h-14 px-4 bg-[#1E3A2F] text-white flex items-center justify-between border-b border-white/10">
-        <p className="font-serif text-lg">Docs Polea</p>
+        <p className="font-serif text-lg">Docs Leva</p>
         <button
           onClick={() => setMenuOpen((v) => !v)}
           className="w-9 h-9 rounded-md border border-white/20 flex items-center justify-center"

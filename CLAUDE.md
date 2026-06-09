@@ -1,4 +1,4 @@
-# CLAUDE.md — Contexto completo del proyecto Polea
+# CLAUDE.md — Contexto completo del proyecto Leva / Polea
 
 > Este archivo está optimizado para que Claude Code tenga todo el contexto necesario para trabajar en el proyecto sin preguntas adicionales.
 
@@ -6,8 +6,18 @@
 
 ## 1. DESCRIPCIÓN DEL PROYECTO
 
-**Polea** es un SaaS de gestión administrativa para pequeños negocios colombianos que venden por WhatsApp, Instagram y presencial. Permite registrar ventas, controlar inventario, gestionar gastos y generar reportes financieros (P&L y Flujo de caja).
+**Leva** es el nombre del producto (SaaS de gestión administrativa). **Polea** es la empresa madre (Polea S.A.S., Cali). Leva es el primer producto de Polea.
 
+Leva permite a pequeños negocios colombianos que venden por WhatsApp, Instagram y presencial registrar ventas, controlar inventario, gestionar gastos y generar reportes financieros (P&L y Flujo de caja).
+
+### Identidad de marca
+- **Producto:** Leva — eslogan "Tu negocio, sin enredos."
+- **Empresa madre:** Polea — eslogan "La fuerza detrás de tu negocio."
+- **Símbolo de marca:** leva excéntrica (cam) — SVG inline en `app/page.tsx` como `CamMark` / `CamGhost`
+- **Wordmark:** LEVA en Rubik 700, mayúsculas, `letter-spacing: 0.16em`
+- En el dashboard el producto aparece como "Leva"; en `/polealabs` el panel se llama "Polea Admin" (empresa)
+
+### Datos del negocio
 - **Fundadores:** Nicolás Idrobo (SDR) · Luis Daniel (QA Lead)
 - **Ciudad:** Cali, Colombia
 - **Industrias objetivo:** Joyería, ropa, cosméticos, ferretería, restaurantes, artesanías y más
@@ -27,8 +37,9 @@
 | Autenticación | Supabase Auth |
 | Deploy | Vercel (plan Hobby) |
 | PDF | jsPDF + html2canvas |
-| Animaciones | Framer Motion (parallax landing page) |
-| Fuentes | Fraunces (serif) + DM Sans (sans) |
+| Animaciones | Framer Motion (dashboard/auth) · CSS animations (landing page) |
+| Fuentes dashboard | Fraunces (serif) + DM Sans (sans) |
+| Fuentes landing | Rubik (wordmark) + Space Grotesk (títulos/cuerpo) + system monospace (labels) |
 | Package manager | pnpm |
 
 ---
@@ -321,14 +332,39 @@ Este archivo ha tenido problemas recurrentes de encoding. El `.vscode/settings.j
   - H1: *"Tu negocio merece una mano."* (shimmer en "una mano.")
   - Subtext: *"La herramienta que lleva las cuentas por ti, para que tú te concentres en vender."*
 - **Concepto de marca:** POLEA como máquina simple — alivia la carga del día a día y multiplica el esfuerzo del emprendedor. El copy evita lo genérico ("crecer", "optimizar") y habla directamente al emprendedor que lo lleva solo.
-- Tagline del navbar/footer: *"Tu tienda, clara"* (dentro del dashboard usa el mismo tagline en el Sidebar)
-- **Parallax interactivo (framer-motion):**
-  - *Mouse parallax en el hero:* los 3 blobs decorativos, la tarjeta del dashboard y los badges flotantes reaccionan al cursor con `useMotionValue` + `useSpring` + `useTransform`. Blobs: 4%/-3%/2% de la distancia al centro. Dashboard: 1.4%. Badges: dirección opuesta al dashboard (-2.2% / +2.6%).
-  - *Scroll parallax en el hero:* texto sube -50px y dashboard -25px al scrollear 600px (`useScroll` + `useTransform`). La rueda de polea SVG gira con el scroll (`rotate: scrollDeg` en `motion.g`).
-  - *Reveal al entrar al viewport (`whileInView`):* propuesta de valor, features, chips, precios y CTA usan `motion.div` con stagger (`staggerChildren: 0.1`).
-  - *whileHover:* cards de features y precios suben 4-6px con sombra.
-  - *Diferenciador:* texto desliza desde la izquierda (`x: -40→0`), tarjeta desde la derecha (`x: 40→0`).
-  - El IntersectionObserver manual y las clases `.reveal` fueron reemplazados por framer-motion.
+- Tagline del navbar/footer: *"Tu negocio, sin enredos."* (dashboard Sidebar usa el mismo tagline)
+
+Rediseñada con dirección editorial fiel al handoff en `design_handoff_leva_landing/`. Archivo de referencia: `Leva Landing.html` + `styles.css` + `README.md`. **No borrar esta carpeta.**
+
+**Arquitectura de estilos:** el landing tiene su propio sistema de tokens CSS (clase `.lv`) completamente separado del sistema de temas del dashboard. Se define en un `<style>` tag inline al inicio del componente. Los tokens del dashboard (`--color-*`) no se usan aquí.
+
+**Tokens de diseño:**
+- Fondo claro (secciones contenido): `--paper` `#F4F1EA`
+- Fondo oscuro (hero, pasos, CTA, footer): `--crow` `#0D0D0D`
+- Tinta sobre claro: `--ink` `#16140F` · secundario: `--ink-2` `#4A463C`
+- Texto sobre oscuro: `--champagne` `#E8DFC4` · secundario: `--on-dark-2` `rgba(232,223,196,0.52)`
+- Acento azul: `--accent` `#4A90D9` · sobre negro: `--accent-on-blk` `#5C9FE0` · sobre papel: `--accent-ink` `#2F6DB0`
+- Tipografía: `var(--font-rubik)` (wordmark "Leva") · `var(--font-space-grotesk)` (títulos y cuerpo) · `ui-monospace` (labels/eyebrows)
+
+**Símbolo "cam":** componentes `<CamMark>` y `<CamGhost>` en `app/page.tsx` — SVG del perfil de una leva excéntrica rotado 26°. Usado en nav, hero (ghost de fondo), CTA final, footer.
+
+**Secciones (en orden):**
+1. Nav sticky oscuro translúcido · cam mark + wordmark · links + CTA "Prueba gratis" azul
+2. Hero oscuro 2 columnas: copy (kicker + h1 "sin enredos." en azul + subtítulo + CTAs + trust bar) / mockup dashboard (barras, cifras, chips flotantes)
+3. 01 Problema — 3 cards blancas: pregunta + dolor + solución con badge "Leva"
+4. 02 Funciones — 6 módulos grid 3×2 con iconos SVG de línea en caja `--accent-soft`
+5. 03 Cómo funciona — banda oscura, 3 pasos numerados con línea punteada conectora
+6. 04 Para quién — 6 industrias (icono en caja grafito) + 3 slots de foto placeholder
+7. 05 Historias — 3 métricas grandes + 2 testimonios + etiqueta "datos de ejemplo" (**sustituir con datos reales**)
+8. 06 Precios — Plan Gratis ($0) y Plan Pro ($39.900/mes card oscura) — **precios placeholder, ajustar al lanzar**
+9. CTA final — banda oscura centrada
+10. Footer Polea — 4 columnas (Polea S.A.S. + Producto + Empresa + Soporte) + redes sociales
+
+**Animaciones:** CSS puro `@keyframes lvRise` (solo `translateY(16px) → none`, opacity siempre 1). `prefers-reduced-motion` respetado. Sin framer-motion en el landing.
+
+**`body` background:** `useEffect` setea `document.body.style.background = '#F4F1EA'` al montar y lo resetea al desmontar (para que el fondo no pise el dashboard).
+
+**Responsive breakpoints:** 940px (hero grid), 880px (nav móvil), 860px (grids contenido), 760px (padding, foto), 720px (precios), 680px (métricas, gutter), 560px (funciones, industrias), 520px (chips dashboard), 480px (footer).
 
 ### Dashboard
 - KPIs: ventas hoy, este mes, alertas de stock

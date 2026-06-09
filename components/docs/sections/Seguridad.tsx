@@ -7,7 +7,7 @@ export default function Seguridad() {
       </header>
 
       <div className="bg-white rounded-2xl border border-[#EDE5DC] p-6 text-sm text-[#4A3F35]">
-        Polea aplica Row Level Security en todas las tablas relevantes para asegurar aislamiento por
+        Leva aplica Row Level Security en todas las tablas relevantes para asegurar aislamiento por
         tienda y evitar acceso cruzado entre negocios.
       </div>
 

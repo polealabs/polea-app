@@ -12,7 +12,7 @@ export default function CuentaEliminadaPage() {
             <circle cx="16" cy="14" r="1.5" fill="#C4622D" />
             <line x1="16" y1="23" x2="16" y2="29" stroke="#C4622D" strokeWidth="2.5" strokeLinecap="round" />
           </svg>
-          <p className="font-serif text-xl font-bold text-[#1E3A2F]">POLEA</p>
+          <p className="font-serif text-xl font-bold text-[#1E3A2F]">LEVA</p>
         </div>
 
         <div className="w-16 h-16 rounded-full bg-[#FDEAEA] flex items-center justify-center mx-auto mb-6">
@@ -28,7 +28,7 @@ export default function CuentaEliminadaPage() {
           Tu cuenta fue eliminada
         </h1>
         <p className="text-[#8A7D72] text-sm leading-relaxed mb-8">
-          Todos tus datos — tienda, productos, ventas, clientes y gastos — fueron borrados permanentemente de Polea. Esta acción no se puede revertir.
+          Todos tus datos — tienda, productos, ventas, clientes y gastos — fueron borrados permanentemente de Leva. Esta acción no se puede revertir.
         </p>
 
         <div className="flex flex-col gap-3">

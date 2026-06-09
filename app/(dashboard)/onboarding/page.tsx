@@ -226,7 +226,7 @@ export default function OnboardingPage() {
               <circle cx="16" cy="14" r="1.5" fill="#C4622D" />
               <line x1="16" y1="23" x2="16" y2="29" stroke="#C4622D" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
-            <p className="font-serif text-2xl font-bold text-white">POLEA</p>
+            <p className="font-serif text-2xl font-bold text-white">LEVA</p>
           </div>
           <p className="text-white/50 text-sm uppercase tracking-widest mb-3">Un momento</p>
           <p className="font-serif text-3xl font-medium text-white">
@@ -256,11 +256,11 @@ export default function OnboardingPage() {
               <circle cx="16" cy="14" r="1.5" fill="#C4622D" />
               <line x1="16" y1="23" x2="16" y2="29" stroke="#C4622D" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
-            <p className="font-serif text-3xl font-bold text-white tracking-wide">POLEA</p>
+            <p className="font-serif text-3xl font-bold text-white tracking-wide">LEVA</p>
           </div>
 
           <h1 className="font-serif text-4xl font-medium text-white leading-tight mb-5">
-            Bienvenido a Polea
+            Bienvenido a Leva
           </h1>
           <p className="text-white/65 text-base leading-relaxed mb-10">
             La herramienta que va a ayudarte a llevar las cuentas de tu negocio, vender con claridad y crecer con orden — sin complicaciones.

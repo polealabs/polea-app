@@ -195,7 +195,7 @@ export default function PreferenciasPage() {
         <div>
           <h2 className="text-lg font-semibold text-[#1A1510]">Clientes</h2>
           <p className="text-xs text-[#8A7D72] mt-1">
-            Polea identifica tus clientes más fieles y te avisa cuando llevan tiempo sin visitarte.
+            Leva identifica tus clientes más fieles y te avisa cuando llevan tiempo sin visitarte.
           </p>
         </div>
 

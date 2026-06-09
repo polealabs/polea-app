@@ -46,8 +46,8 @@ export default function RecuperarContrasenaPage() {
             <line x1="16" y1="23" x2="16" y2="29" stroke="#C4622D" strokeWidth="2.5" strokeLinecap="round" />
           </svg>
           <div>
-            <p className="font-serif text-xl font-bold text-white leading-none">POLEA</p>
-            <p className="text-[10px] text-white/50 uppercase tracking-widest leading-none mt-0.5">Tu tienda, clara</p>
+            <p className="font-serif text-xl font-bold text-white leading-none">LEVA</p>
+            <p className="text-[10px] text-white/50 uppercase tracking-widest leading-none mt-0.5">Tu negocio, sin enredos.</p>
           </div>
         </div>
         <div className="relative z-10">
@@ -60,7 +60,7 @@ export default function RecuperarContrasenaPage() {
             Te enviamos un enlace para que recuperes el acceso a tu cuenta en segundos.
           </p>
         </div>
-        <p className="text-white/30 text-xs relative z-10">© 2026 Polea · Cali, Colombia</p>
+        <p className="text-white/30 text-xs relative z-10">© 2026 Leva · Una solución de Polea</p>
       </div>
 
       <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 bg-[#FAF6F0]">
@@ -73,7 +73,7 @@ export default function RecuperarContrasenaPage() {
               <circle cx="16" cy="14" r="1.5" fill="#C4622D" />
               <line x1="16" y1="23" x2="16" y2="29" stroke="#C4622D" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
-            <p className="font-serif text-xl font-bold text-[#1E3A2F]">POLEA</p>
+            <p className="font-serif text-xl font-bold text-[#1E3A2F]">LEVA</p>
           </div>
 
           {enviado ? (
