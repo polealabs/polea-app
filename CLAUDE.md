@@ -37,9 +37,8 @@ Leva permite a pequeños negocios colombianos que venden por WhatsApp, Instagram
 | Autenticación | Supabase Auth |
 | Deploy | Vercel (plan Hobby) |
 | PDF | jsPDF + html2canvas |
-| Animaciones | Framer Motion (dashboard/auth) · CSS animations (landing page) |
-| Fuentes dashboard | Fraunces (serif) + DM Sans (sans) |
-| Fuentes landing | Rubik (wordmark) + Space Grotesk (títulos/cuerpo) + system monospace (labels) |
+| Animaciones | Framer Motion (dashboard) · CSS animations (landing page) |
+| Fuentes | **Space Grotesk** (sans principal — toda la app) · **Fraunces** (serif/display) · **Rubik** (wordmark "LEVA" en landing) |
 | Package manager | pnpm |
 
 ---
@@ -632,6 +631,25 @@ export async function miAccion(params) {
 - **Client Components:** `import { createClient } from '@/lib/supabase/client'` + `createClient()` (sin await)
 - **NUNCA** usar el cliente de servidor en componentes client ni viceversa
 
+### Sistema de diseño Leva (tokens globales)
+
+El acento de la app es **azul `#4A90D9`** (antes terracota). El fondo claro es **`#F4F1EA`** (paper). La fuente principal es **Space Grotesk**.
+
+Los 4 temas de color (bosque/oceano/rosa/tierra) se diferencian por su color `primary` (sidebar) pero todos comparten el acento azul. Valores del tema por defecto **bosque**:
+
+| Variable | Valor | Uso |
+|---|---|---|
+| `--color-primary` | `#1E3A2F` | Sidebar, bandas oscuras |
+| `--color-accent` | `#4A90D9` | Botones, links, CTAs |
+| `--color-accent-hover` | `#5C9FE0` | Hover de acento |
+| `--color-accent-pale` | `#E8F2FB` | Fondo suave de acento |
+| `--color-background` | `#F4F1EA` | Fondo de página |
+| `--color-surface` | `#FFFFFF` | Cards, paneles |
+| `--color-border` | `#DCD7CA` | Bordes |
+| `--color-text` | `#16140F` | Texto principal |
+| `--color-text-soft` | `#4A463C` | Texto secundario |
+| `--color-text-faint` | `#6E6860` | Texto terciario |
+
 ### Temas CSS
 **SIEMPRE** usar variables CSS, NUNCA colores hardcodeados en JSX:
 ```tsx
@@ -642,12 +660,16 @@ style={{ background: 'var(--color-accent)', color: 'white' }}
 
 // ❌ Incorrecto
 className="bg-white text-gray-900"  // no respeta el tema
-style={{ background: '#FAF6F0' }}    // hardcodeado
+style={{ background: '#F4F1EA' }}    // hardcodeado
+style={{ background: '#C4622D' }}    // acento antiguo (terracota)
 ```
 
 Variables disponibles: `--color-primary`, `--color-primary-light`, `--color-accent`, `--color-accent-hover`, `--color-accent-pale`, `--color-background`, `--color-surface`, `--color-border`, `--color-text`, `--color-text-soft`, `--color-text-faint`
 
 **Excepción:** Colores de estado (rojo error, verde éxito, amarillo warning) pueden ser hardcodeados: `#C44040`, `#3A7D5A`, `#D4A853`.
+
+### Logo Leva (`components/ui/LevaLogo.tsx`)
+Componente `<LevaLogo size={32} />` que renderiza el símbolo cam (leva excéntrica) sobre fondo negro `#0D0D0D`. Usar en páginas públicas (auth, onboarding, cuenta-eliminada, cuenta-bloqueada). El landing page (`app/page.tsx`) tiene sus propios `CamMark`/`CamGhost` inline.
 
 ### Toasts
 ```typescript
