@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leva — Tu negocio, sin enredos.</title>
+<meta name="description" content="Leva — registra ventas, controla tu inventario y conoce tu ganancia real. Software para tiendas colombianas. Un producto de Polea.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Sora:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="image-slot.js"></script>
+</head>
+<body>
+
+<!-- ════════ SYMBOL DEFS ════════ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- Leva "cam" mark — eccentric cam profile, tilted ↗ -->
+  <symbol id="leva-mark" viewBox="0 0 100 100">
+    <g style="transform:rotate(26deg);transform-origin:50px 50px">
+      <path fill="currentColor" fill-rule="evenodd" d="
+        M50 9 C 65 9, 80 30, 80 54 C 80 76, 67 93, 50 93
+        C 33 93, 20 76, 20 54 C 20 30, 35 9, 50 9 Z
+        M50 60 m -12 0 a 12 12 0 1 0 24 0 a 12 12 0 1 0 -24 0 Z"></path>
+    </g>
+  </symbol>
+  <!-- big ghost cam (outline) for hero backdrop -->
+  <symbol id="leva-ghost" viewBox="0 0 100 100">
+    <g style="transform:rotate(26deg);transform-origin:50px 50px">
+      <path fill="none" stroke="currentColor" stroke-width="1.4" fill-rule="evenodd" d="
+        M50 9 C 65 9, 80 30, 80 54 C 80 76, 67 93, 50 93
+        C 33 93, 20 76, 20 54 C 20 30, 35 9, 50 9 Z
+        M50 60 m -12 0 a 12 12 0 1 0 24 0 a 12 12 0 1 0 -24 0 Z"></path>
+    </g>
+  </symbol>
+
+  <!-- feature / industry line icons (24×24, stroke=currentColor) -->
+  <g id="i-base"></g>
+  <symbol id="ic-ventas" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1.1 12H7.1L6 8Z"></path><path d="M9 8a3 3 0 0 1 6 0"></path></symbol>
+  <symbol id="ic-inventario" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="12.5" width="7" height="7" rx="1"></rect><rect x="13.5" y="12.5" width="7" height="7" rx="1"></rect><rect x="8.5" y="4.5" width="7" height="7" rx="1"></rect></symbol>
+  <symbol id="ic-gastos" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="10" cy="8" rx="6" ry="2.6"></ellipse><path d="M4 8v8c0 1.4 2.7 2.6 6 2.6 1 0 2-.1 2.8-.3"></path><path d="M16 14v6m3-3h-6"></path></symbol>
+  <symbol id="ic-reportes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16h16"></path><path d="M8 16v-4M12 16V8M16 16v-6"></path></symbol>
+  <symbol id="ic-aliadas" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="5.2"></circle><circle cx="15" cy="12" r="5.2"></circle></symbol>
+  <symbol id="ic-eventos" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20L12 5l8 15"></path><path d="M12 5v15"></path><path d="M4 20h16"></path></symbol>
+  <!-- industries -->
+  <symbol id="ic-joyeria" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l7.5 6L12 20.5 4.5 9.5 12 3.5Z"></path><path d="M4.5 9.5h15"></path></symbol>
+  <symbol id="ic-ropa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4l3 2 3-2 5 3.5-2.5 3-2 -1.2V20H8V9.3L6 10.5 3.5 7.5 9 4Z"></path></symbol>
+  <symbol id="ic-cosmeticos" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5c3.2 4.2 5 6.4 5 9.3a5 5 0 0 1-10 0c0-2.9 1.8-5.1 5-9.3Z"></path></symbol>
+  <symbol id="ic-ferreteria" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 3.5h7L20 12l-4.5 8.5h-7L4 12 8.5 3.5Z"></path><circle cx="12" cy="12" r="3"></circle></symbol>
+  <symbol id="ic-restaurantes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5v17M5 3.5v5a2 2 0 0 0 4 0v-5"></path><path d="M17 3.5c-1.8 0-3 2.2-3 5s1.2 4 3 4.2V20.5"></path></symbol>
+  <symbol id="ic-artesanias" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18M6 6l12 12M18 6L6 18"></path></symbol>
+</svg>
+
+<!-- ════════ NAV ════════ -->
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="brand" href="#top" aria-label="Leva — inicio">
+      <span class="mk"><svg viewBox="0 0 100 100"><use href="#leva-mark"></use></svg></span>
+      <span class="wm">Leva</span>
+    </a>
+    <nav class="links">
+      <a href="#problema">Por qué Leva</a>
+      <a href="#funciones">Funciones</a>
+      <a href="#como">Cómo funciona</a>
+      <a href="#precios">Precios</a>
+    </nav>
+    <div class="nav-cta">
+      <a href="#" class="signin">Entrar</a>
+      <a href="#precios" class="btn btn-primary btn-sm">Prueba gratis</a>
+    </div>
+  </div>
+</header>
+
+<!-- ════════ HERO ════════ -->
+<section class="hero" id="top" data-screen-label="Hero">
+  <div class="cam-ghost"><svg viewBox="0 0 100 100"><use href="#leva-ghost"></use></svg></div>
+  <div class="wrap">
+    <div class="hero-grid">
+      <!-- copy -->
+      <div class="hero-copy">
+        <span class="kicker reveal d1"><span class="dot"></span>Un producto de Polea · Hecho en Cali</span>
+        <h1 class="reveal d2">Tu negocio,<br><span class="soft">sin enredos.</span></h1>
+        <p class="sub reveal d3">Registra ventas, controla tu inventario y conoce tu ganancia real. Todo en un solo lugar — diseñado para tiendas colombianas que venden por WhatsApp, Instagram y en su local.</p>
+        <div class="actions reveal d4">
+          <a href="#precios" class="btn btn-primary">Prueba gratis <span class="arr">→</span></a>
+          <a href="#demo" class="btn btn-ghost-dark">Ver demo</a>
+        </div>
+        <div class="trust reveal d5">
+          <span>Sin tarjeta</span><span class="sep"></span>
+          <span>Listo en 5 minutos</span><span class="sep"></span>
+          <span>En español</span>
+        </div>
+      </div>
+
+      <!-- floating dashboard -->
+      <div class="hero-visual reveal d4">
+        <div class="dash">
+          <div class="dwin"><i></i><i></i><i></i><span class="durl">app.leva.co</span></div>
+          <div class="dtop">
+            <div>
+              <div class="k">Ventas de mayo</div>
+              <div class="big">$4.850.000</div>
+              <div class="chg">↑ 12% vs. abril</div>
+            </div>
+            <div class="util">
+              <div class="uk">Utilidad real</div>
+              <div class="uv">$1.920.000</div>
+            </div>
+          </div>
+          <div class="bars">
+            <i style="height:38%"></i><i style="height:54%"></i><i style="height:42%"></i>
+            <i style="height:66%"></i><i style="height:50%"></i><i style="height:74%"></i>
+            <i class="on" style="height:100%"></i><i style="height:60%"></i>
+          </div>
+          <div class="drow">
+            <div class="mini"><div class="mk">Flujo de caja</div><div class="mv pos">+ $1.920.000</div></div>
+            <div class="mini"><div class="mk">En inventario</div><div class="mv">$8.340.000</div></div>
+          </div>
+          <div class="list">
+            <div class="li"><span class="lt">Anillo oro 18k <span class="ch">WhatsApp</span></span><span class="lr">$320.000</span></div>
+            <div class="li"><span class="lt">Aretes perla <span class="ch">Local</span></span><span class="lr">$95.000</span></div>
+            <div class="li"><span class="lt">Cadena plata <span class="ch">Instagram</span></span><span class="lr">$140.000</span></div>
+          </div>
+          <div class="dash-chip tl">
+            <span class="ci"><svg viewBox="0 0 24 24"><use href="#ic-reportes"></use></svg></span>
+            <span><span class="ck">Margen</span><span class="cv">39,6 %</span></span>
+          </div>
+          <div class="dash-chip br">
+            <span class="ci"><svg viewBox="0 0 24 24"><use href="#ic-inventario"></use></svg></span>
+            <span><span class="ck">Stock bajo</span><span class="cv">3 productos</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 01 · PROBLEMA ════════ -->
+<section class="band" id="problema" data-screen-label="Problema">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="idx">01 — El problema</span>
+      <h2>Llevas el negocio en la cabeza. Y eso cansa.</h2>
+      <p class="lede">Vendes por WhatsApp, por Instagram y en el local. Pero a fin de mes, las cuentas claras no aparecen por ningún lado. Leva las pone frente a ti.</p>
+    </div>
+    <div class="prob-grid">
+      <article class="prob">
+        <div class="q">¿Sabes cuánto ganaste este mes?</div>
+        <p class="pain">No es lo que entró a la caja. Es lo que de verdad te quedó después de costos y gastos — y casi nunca alcanza el tiempo para sacar la cuenta.</p>
+        <div class="sol"><span class="badge">Leva</span><span class="stext">Tu <b>utilidad real</b> calculada sola, cada día. Sin Excel, sin adivinar.</span></div>
+      </article>
+      <article class="prob">
+        <div class="q">¿Cuánto tienes en inventario?</div>
+        <p class="pain">Plata quieta en mercancía que no rota, o quedarte sin lo que más se vende justo cuando el cliente lo pide. Las dos cosas duelen.</p>
+        <div class="sol"><span class="badge">Leva</span><span class="stext">Sabes <b>qué tienes, qué rota y qué reponer</b> — con alertas de stock bajo.</span></div>
+      </article>
+      <article class="prob">
+        <div class="q">¿Cuánto gastaste de verdad?</div>
+        <p class="pain">Arriendo, proveedores, domicilios, datos del celular. Gastos pequeños que sumados se comen la ganancia sin que te des cuenta.</p>
+        <div class="sol"><span class="badge">Leva</span><span class="stext">Cada gasto registrado y <b>restado a tu ganancia</b>, para que no haya sorpresas.</span></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 02 · FUNCIONALIDADES ════════ -->
+<section class="band" id="funciones" data-screen-label="Funciones">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="idx">02 — Funciones</span>
+      <h2>Todo tu negocio, en seis módulos.</h2>
+      <p class="lede">Lo justo y necesario para una tienda que crece. Nada de menús infinitos ni palabras de contador.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat">
+        <div class="fi"><svg viewBox="0 0 24 24"><use href="#ic-ventas"></use></svg></div>
+        <h3>Ventas</h3>
+        <p>Registra cada venta en segundos, por canal y por producto. WhatsApp, Instagram o local — todo cuenta en el mismo lugar.</p>
+      </div>
+      <div class="feat">
+        <div class="fi"><svg viewBox="0 0 24 24"><use href="#ic-inventario"></use></svg></div>
+        <h3>Inventario</h3>
+        <p>Qué tienes, qué se mueve y qué reponer. Cada venta descuenta del stock sola, con alertas cuando algo se está acabando.</p>
+      </div>
+      <div class="feat">
+        <div class="fi"><svg viewBox="0 0 24 24"><use href="#ic-gastos"></use></svg></div>
+        <h3>Gastos</h3>
+        <p>Arriendo, proveedores, domicilios. Anota cada salida y míralas restadas a tu ganancia, sin cuentas a mano.</p>
+      </div>
+      <div class="feat">
+        <div class="fi"><svg viewBox="0 0 24 24"><use href="#ic-reportes"></use></svg></div>
+        <h3>Reportes P&amp;L</h3>
+        <p>Pérdidas y ganancias en lenguaje claro. Cuánto vendiste, cuánto gastaste y cuánto te quedó — listo para mirar.</p>
+      </div>
+      <div class="feat">
+        <div class="fi"><svg viewBox="0 0 24 24"><use href="#ic-aliadas"></use></svg></div>
+        <h3>Tiendas aliadas</h3>
+        <p>Trabajas con otra tienda o dejas mercancía en consignación. Lleva la cuenta de lo tuyo en cada punto, sin enredos.</p>
+      </div>
+      <div class="feat">
+        <div class="fi"><svg viewBox="0 0 24 24"><use href="#ic-eventos"></use></svg></div>
+        <h3>Eventos y ferias</h3>
+        <p>Saca tu inventario a una feria y vuelve con las cuentas cuadradas. Mide cuánto vendiste y cuánto te dejó cada evento.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 03 · CÓMO FUNCIONA (dark) ════════ -->
+<section class="band dark-band" id="como" data-screen-label="Cómo funciona">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="idx">03 — Cómo funciona</span>
+      <h2>Tres pasos. Cinco minutos al día.</h2>
+      <p class="lede">No necesitas saber de contabilidad. Si sabes usar WhatsApp, sabes usar Leva.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="line-link"></div>
+        <div class="n">1</div>
+        <h3>Registra tus ventas</h3>
+        <p>Apenas vendes, lo anotas en segundos. Por canal, por producto, en efectivo o transferencia.</p>
+      </div>
+      <div class="step">
+        <div class="line-link"></div>
+        <div class="n">2</div>
+        <h3>Controla tu inventario</h3>
+        <p>Leva descuenta del stock solo y te avisa cuando algo se está agotando. Siempre sabes qué tienes.</p>
+      </div>
+      <div class="step">
+        <div class="n">3</div>
+        <h3>Ve tus ganancias reales</h3>
+        <p>Abres la app y ahí está: lo que vendiste, lo que gastaste y lo que de verdad te quedó.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 04 · PARA QUIÉN ════════ -->
+<section class="band" id="paraquien" data-screen-label="Para quién">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="idx">04 — Para quién es</span>
+      <h2>Hecho para tu tipo de negocio.</h2>
+      <p class="lede">Si vendes producto y necesitas saber cuánto ganas, Leva es para ti. Estas son las tiendas que más lo usan.</p>
+    </div>
+    <div class="ind-grid">
+      <div class="ind"><span class="ii"><svg viewBox="0 0 24 24"><use href="#ic-joyeria"></use></svg></span><span><span class="it">Joyería</span><span class="ic">oro, plata, accesorios</span></span></div>
+      <div class="ind"><span class="ii"><svg viewBox="0 0 24 24"><use href="#ic-ropa"></use></svg></span><span><span class="it">Ropa</span><span class="ic">boutiques y showrooms</span></span></div>
+      <div class="ind"><span class="ii"><svg viewBox="0 0 24 24"><use href="#ic-cosmeticos"></use></svg></span><span><span class="it">Cosméticos</span><span class="ic">maquillaje y cuidado</span></span></div>
+      <div class="ind"><span class="ii"><svg viewBox="0 0 24 24"><use href="#ic-ferreteria"></use></svg></span><span><span class="it">Ferretería</span><span class="ic">herramientas e insumos</span></span></div>
+      <div class="ind"><span class="ii"><svg viewBox="0 0 24 24"><use href="#ic-restaurantes"></use></svg></span><span><span class="it">Restaurantes</span><span class="ic">cocinas y cafés</span></span></div>
+      <div class="ind"><span class="ii"><svg viewBox="0 0 24 24"><use href="#ic-artesanias"></use></svg></span><span><span class="it">Artesanías</span><span class="ic">hecho a mano</span></span></div>
+    </div>
+    <div class="photos">
+      <image-slot id="ph-main" class="ph-tall" shape="rounded" radius="14" placeholder="Dueña de tienda · retrato vertical"></image-slot>
+      <image-slot id="ph-2" class="ph-sq" shape="rounded" radius="14" placeholder="Producto · detalle"></image-slot>
+      <image-slot id="ph-3" class="ph-sq" shape="rounded" radius="14" placeholder="Local / vitrina"></image-slot>
+    </div>
+    <p class="photo-note">↑ Arrastra fotos reales de comerciantes a estos recuadros — luz natural, fondo del local, sin stock genérico.</p>
+  </div>
+</section>
+
+<!-- ════════ 05 · PRUEBA SOCIAL ════════ -->
+<section class="band" id="historias" data-screen-label="Prueba social">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="idx">05 — Historias</span>
+      <h2>Negocios que ya tienen las cuentas claras.</h2>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="mn">+2.400</div><div class="ml">negocios activos en Colombia</div></div>
+      <div class="metric"><div class="mn">$18.000M</div><div class="ml">en ventas registradas con Leva</div></div>
+      <div class="metric"><div class="mn">5 min</div><div class="ml">al día, en promedio, es todo lo que toma</div></div>
+    </div>
+    <div class="testi-grid">
+      <figure class="testi">
+        <div class="quote">“Por primera vez sé cuánto gano de verdad. Antes creía que me iba bien y la plata no aparecía. Ahora veo en qué se me iba.”</div>
+        <figcaption class="by"><span class="av">M</span><span class="who"><span class="nm">Marcela R.</span><span class="role">Joyería · Cali</span></span></figcaption>
+      </figure>
+      <figure class="testi">
+        <div class="quote">“Dejé los cuadernos y tres grupos de WhatsApp. Todo está en un solo lugar y mi socio ve lo mismo que yo.”</div>
+        <figcaption class="by"><span class="av">J</span><span class="who"><span class="nm">Julián O.</span><span class="role">Ropa · Medellín</span></span></figcaption>
+      </figure>
+    </div>
+    <span class="eg-tag"><span class="d"></span>Métricas e historias de ejemplo · reemplazar con datos reales</span>
+  </div>
+</section>
+
+<!-- ════════ 06 · PRECIOS ════════ -->
+<section class="band" id="precios" data-screen-label="Precios">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="idx">06 — Precios</span>
+      <h2>Empieza gratis. Crece cuando quieras.</h2>
+      <p class="lede">Sin contratos ni letra pequeña. Prueba todo lo que necesitas sin pagar un peso.</p>
+    </div>
+    <div class="price-grid">
+      <div class="plan">
+        <div class="pname">Plan Gratis</div>
+        <div class="price">$0<small> / siempre</small></div>
+        <p class="pdesc">Para arrancar a poner las cuentas en orden hoy mismo.</p>
+        <ul>
+          <li><span class="ck">✓</span> Registro de ventas ilimitado</li>
+          <li><span class="ck">✓</span> Control de inventario básico</li>
+          <li><span class="ck">✓</span> Reporte de ganancia del mes</li>
+          <li><span class="ck">✓</span> Un usuario</li>
+        </ul>
+        <a href="#" class="btn btn-ghost-light">Crear cuenta gratis</a>
+      </div>
+      <div class="plan pro">
+        <span class="badge-pro">Recomendado</span>
+        <div class="pname">Plan Pro</div>
+        <div class="price">$39.900<small> / mes</small></div>
+        <p class="pdesc">Para el negocio que ya rueda y quiere ver más a fondo.</p>
+        <ul>
+          <li><span class="ck">✓</span> Todo lo del plan Gratis</li>
+          <li><span class="ck">✓</span> Reportes P&amp;L y flujo de caja</li>
+          <li><span class="ck">✓</span> Tiendas aliadas y eventos</li>
+          <li><span class="ck">✓</span> Varios usuarios y respaldo</li>
+        </ul>
+        <a href="#" class="btn btn-primary">Empezar prueba de 14 días</a>
+      </div>
+    </div>
+    <p class="price-foot">Precios de referencia (placeholder) · ajustar al lanzar</p>
+  </div>
+</section>
+
+<!-- ════════ 07 · CTA FINAL ════════ -->
+<section class="cta-final" id="demo" data-screen-label="CTA final">
+  <div class="cam-ghost"><svg viewBox="0 0 100 100"><use href="#leva-ghost"></use></svg></div>
+  <div class="inner wrap">
+    <h2>Empieza hoy gratis.</h2>
+    <p>Tu negocio, sin enredos — y con las cuentas claras desde la primera venta.</p>
+    <div class="actions">
+      <a href="#" class="btn btn-primary">Prueba gratis <span class="arr">→</span></a>
+      <a href="#" class="btn btn-ghost-dark">Hablar con nosotros</a>
+    </div>
+    <p class="reassure">Sin tarjeta · Sin contratos · Cancela cuando quieras</p>
+  </div>
+</section>
+
+<!-- ════════ FOOTER ════════ -->
+<footer class="foot" data-screen-label="Footer">
+  <div class="wrap">
+    <div class="foot-top">
+      <div class="fcol">
+        <div class="pbrand">
+          <span class="mk"><svg viewBox="0 0 100 100"><use href="#leva-mark"></use></svg></span>
+          <span class="wm">Polea</span>
+        </div>
+        <p class="pblurb">Tecnología que multiplica el esfuerzo del emprendedor latinoamericano. Leva es nuestro primer producto.</p>
+        <p class="made">Cali, Colombia · 2026</p>
+      </div>
+      <div class="fcol">
+        <h4>Producto</h4>
+        <a href="#funciones">Funciones</a>
+        <a href="#como">Cómo funciona</a>
+        <a href="#precios">Precios</a>
+        <a href="#">Descargar app</a>
+      </div>
+      <div class="fcol">
+        <h4>Empresa</h4>
+        <a href="#">Sobre Polea</a>
+        <a href="#">Blog</a>
+        <a href="#">Trabaja con nosotros</a>
+        <a href="#">Contacto</a>
+      </div>
+      <div class="fcol">
+        <h4>Soporte</h4>
+        <a href="#">Centro de ayuda</a>
+        <a href="#">WhatsApp</a>
+        <a href="#">Términos</a>
+        <a href="#">Privacidad</a>
+      </div>
+    </div>
+    <div class="foot-bot">
+      <span class="copy">© 2026 Polea S.A.S. · Leva® es un producto de Polea.</span>
+      <div class="socials">
+        <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3.5" y="3.5" width="17" height="17" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17" cy="7" r="1" fill="currentColor" stroke="none"></circle></svg></a>
+        <a href="#" aria-label="WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 20l1.4-4A8 8 0 1 1 8 18.6L4 20Z"></path></svg></a>
+        <a href="#" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 4v9.5a3.5 3.5 0 1 1-3-3.46"></path><path d="M14 4c.6 2.3 2.2 3.8 4.5 4"></path></svg></a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  /* subtle entrance is pure CSS (transform only, opacity always 1) */
+  /* nav background solidifies after hero */
+  var nav=document.getElementById('nav');
+  window.addEventListener('scroll',function(){
+    if(window.scrollY>40)nav.style.background='rgba(13,13,13,0.92)';
+    else nav.style.background='rgba(13,13,13,0.72)';
+  },{passive:true});
+})();
+</script>
+
+</body>
+</html>
