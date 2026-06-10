@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import Sidebar from '@/components/layout/Sidebar'
 import HeaderWrapper from '@/components/layout/HeaderWrapper'
 import InactivityGuard from '@/components/ui/InactivityGuard'
+import SoporteWidget from '@/components/ui/SoporteWidget'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 
@@ -60,6 +61,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           {children}
         </main>
       </div>
+      <SoporteWidget />
     </div>
   )
 }

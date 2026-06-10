@@ -320,6 +320,14 @@ Este archivo ha tenido problemas recurrentes de encoding. El `.vscode/settings.j
 
 **admins** — `id, email` (solo para admin panel)
 
+### Soporte
+
+**casos_soporte** — `id, tienda_id, titulo, estado (abierto/en_proceso/resuelto), created_at, updated_at`
+
+**mensajes_soporte** — `id, caso_id, tienda_id, autor (cliente/admin), mensaje, created_at`
+
+RLS activo en ambas tablas con política `tienda_id IN (SELECT get_tiendas_usuario())`. El admin escribe con `createAdminClient()` (service role) para bypasear RLS.
+
 ---
 
 ## 8. MÓDULOS IMPLEMENTADOS
@@ -505,6 +513,15 @@ Página pública (fuera del grupo `(dashboard)`) que se muestra tras eliminar la
 - Lista de tiendas con detalle
 - Lista de usuarios
 - Métricas de uso
+- **Soporte** (`/polealabs/soporte`): lista de todos los casos con filtros por estado + KPIs; detalle de cada caso con hilo de mensajes, respuesta al cliente y cambio de estado
+
+### Soporte al cliente (`components/ui/SoporteWidget.tsx`)
+- Botón flotante 💬 en la esquina inferior derecha de todas las páginas del dashboard
+- **Posición dinámica:** en `/dashboard` sube a `bottom: 5.5rem` para no tapar el botón de nueva venta; en el resto de páginas va en `bottom: 1.5rem`
+- Panel con lista de casos, formulario de nuevo caso (asunto + descripción) e hilo de mensajes por caso
+- Burbujas de chat: azul (cliente, derecha) / gris (admin, izquierda)
+- Server actions en `app/(dashboard)/soporte/actions.ts`: `crearCaso`, `enviarMensajeCliente`, `getCasos`, `getMensajes`, `marcarCasoResuelto`
+- Admin actions en `app/polealabs/soporte/actions.ts`: `responderCaso`, `cambiarEstadoCaso` — usan `createAdminClient()` para bypasear RLS
 
 ---
 

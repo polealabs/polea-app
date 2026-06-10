@@ -45,6 +45,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/polealabs/metricas" className="text-white/60 hover:text-white text-xs transition">
             Métricas
           </Link>
+          <Link href="/polealabs/soporte" className="text-white/60 hover:text-white text-xs transition">
+            Soporte
+          </Link>
           <span className="text-white/30 text-xs">{admin.nombre ?? user.email}</span>
           <Link
             href="/dashboard"
