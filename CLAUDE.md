@@ -231,6 +231,12 @@ Protegido por tabla `admins` en Supabase. Solo accesible para `polealabs@gmail.c
 - **CRÍTICO:** Para calcular stock bajo/agotado, NO usar `p.tiene_variantes` (puede estar desactualizado). Usar si hay registros en `producto_variantes` para ese producto (`tieneVariantesReal = variantesDelProducto.length > 0`).
 - En el módulo de inventario, las variantes se muestran como filas expandibles bajo el producto padre.
 
+### Migraciones manuales aplicadas en Supabase
+
+Columnas agregadas manualmente que no existían en la tabla original pero sí están en el código:
+
+- **`consignaciones.variante_id`** — `ALTER TABLE consignaciones ADD COLUMN IF NOT EXISTS variante_id uuid REFERENCES producto_variantes(id);` — aplicada 2026-06-09. Sin esta columna, la carga masiva CSV de salidas en Tiendas Aliadas falla con "Could not find the 'variante_id' column in the schema cache".
+
 ### Encoding UTF-8 en consignaciones/page.tsx
 Este archivo ha tenido problemas recurrentes de encoding. El `.vscode/settings.json` está configurado con `"files.encoding": "utf8"` y `"files.autoGuessEncoding": false`. Si los caracteres especiales se corrompen de nuevo, usar escapes Unicode en strings críticos: `devoluci{'\u00f3'}n`, `{'\u2192'}`.
 
