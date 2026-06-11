@@ -27,13 +27,48 @@ const rubik = Rubik({
   variable: "--font-rubik",
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://polea-app.vercel.app';
+
 export const metadata: Metadata = {
-  title: 'Leva',
-  description: 'Tu negocio, sin enredos.',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: 'Leva — Tu negocio, sin enredos.',
+    template: '%s — Leva',
+  },
+  description:
+    'Leva es el sistema de gestión para pequeños negocios colombianos: controla ventas, inventario, gastos y rentabilidad en un solo lugar.',
+  applicationName: 'Leva',
+  authors: [{ name: 'Polea S.A.S.' }],
+  keywords: [
+    'gestión de negocios',
+    'inventario',
+    'control de ventas',
+    'punto de venta',
+    'POS',
+    'pequeños negocios',
+    'Colombia',
+    'control de gastos',
+    'rentabilidad',
+  ],
   icons: {
     icon: '/favicon.svg',
     shortcut: '/favicon.svg',
     apple: '/favicon.svg',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'es_CO',
+    url: '/',
+    siteName: 'Leva',
+    title: 'Leva — Tu negocio, sin enredos.',
+    description:
+      'Controla ventas, inventario, gastos y rentabilidad de tu negocio en un solo lugar.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Leva — Tu negocio, sin enredos.',
+    description:
+      'Controla ventas, inventario, gastos y rentabilidad de tu negocio en un solo lugar.',
   },
 };
 
