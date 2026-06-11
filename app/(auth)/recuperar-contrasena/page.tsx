@@ -55,7 +55,7 @@ export default function RecuperarContrasenaPage() {
             Te enviamos un enlace para que recuperes el acceso a tu cuenta en segundos.
           </p>
         </div>
-        <p className="text-white/30 text-xs relative z-10">© 2026 Leva · Una solución de Polea</p>
+        <p className="text-white/55 text-xs relative z-10">© 2026 Leva · Una solución de Polea</p>
       </div>
 
       <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 bg-[#F4F1EA]">
@@ -89,8 +89,9 @@ export default function RecuperarContrasenaPage() {
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                  <label className="block text-xs font-semibold text-[#4A463C] mb-1.5">Correo electrónico</label>
+                  <label htmlFor="rec-email" className="block text-xs font-semibold text-[#4A463C] mb-1.5">Correo electrónico</label>
                   <input
+                    id="rec-email"
                     type="email"
                     name="email"
                     required

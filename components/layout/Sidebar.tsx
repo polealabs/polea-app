@@ -103,14 +103,14 @@ export default function Sidebar() {
               <span className="inline-block h-7 w-24 rounded-md animate-pulse" style={{ background: 'rgba(255,255,255,0.15)' }} />
             )}
           </span>
-          <span className="text-[11px] text-white/40 uppercase tracking-widest mt-1 block">
+          <span className="text-[11px] text-white/55 uppercase tracking-widest mt-1 block">
             Tu negocio, sin enredos.
           </span>
         </div>
 
         {/* NAV */}
         <nav className="flex-1 py-6 overflow-y-auto">
-          <p className="text-[10px] uppercase tracking-[2px] text-white/30 px-7 mb-2">
+          <p className="text-[10px] uppercase tracking-[2px] text-white/55 px-7 mb-2">
             Módulos
           </p>
           {visibleNavItems.map((item) => {
@@ -167,7 +167,7 @@ export default function Sidebar() {
                   <span className="inline-block h-3.5 w-20 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.15)' }} />
                 )}
               </p>
-              <p className="text-[11px] text-white/40">
+              <p className="text-[11px] text-white/55">
                 {tienda ? tienda.nombre : (
                   <span className="inline-block h-3 w-16 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.1)' }} />
                 )}

@@ -74,7 +74,7 @@ export default function NuevaContrasenaPage() {
             Elige una contraseña segura para proteger tu cuenta.
           </p>
         </div>
-        <p className="text-white/30 text-xs relative z-10">© 2026 Leva · Una solución de Polea</p>
+        <p className="text-white/55 text-xs relative z-10">© 2026 Leva · Una solución de Polea</p>
       </div>
 
       <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 bg-[#F4F1EA]">
@@ -89,8 +89,9 @@ export default function NuevaContrasenaPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs font-semibold text-[#4A463C] mb-1.5">Nueva contraseña</label>
+              <label htmlFor="nc-password" className="block text-xs font-semibold text-[#4A463C] mb-1.5">Nueva contraseña</label>
               <input
+                id="nc-password"
                 type="password"
                 name="password"
                 required
@@ -99,8 +100,9 @@ export default function NuevaContrasenaPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#4A463C] mb-1.5">Confirmar contraseña</label>
+              <label htmlFor="nc-confirmar" className="block text-xs font-semibold text-[#4A463C] mb-1.5">Confirmar contraseña</label>
               <input
+                id="nc-confirmar"
                 type="password"
                 name="confirmar"
                 required

@@ -351,6 +351,7 @@ export default function SoporteWidget() {
       <button
         onClick={abierto ? cerrarWidget : abrirWidget}
         title="Soporte"
+        aria-label={abierto ? 'Cerrar soporte' : 'Abrir soporte'}
         style={{
           position: 'fixed', bottom: fabBottom, right: '1.5rem',
           width: 52, height: 52, borderRadius: '50%',

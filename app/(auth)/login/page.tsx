@@ -73,7 +73,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="text-white/30 text-xs relative z-10">© 2026 Leva · Una solución de Polea</p>
+        <p className="text-white/55 text-xs relative z-10">© 2026 Leva · Una solución de Polea</p>
       </div>
 
       <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 bg-[#F4F1EA]">
@@ -94,8 +94,9 @@ export default function LoginPage() {
             className="space-y-5"
           >
             <div>
-              <label className="block text-xs font-semibold text-[#4A463C] mb-1.5">Correo electrónico</label>
+              <label htmlFor="login-email" className="block text-xs font-semibold text-[#4A463C] mb-1.5">Correo electrónico</label>
               <input
+                id="login-email"
                 type="email"
                 name="email"
                 required
@@ -106,12 +107,13 @@ export default function LoginPage() {
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-semibold text-[#4A463C]">Contraseña</label>
+                <label htmlFor="login-password" className="block text-xs font-semibold text-[#4A463C]">Contraseña</label>
                 <a href="/recuperar-contrasena" className="text-xs text-[#4A90D9] hover:underline">
                   ¿Olvidaste tu contraseña?
                 </a>
               </div>
               <input
+                id="login-password"
                 type="password"
                 name="password"
                 required
