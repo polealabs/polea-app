@@ -6,10 +6,7 @@ import { obtenerDatosReporte, type DatosReporte } from './actions'
 import { useTienda } from '@/lib/hooks/useTienda'
 import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
 import { Tooltip } from '@/components/ui/Tooltip'
-
-function formatCOP(n: number) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n)
-}
+import { formatCOP } from '@/lib/utils'
 
 function formatMes(mes: string) {
   const [year, month] = mes.split('-')

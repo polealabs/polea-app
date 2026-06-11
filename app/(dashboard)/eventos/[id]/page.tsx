@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
+import { formatCOP } from '@/lib/utils'
 import {
   cerrarEvento,
   agregarInventarioEvento,
@@ -23,12 +24,6 @@ import ConfirmModal from '@/components/ui/ConfirmModal'
 import ImportCSV from '@/components/ui/ImportCSV'
 import { descargarCSV } from '@/lib/csv'
 import { importarInventarioEvento, importarVentasEvento, importarGastosEvento } from './actions-import'
-
-function formatCOP(n: number) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(
-    n || 0,
-  )
-}
 
 function formatFecha(f: string) {
   return new Date(`${f}T12:00:00`).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })

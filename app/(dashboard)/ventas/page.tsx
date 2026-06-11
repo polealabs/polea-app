@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
 import { crearVentaMulti, eliminarVenta } from './actions'
 import { obtenerDevoluciones, registrarDevolucion } from './devoluciones'
-import { calcularComisionMedioPago, toLocalISODateString } from '@/lib/utils'
+import { calcularComisionMedioPago, toLocalISODateString, formatCOP } from '@/lib/utils'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import ClienteInlineForm from '@/components/ui/ClienteInlineForm'
 import ImportCSV from '@/components/ui/ImportCSV'
@@ -73,10 +73,6 @@ type LineaFormulario = {
 const inputClass =
   'w-full px-3 py-2 rounded-lg border border-[#1A1510]/20 bg-white text-[#1A1510] placeholder:text-[#1A1510]/40 focus:outline-none focus:ring-2 focus:ring-[#C4622D]/40 focus:border-[#C4622D] transition text-sm'
 const labelClass = 'block text-xs font-medium text-[#1A1510]/60 mb-1'
-
-function formatCOP(n: number) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n)
-}
 
 function formatFecha(fecha: string) {
   return new Date(fecha + 'T12:00:00').toLocaleDateString('es-CO', {

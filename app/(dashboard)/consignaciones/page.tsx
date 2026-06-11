@@ -31,7 +31,7 @@ import {
   importarLiquidacionesConsignacion,
   importarSalidasConsignacion,
 } from './actions-import-historial'
-import { toLocalISODateString, toLocalISOYearMonthString } from '@/lib/utils'
+import { toLocalISODateString, toLocalISOYearMonthString, formatCOP } from '@/lib/utils'
 
 type ConsignacionRow = Consignacion & {
   producto_nombre: string
@@ -50,14 +50,6 @@ type SalidaReciente = {
   fecha: string
   notas?: string | null
   tiendas_consignatarias?: { nombre?: string } | null
-}
-
-function formatCOP(value: number) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(value || 0)
 }
 
 function formatFecha(fecha: string) {

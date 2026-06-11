@@ -10,6 +10,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal'
 import CalculadoraPrecios from '@/components/ui/CalculadoraPrecios'
 import ImportCSV from '@/components/ui/ImportCSV'
 import { Tooltip } from '@/components/ui/Tooltip'
+import { formatCOP } from '@/lib/utils'
 import Toast from '@/components/ui/Toast'
 import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
 import { descargarCSV } from '@/lib/csv'
@@ -63,14 +64,6 @@ const emptyProductoForm: ProductoFormState = {
   precio_venta: 0,
   costo_produccion: 0,
   stock_minimo: 0,
-}
-
-function formatCOP(n: number) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(n)
 }
 
 function descargarPlantillaProductos() {

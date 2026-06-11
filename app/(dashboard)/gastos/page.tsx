@@ -16,6 +16,8 @@ import { importarGastos } from './actions-import'
 import { obtenerPreferencias } from '@/app/(dashboard)/preferencias/actions'
 import { Paginacion } from '@/components/ui/Paginacion'
 import { FormModal } from '@/components/ui/FormModal'
+import ConfirmModal from '@/components/ui/ConfirmModal'
+import { formatCOP } from '@/lib/utils'
 
 const inputClass =
   'w-full px-3 py-2 rounded-lg border border-[#1A1510]/20 bg-white text-[#1A1510] placeholder:text-[#1A1510]/40 focus:outline-none focus:ring-2 focus:ring-[#C4622D]/40 focus:border-[#C4622D] transition text-sm'
@@ -56,14 +58,6 @@ function gastoCoincideTipoChip(g: Gasto, key: string): boolean {
   if (key === 'financiero') return g.tipo_gasto === 'financiero'
   if (key === 'compra_inventario') return g.tipo_gasto === 'compra_inventario'
   return true
-}
-
-function formatCOP(n: number) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(n)
 }
 
 function formatFecha(fecha: string) {
@@ -126,6 +120,7 @@ export default function GastosPage() {
   const { tienda, loading: tiendaLoading, canViewFinanzas, canEdit } = useTienda()
   const [gastos, setGastos] = useState<Gasto[]>([])
   const [proveedores, setProveedores] = useState<Proveedor[]>([])
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -274,9 +269,10 @@ export default function GastosPage() {
     setError(null)
   }
 
-  async function handleEliminar(id: string) {
-    if (!confirm('¿Eliminar este gasto?')) return
-    await eliminarGasto(id)
+  async function confirmarEliminar() {
+    if (!confirmDelete) return
+    await eliminarGasto(confirmDelete)
+    setConfirmDelete(null)
     if (tienda) await fetchGastos(tienda.id, mesActual)
     showToast('Gasto eliminado')
   }
@@ -699,7 +695,7 @@ export default function GastosPage() {
                         )}
                         <button
                           type="button"
-                          onClick={() => handleEliminar(gasto.id)}
+                          onClick={() => setConfirmDelete(gasto.id)}
                           className="text-xs font-medium hover:underline"
                           style={{ color: '#C44040' }}
                         >
@@ -720,6 +716,15 @@ export default function GastosPage() {
           />
         </div>
       )}
+      <ConfirmModal
+        open={confirmDelete !== null}
+        title="Eliminar gasto"
+        message="¿Eliminar este gasto? Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        onConfirm={() => void confirmarEliminar()}
+        onCancel={() => setConfirmDelete(null)}
+        danger
+      />
       <Toast toasts={toasts} onRemove={removeToast} />
     </div>
   )

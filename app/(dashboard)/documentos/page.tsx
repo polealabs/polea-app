@@ -10,14 +10,7 @@ import { actualizarEstado, eliminarDocumento } from './actions'
 import Toast from '@/components/ui/Toast'
 import { useToast } from '@/lib/hooks/useToast'
 import ConfirmModal from '@/components/ui/ConfirmModal'
-
-function formatCOP(n: number) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(n)
-}
+import { formatCOP } from '@/lib/utils'
 
 function formatFecha(fecha: string) {
   return new Date(fecha + 'T12:00:00').toLocaleDateString('es-CO')

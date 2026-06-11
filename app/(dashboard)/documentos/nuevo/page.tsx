@@ -9,17 +9,10 @@ import type { Cliente, ItemDocumento, Producto, Proveedor, TiendaConsignataria, 
 import { crearDocumento } from '../actions'
 import Toast from '@/components/ui/Toast'
 import { useToast } from '@/lib/hooks/useToast'
+import { formatCOP } from '@/lib/utils'
 
 const inputClass =
   'w-full px-3 py-2 rounded-lg border border-[#EDE5DC] bg-white text-ink placeholder:text-ink-soft focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30'
-
-function formatCOP(n: number) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(n)
-}
 
 type ItemFormulario = ItemDocumento & { producto_id?: string; manual?: boolean }
 

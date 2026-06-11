@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
 import type { MedioPago, TipoMedioPago } from '@/lib/types'
-import { calcularComisionMedioPago } from '@/lib/utils'
+import { calcularComisionMedioPago, formatCOP } from '@/lib/utils'
 import {
   crearMedioPago,
   editarMedioPago,
@@ -29,10 +29,6 @@ const TIPOS_MEDIO: { id: TipoMedioPago; label: string; descripcion: string }[] =
   { id: 'cuotas', label: 'Compra a cuotas', descripcion: 'Addi, Sistecredito, etc.' },
   { id: 'contraentrega', label: 'Contraentrega', descripcion: 'Pago al recibir' },
 ]
-
-function formatCOP(n: number) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n)
-}
 
 type FormState = {
   nombre: string

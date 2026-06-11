@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import BetaPanel from './BetaPanel'
+import { formatCOP } from '@/lib/utils'
 
 export default async function AdminTiendaDetalle({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -23,10 +24,6 @@ export default async function AdminTiendaDetalle({ params }: { params: Promise<{
 
   const totalVentas = (ventas ?? []).reduce((s, v) => s + (v.total_neto ?? 0), 0)
   const totalEquipo = miembros?.length ?? 0
-
-  function formatCOP(n: number) {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n)
-  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
