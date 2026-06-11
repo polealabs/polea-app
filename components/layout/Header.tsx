@@ -162,6 +162,7 @@ export default function Header({ titulo }: Props) {
           href="/ayuda"
           className="w-8 h-8 rounded-lg flex items-center justify-center text-[#8A7D72] hover:bg-[#FAF6F0] hover:text-[#1A1510] transition"
           title="Ayuda y documentación"
+          aria-label="Ayuda y documentación"
         >
           <span className="text-base">📄</span>
         </Link>
@@ -174,6 +175,7 @@ export default function Header({ titulo }: Props) {
             }}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-[#8A7D72] hover:bg-[#FAF6F0] hover:text-[#1A1510] transition relative"
             title="Notificaciones"
+            aria-label={noLeidas > 0 ? `Notificaciones, ${noLeidas} sin leer` : 'Notificaciones'}
           >
             <span className="text-base">🔔</span>
             {noLeidas > 0 && (
@@ -252,6 +254,7 @@ export default function Header({ titulo }: Props) {
             }}
             className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-lg hover:bg-[#FAF6F0] transition"
             title="Mi perfil"
+            aria-label="Mi perfil"
           >
             <div className="w-7 h-7 rounded-full bg-[#C4622D] flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
               {tienda?.logo_url ? (

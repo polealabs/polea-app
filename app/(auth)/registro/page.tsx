@@ -85,7 +85,7 @@ export default function RegistroPage() {
         </div>
       </div>
 
-      <p className="text-white/30 text-xs relative z-10">© 2026 Leva · Una solución de Polea</p>
+      <p className="text-white/55 text-xs relative z-10">© 2026 Leva · Una solución de Polea</p>
     </div>
   )
 
@@ -136,8 +136,9 @@ export default function RegistroPage() {
 
           <form action={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs font-semibold text-[#4A463C] mb-1.5">Nombre completo</label>
+              <label htmlFor="reg-nombre" className="block text-xs font-semibold text-[#4A463C] mb-1.5">Nombre completo</label>
               <input
+                id="reg-nombre"
                 type="text"
                 name="nombre"
                 placeholder="Tu nombre"
@@ -146,8 +147,9 @@ export default function RegistroPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#4A463C] mb-1.5">Correo electrónico</label>
+              <label htmlFor="reg-email" className="block text-xs font-semibold text-[#4A463C] mb-1.5">Correo electrónico</label>
               <input
+                id="reg-email"
                 type="email"
                 name="email"
                 required
@@ -159,8 +161,9 @@ export default function RegistroPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#4A463C] mb-1.5">Contraseña</label>
+              <label htmlFor="reg-password" className="block text-xs font-semibold text-[#4A463C] mb-1.5">Contraseña</label>
               <input
+                id="reg-password"
                 type="password"
                 name="password"
                 required
