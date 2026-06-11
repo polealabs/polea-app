@@ -1,15 +1,7 @@
 'use server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createClient } from '@/lib/supabase/server'
+import { verificarAdmin } from '@/lib/auth-admin'
 import { revalidatePath } from 'next/cache'
-
-async function verificarAdmin() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-  const { data: admin } = await supabase.from('admins').select('id').eq('email', user.email ?? '').maybeSingle()
-  if (!admin) throw new Error('No autorizado')
-}
 
 export async function responderCaso(caso_id: string, tienda_id: string, mensaje: string) {
   try {
