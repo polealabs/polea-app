@@ -43,57 +43,29 @@ export async function registrarDevolucion(payload: {
     if (error) return { error: error.message }
 
     if (payload.tipo === 'defectuoso') {
-      const { data: prod } = await supabase
-        .from('productos')
-        .select('stock_actual, unidades_defectuosas')
-        .eq('id', payload.producto_original_id)
-        .maybeSingle()
-
-      if (prod) {
-        const { error: errStock } = await supabase
-          .from('productos')
-          .update({
-            stock_actual: Math.max(0, prod.stock_actual - payload.cantidad),
-            unidades_defectuosas: (prod.unidades_defectuosas ?? 0) + payload.cantidad,
-          })
-          .eq('id', payload.producto_original_id)
-        if (errStock) console.error('Error actualizando stock:', errStock.message)
-      }
+      // Ajuste atomico: descuenta stock y suma a defectuosas en un solo UPDATE.
+      const { error: errStock } = await supabase.rpc('registrar_defectuoso_producto', {
+        p_producto_id: payload.producto_original_id,
+        p_cantidad: payload.cantidad,
+      })
+      if (errStock) console.error('Error actualizando stock:', errStock.message)
     }
 
     if (payload.tipo === 'cambio') {
-      const { data: prodOriginal } = await supabase
-        .from('productos')
-        .select('stock_actual')
-        .eq('id', payload.producto_original_id)
-        .maybeSingle()
-
-      if (prodOriginal) {
-        const { error: errStock } = await supabase
-          .from('productos')
-          .update({
-            stock_actual: prodOriginal.stock_actual + payload.cantidad,
-          })
-          .eq('id', payload.producto_original_id)
-        if (errStock) console.error('Error actualizando stock:', errStock.message)
-      }
+      // El producto original vuelve al inventario.
+      const { error: errStock } = await supabase.rpc('ajustar_stock_producto', {
+        p_producto_id: payload.producto_original_id,
+        p_delta: payload.cantidad,
+      })
+      if (errStock) console.error('Error actualizando stock:', errStock.message)
 
       if (payload.resolucion === 'cambio_otro' && payload.producto_cambio_id) {
-        const { data: prodCambio } = await supabase
-          .from('productos')
-          .select('stock_actual')
-          .eq('id', payload.producto_cambio_id)
-          .maybeSingle()
-
-        if (prodCambio) {
-          const { error: errStock } = await supabase
-            .from('productos')
-            .update({
-              stock_actual: Math.max(0, prodCambio.stock_actual - payload.cantidad),
-            })
-            .eq('id', payload.producto_cambio_id)
-          if (errStock) console.error('Error actualizando stock:', errStock.message)
-        }
+        // El producto entregado a cambio sale del inventario.
+        const { error: errCambio } = await supabase.rpc('ajustar_stock_producto', {
+          p_producto_id: payload.producto_cambio_id,
+          p_delta: -payload.cantidad,
+        })
+        if (errCambio) console.error('Error actualizando stock:', errCambio.message)
       }
     }
 

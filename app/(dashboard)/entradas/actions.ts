@@ -114,20 +114,11 @@ export async function registrarEntradaCompleta(payload: {
     if (errEntrada) return { error: errEntrada.message }
 
     if (payload.variante_id) {
-      const { data: variante } = await supabase
-        .from('producto_variantes')
-        .select('stock_actual')
-        .eq('id', payload.variante_id)
-        .maybeSingle()
-
-      if (variante) {
-        await supabase
-          .from('producto_variantes')
-          .update({
-            stock_actual: variante.stock_actual + payload.cantidad,
-          })
-          .eq('id', payload.variante_id)
-      }
+      // Ajuste atomico (evita race: leer-calcular-escribir desde JS).
+      await supabase.rpc('ajustar_stock_variante', {
+        p_variante_id: payload.variante_id,
+        p_delta: payload.cantidad,
+      })
 
       // El trigger trg_entrada_suma_stock suma incorrectamente al producto padre.
       // Para productos con variantes el stock real vive en producto_variantes, el padre siempre va a 0.

@@ -208,17 +208,10 @@ export async function cerrarEvento(eventoId: string) {
       // descuenta el padre por error: aquí lo corregimos descontando la variante
       // y dejando el padre en 0.
       if (invRows.length === 1 && invRows[0].variante_id) {
-        const { data: varStock } = await supabase
-          .from('producto_variantes')
-          .select('stock_actual')
-          .eq('id', invRows[0].variante_id)
-          .maybeSingle()
-        if (varStock) {
-          await supabase
-            .from('producto_variantes')
-            .update({ stock_actual: Math.max(0, varStock.stock_actual - cantidad_vendida) })
-            .eq('id', invRows[0].variante_id)
-        }
+        await supabase.rpc('ajustar_stock_variante', {
+          p_variante_id: invRows[0].variante_id,
+          p_delta: -cantidad_vendida,
+        })
         await supabase.from('productos').update({ stock_actual: 0 }).eq('id', producto_id)
       }
       // Múltiples variantes: no se puede mapear sin variante_id en evento_ventas
