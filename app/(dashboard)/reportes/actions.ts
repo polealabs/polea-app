@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { requireFinanzas } from '@/lib/tienda-server'
 
 export interface GastosPorTipoReporte {
   variable: { total: number; items: { subcategoria: string; monto: number }[] }
@@ -184,14 +185,14 @@ async function calcularSaldoFinalMes(
 }
 
 export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | null> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return null
-
-  const { data: tienda } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!tienda) return null
+  let ctx
+  try {
+    ctx = await requireFinanzas()
+  } catch {
+    return null
+  }
+  const { tienda_id, supabase } = ctx
+  const tienda = { id: tienda_id }
 
   const start = `${mes}-01`
   const [year, month] = mes.split('-').map(Number)

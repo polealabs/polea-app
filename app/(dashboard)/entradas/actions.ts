@@ -2,27 +2,16 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requireEdit, requireDelete } from '@/lib/tienda-server'
 
 async function getTiendaId() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-  const { data } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!data) throw new Error('Tienda no encontrada')
-  return data.id
+  const { tienda_id } = await requireEdit()
+  return tienda_id
 }
 
 async function getTienda() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-  const { data } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!data) throw new Error('Tienda no encontrada')
-  return { tienda_id: data.id, supabase }
+  const { tienda_id, supabase } = await requireEdit()
+  return { tienda_id, supabase }
 }
 
 export async function crearEntradas(
@@ -52,8 +41,7 @@ export async function crearEntradas(
 
 export async function eliminarEntrada(id: string) {
   try {
-    const supabase = await createClient()
-    const tienda_id = await getTiendaId()
+    const { tienda_id, supabase } = await requireDelete()
     const { error } = await supabase.from('entradas').delete().eq('id', id).eq('tienda_id', tienda_id)
     if (error) return { error: error.message }
     revalidatePath('/entradas')

@@ -1,17 +1,11 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requireFinanzas } from '@/lib/tienda-server'
 
 async function getTienda() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-  const { data } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!data) throw new Error('Tienda no encontrada')
-  return { tienda_id: data.id, supabase }
+  const { tienda_id, supabase } = await requireFinanzas()
+  return { tienda_id, supabase }
 }
 
 export async function crearGasto(formData: FormData) {

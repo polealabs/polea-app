@@ -3,16 +3,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { TipoMedioPago } from '@/lib/types'
+import { requireEdit } from '@/lib/tienda-server'
 
 async function getTienda() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-  const { data } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!data) throw new Error('Tienda no encontrada')
-  return { tienda_id: data.id, supabase }
+  const { tienda_id, supabase, canDelete } = await requireEdit()
+  return { tienda_id, supabase, canDelete }
 }
 
 export async function crearMedioPago(payload: {
@@ -61,7 +56,8 @@ export async function editarMedioPago(
 
 export async function eliminarMedioPago(id: string) {
   try {
-    const { tienda_id, supabase } = await getTienda()
+    const { tienda_id, supabase, canDelete } = await getTienda()
+    if (!canDelete) return { error: 'No tienes permisos para eliminar medios de pago' }
     await supabase.from('medios_pago').delete().eq('id', id).eq('tienda_id', tienda_id)
     revalidatePath('/configuracion/medios-pago')
     return { ok: true }

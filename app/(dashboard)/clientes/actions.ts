@@ -1,70 +1,62 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requireEdit, requireDelete } from '@/lib/tienda-server'
 
 export async function crearCliente(formData: FormData) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return { error: 'No autenticado' }
+  try {
+    const { tienda_id, supabase } = await requireEdit()
 
-  const { data: tienda } = await supabase
-    .from('tiendas')
-    .select('id')
-    .eq('owner_id', user.id)
-    .maybeSingle()
+    const fechaCreacion = (formData.get('fecha_creacion') as string) || new Date().toISOString().split('T')[0]
 
-  if (!tienda) return { error: 'Tienda no encontrada' }
-
-  const fechaCreacion = (formData.get('fecha_creacion') as string) || new Date().toISOString().split('T')[0]
-
-  const { error } = await supabase.from('clientes').insert({
-    tienda_id: tienda.id,
-    nombre: formData.get('nombre') as string,
-    telefono: (formData.get('telefono') as string) || null,
-    direccion: (formData.get('direccion') as string)?.trim() || null,
-    ciudad: (formData.get('ciudad') as string) || null,
-    correo: (formData.get('correo') as string) || null,
-    fecha_creacion: fechaCreacion,
-  })
-
-  if (error) return { error: error.message }
-  revalidatePath('/clientes')
-  return { ok: true }
-}
-
-export async function editarCliente(id: string, formData: FormData) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'No autenticado' }
-  const { data: tienda } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!tienda) return { error: 'Tienda no encontrada' }
-
-  const { error } = await supabase
-    .from('clientes')
-    .update({
+    const { error } = await supabase.from('clientes').insert({
+      tienda_id,
       nombre: formData.get('nombre') as string,
       telefono: (formData.get('telefono') as string) || null,
       direccion: (formData.get('direccion') as string)?.trim() || null,
       ciudad: (formData.get('ciudad') as string) || null,
       correo: (formData.get('correo') as string) || null,
+      fecha_creacion: fechaCreacion,
     })
-    .eq('id', id)
-    .eq('tienda_id', tienda.id)
 
-  if (error) return { error: error.message }
-  revalidatePath('/clientes')
-  return { ok: true }
+    if (error) return { error: error.message }
+    revalidatePath('/clientes')
+    return { ok: true }
+  } catch (e: unknown) {
+    return { error: e instanceof Error ? e.message : 'Error desconocido' }
+  }
+}
+
+export async function editarCliente(id: string, formData: FormData) {
+  try {
+    const { tienda_id, supabase } = await requireEdit()
+
+    const { error } = await supabase
+      .from('clientes')
+      .update({
+        nombre: formData.get('nombre') as string,
+        telefono: (formData.get('telefono') as string) || null,
+        direccion: (formData.get('direccion') as string)?.trim() || null,
+        ciudad: (formData.get('ciudad') as string) || null,
+        correo: (formData.get('correo') as string) || null,
+      })
+      .eq('id', id)
+      .eq('tienda_id', tienda_id)
+
+    if (error) return { error: error.message }
+    revalidatePath('/clientes')
+    return { ok: true }
+  } catch (e: unknown) {
+    return { error: e instanceof Error ? e.message : 'Error desconocido' }
+  }
 }
 
 export async function eliminarCliente(id: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return
-  const { data: tienda } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!tienda) return
-  await supabase.from('clientes').delete().eq('id', id).eq('tienda_id', tienda.id)
-  revalidatePath('/clientes')
+  try {
+    const { tienda_id, supabase } = await requireDelete()
+    await supabase.from('clientes').delete().eq('id', id).eq('tienda_id', tienda_id)
+    revalidatePath('/clientes')
+  } catch {
+    // sin permisos o sin sesión: no-op
+  }
 }

@@ -1,14 +1,10 @@
 'use server'
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { getTiendaContext } from '@/lib/tienda-server'
 
 async function getClienteInfo() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-  const { data: tienda } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!tienda) throw new Error('Tienda no encontrada')
-  return { tienda_id: tienda.id, supabase }
+  const { tienda_id, supabase } = await getTiendaContext()
+  return { tienda_id, supabase }
 }
 
 export async function crearCaso(titulo: string, mensaje: string) {

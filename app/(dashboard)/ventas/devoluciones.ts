@@ -1,18 +1,12 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { ResolucionDevolucion, TipoDevolucion } from '@/lib/types'
+import { getTiendaContext } from '@/lib/tienda-server'
 
 async function getTienda() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-  const { data } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!data) throw new Error('Tienda no encontrada')
-  return { tienda_id: data.id, supabase }
+  const { tienda_id, supabase, canEdit } = await getTiendaContext()
+  return { tienda_id, supabase, canEdit }
 }
 
 export async function registrarDevolucion(payload: {
@@ -29,7 +23,8 @@ export async function registrarDevolucion(payload: {
   notas?: string
 }) {
   try {
-    const { tienda_id, supabase } = await getTienda()
+    const { tienda_id, supabase, canEdit } = await getTienda()
+    if (!canEdit) return { error: 'No tienes permisos para registrar devoluciones' }
 
     const diferencia =
       payload.resolucion === 'cambio_otro' && payload.precio_cambio != null
