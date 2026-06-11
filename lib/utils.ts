@@ -43,6 +43,15 @@ export function calcularNetoConDescuento(
   return { bruto, descuentoTotal, baseNeta, costoTransaccion, neto }
 }
 
+/** Formatea un número como pesos colombianos sin decimales. Null-safe. */
+export function formatCOP(n: number): string {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0,
+  }).format(n || 0)
+}
+
 /** Fecha calendario local en YYYY-MM-DD (evita desfase UTC con toISOString). */
 export function toLocalISODateString(d: Date = new Date()) {
   const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000)

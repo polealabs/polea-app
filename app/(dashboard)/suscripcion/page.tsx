@@ -1,9 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-
-function formatCOP(n: number) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n)
-}
+import { formatCOP } from '@/lib/utils'
 
 const ESTADO_LABELS: Record<string, { label: string; color: string; bg: string }> = {
   trial: { label: 'Período de prueba', color: '#D4A853', bg: '#FEF9EE' },

@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
+import { formatCOP } from '@/lib/utils'
 
 export default async function AdminTiendas() {
   const supabase = createAdminClient()
@@ -45,10 +46,6 @@ export default async function AdminTiendas() {
   })
 
   const perfilesMap = new Map((perfiles.data ?? []).map((p) => [p.id, p.nombre]))
-
-  function formatCOP(n: number) {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n)
-  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">

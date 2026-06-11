@@ -5,10 +5,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import type { Documento, Tienda } from '@/lib/types'
 import { obtenerDocumento } from '../../actions'
-
-function formatCOP(n: number) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n)
-}
+import { formatCOP } from '@/lib/utils'
 
 function formatFecha(fecha: string) {
   return new Date(fecha + 'T12:00:00').toLocaleDateString('es-CO')

@@ -2,10 +2,7 @@
 import { useState } from 'react'
 import type { Plan } from '@/lib/types'
 import { crearPlan, actualizarPlan, eliminarPlan } from './actions'
-
-function formatCOP(n: number) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n)
-}
+import { formatCOP } from '@/lib/utils'
 
 interface FormState {
   nombre: string

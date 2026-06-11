@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
 import { ModuleTableSkeleton } from '@/components/skeletons/ModuleTableSkeleton'
 import type { Cliente } from '@/lib/types'
+import { formatCOP } from '@/lib/utils'
 
 type VentaItem = {
   producto_nombre: string
@@ -51,10 +52,6 @@ function medioNombre(embed: VentaCabeceraRow['medios_pago']): string | null {
   if (!embed) return null
   if (Array.isArray(embed)) return embed[0]?.nombre ?? null
   return embed.nombre ?? null
-}
-
-function formatCOP(n: number) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n)
 }
 
 function formatFecha(fecha: string) {

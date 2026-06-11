@@ -18,6 +18,7 @@ import { toLocalISOYearMonthString } from '@/lib/utils'
 import { obtenerPreferencias } from '@/app/(dashboard)/preferencias/actions'
 import { Paginacion } from '@/components/ui/Paginacion'
 import { FormModal } from '@/components/ui/FormModal'
+import ConfirmModal from '@/components/ui/ConfirmModal'
 
 type ClienteConCompras = Cliente & { total_compras: number }
 
@@ -64,6 +65,7 @@ export default function ClientesPage() {
   }))
   const [registrosPorPagina, setRegistrosPorPagina] = useState(20)
   const [paginaClientes, setPaginaClientes] = useState(1)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const { toasts, showToast, removeToast } = useToast()
 
   const fetchClientes = useCallback(async (tiendaId: string, mes: string, filtrarPorMes: boolean) => {
@@ -159,9 +161,10 @@ export default function ClientesPage() {
     setSubmitting(false)
   }
 
-  async function handleEliminar(id: string) {
-    if (!confirm('¿Eliminar este cliente?')) return
-    await eliminarCliente(id)
+  async function confirmarEliminar() {
+    if (!confirmDelete) return
+    await eliminarCliente(confirmDelete)
+    setConfirmDelete(null)
     if (tienda) await fetchClientes(tienda.id, mesActual, filtroMes)
     showToast('Cliente eliminado')
   }
@@ -488,7 +491,7 @@ export default function ClientesPage() {
                             Editar
                           </button>
                           <button
-                            onClick={() => handleEliminar(cliente.id)}
+                            onClick={() => setConfirmDelete(cliente.id)}
                             className="text-xs font-medium hover:underline"
                             style={{ color: '#C44040' }}
                           >
@@ -511,6 +514,15 @@ export default function ClientesPage() {
           />
         </div>
       )}
+      <ConfirmModal
+        open={confirmDelete !== null}
+        title="Eliminar cliente"
+        message="¿Eliminar este cliente? Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        onConfirm={() => void confirmarEliminar()}
+        onCancel={() => setConfirmDelete(null)}
+        danger
+      />
       <Toast toasts={toasts} onRemove={removeToast} />
     </div>
   )

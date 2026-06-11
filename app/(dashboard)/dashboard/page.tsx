@@ -9,7 +9,7 @@ import { DashboardHomeSkeleton } from '@/components/skeletons/DashboardHomeSkele
 import ProductoSelect from '@/components/ui/ProductoSelect'
 import type { Cliente, MedioPago, Producto, VentaCabecera } from '@/lib/types'
 import { crearVentaMulti } from '@/app/(dashboard)/ventas/actions'
-import { calcularComisionMedioPago, toLocalISODateString, toLocalISOYearMonthString } from '@/lib/utils'
+import { calcularComisionMedioPago, toLocalISODateString, toLocalISOYearMonthString, formatCOP } from '@/lib/utils'
 
 type VentaConDetalles = VentaCabecera & {
   cliente_nombre?: string
@@ -37,14 +37,6 @@ type LineaVentaForm = {
   precio_venta: number
   precio_original: number
   descuento: number
-}
-
-function formatCOP(n: number) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(n)
 }
 
 function formatFecha(fecha: string) {

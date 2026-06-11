@@ -10,6 +10,7 @@ import {
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
+import { formatCOP } from '@/lib/utils'
 import {
   crearEntradas,
   eliminarEntrada,
@@ -60,14 +61,6 @@ function toLocalISODateString() {
   const hoy = new Date()
   const local = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000)
   return local.toISOString().slice(0, 10)
-}
-
-function formatCOP(n: number) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(n)
 }
 
 function formatFecha(fecha: string) {
