@@ -2,20 +2,11 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requireEdit, requireDelete } from '@/lib/tienda-server'
 
 async function getTiendaId() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-  const { data } = await supabase
-    .from('tiendas')
-    .select('id')
-    .eq('owner_id', user.id)
-    .maybeSingle()
-  if (!data) throw new Error('Tienda no encontrada')
-  return data.id
+  const { tienda_id } = await requireEdit()
+  return tienda_id
 }
 
 function normalizarNombre(v: FormDataEntryValue | null) {
@@ -150,8 +141,7 @@ export async function editarProducto(id: string, formData: FormData) {
 
 export async function eliminarProducto(id: string) {
   try {
-    const supabase = await createClient()
-    const tienda_id = await getTiendaId()
+    const { tienda_id, supabase } = await requireDelete()
     const { error } = await supabase
       .from('productos')
       .delete()

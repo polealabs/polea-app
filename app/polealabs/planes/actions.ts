@@ -1,5 +1,6 @@
 'use server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { verificarAdmin } from '@/lib/auth-admin'
 import { revalidatePath } from 'next/cache'
 
 export async function crearPlan(data: {
@@ -14,6 +15,7 @@ export async function crearPlan(data: {
   orden: number
 }) {
   try {
+    await verificarAdmin()
     const supabase = createAdminClient()
     const { error } = await supabase.from('planes').insert({ ...data, activo: true })
     if (error) return { error: error.message }
@@ -40,6 +42,7 @@ export async function actualizarPlan(
   },
 ) {
   try {
+    await verificarAdmin()
     const supabase = createAdminClient()
     const { error } = await supabase.from('planes').update(data).eq('id', id)
     if (error) return { error: error.message }
@@ -52,6 +55,7 @@ export async function actualizarPlan(
 
 export async function eliminarPlan(id: string) {
   try {
+    await verificarAdmin()
     const supabase = createAdminClient()
     const { error } = await supabase.from('planes').delete().eq('id', id)
     if (error) return { error: error.message }

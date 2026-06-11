@@ -2,27 +2,16 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requireEdit, requireDelete } from '@/lib/tienda-server'
 
 async function getTiendaId() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-  const { data } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!data) throw new Error('Tienda no encontrada')
-  return data.id
+  const { tienda_id } = await requireEdit()
+  return tienda_id
 }
 
 async function getTienda() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-  const { data } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!data) throw new Error('Tienda no encontrada')
-  return { tienda_id: data.id, supabase }
+  const { tienda_id, supabase } = await requireEdit()
+  return { tienda_id, supabase }
 }
 
 export async function crearEntradas(
@@ -52,8 +41,7 @@ export async function crearEntradas(
 
 export async function eliminarEntrada(id: string) {
   try {
-    const supabase = await createClient()
-    const tienda_id = await getTiendaId()
+    const { tienda_id, supabase } = await requireDelete()
     const { error } = await supabase.from('entradas').delete().eq('id', id).eq('tienda_id', tienda_id)
     if (error) return { error: error.message }
     revalidatePath('/entradas')
@@ -126,20 +114,11 @@ export async function registrarEntradaCompleta(payload: {
     if (errEntrada) return { error: errEntrada.message }
 
     if (payload.variante_id) {
-      const { data: variante } = await supabase
-        .from('producto_variantes')
-        .select('stock_actual')
-        .eq('id', payload.variante_id)
-        .maybeSingle()
-
-      if (variante) {
-        await supabase
-          .from('producto_variantes')
-          .update({
-            stock_actual: variante.stock_actual + payload.cantidad,
-          })
-          .eq('id', payload.variante_id)
-      }
+      // Ajuste atomico (evita race: leer-calcular-escribir desde JS).
+      await supabase.rpc('ajustar_stock_variante', {
+        p_variante_id: payload.variante_id,
+        p_delta: payload.cantidad,
+      })
 
       // El trigger trg_entrada_suma_stock suma incorrectamente al producto padre.
       // Para productos con variantes el stock real vive en producto_variantes, el padre siempre va a 0.

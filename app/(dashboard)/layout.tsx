@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import Sidebar from '@/components/layout/Sidebar'
 import HeaderWrapper from '@/components/layout/HeaderWrapper'
@@ -5,6 +6,12 @@ import InactivityGuard from '@/components/ui/InactivityGuard'
 import SoporteWidget from '@/components/ui/SoporteWidget'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+
+// El panel es privado: nunca debe indexarse.
+export const metadata: Metadata = {
+  title: 'Panel',
+  robots: { index: false, follow: false },
+}
 
 async function getGraciaInfo(tiendaId: string) {
   const supabase = await createClient()

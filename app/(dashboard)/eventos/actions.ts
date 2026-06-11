@@ -1,19 +1,13 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { calcularComisionMedioPago } from '@/lib/utils'
 import type { TipoMedioPago } from '@/lib/types'
+import { requireEdit } from '@/lib/tienda-server'
 
 async function getTienda() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-  const { data } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!data) throw new Error('Tienda no encontrada')
-  return { tienda_id: data.id, supabase }
+  const { tienda_id, supabase, canDelete } = await requireEdit()
+  return { tienda_id, supabase, canDelete }
 }
 
 type EventoVentaRow = {
@@ -204,40 +198,24 @@ export async function cerrarEvento(eventoId: string) {
 
     for (const [producto_id, cantidad_vendida] of vendidoPorProducto.entries()) {
       const invRows = inventarioPorProducto.get(producto_id) ?? []
-      const hasVariante = invRows.some((inv) => inv.variante_id)
 
-      if (!hasVariante) {
-        // Producto sin variantes: reducir productos.stock_actual
-        const { data: prod } = await supabase
-          .from('productos')
-          .select('stock_actual')
-          .eq('id', producto_id)
-          .eq('tienda_id', tienda_id)
-          .maybeSingle()
-        if (prod) {
-          await supabase
-            .from('productos')
-            .update({ stock_actual: Math.max(0, (prod.stock_actual ?? 0) - cantidad_vendida) })
-            .eq('id', producto_id)
-            .eq('tienda_id', tienda_id)
-        }
-      } else if (invRows.length === 1 && invRows[0].variante_id) {
-        // Una sola variante en el inventario del evento: reducir esa variante
-        const { data: varStock } = await supabase
-          .from('producto_variantes')
-          .select('stock_actual')
-          .eq('id', invRows[0].variante_id)
-          .maybeSingle()
-        if (varStock) {
-          await supabase
-            .from('producto_variantes')
-            .update({ stock_actual: Math.max(0, varStock.stock_actual - cantidad_vendida) })
-            .eq('id', invRows[0].variante_id)
-        }
-        // evento_ventas no registra variante_id, así que el padre siempre va a 0
+      // El stock de productos SIN variantes ya lo descuenta el trigger
+      // trg_venta_item_resta_stock al insertar los venta_items de arriba.
+      // No se descuenta de nuevo aquí (antes esto causaba DOBLE descuento).
+      //
+      // Para productos con UNA variante, los venta_items se insertan con
+      // variante_id null (evento_ventas no guarda variante), así que el trigger
+      // descuenta el padre por error: aquí lo corregimos descontando la variante
+      // y dejando el padre en 0.
+      if (invRows.length === 1 && invRows[0].variante_id) {
+        await supabase.rpc('ajustar_stock_variante', {
+          p_variante_id: invRows[0].variante_id,
+          p_delta: -cantidad_vendida,
+        })
         await supabase.from('productos').update({ stock_actual: 0 }).eq('id', producto_id)
       }
-      // Múltiples variantes: no se puede saber cuál se vendió sin variante_id en evento_ventas
+      // Múltiples variantes: no se puede mapear sin variante_id en evento_ventas
+      // (limitación conocida); el trigger descuenta el padre.
 
       await supabase
         .from('evento_inventario')
@@ -268,7 +246,8 @@ export async function cerrarEvento(eventoId: string) {
 
 export async function eliminarEvento(id: string) {
   try {
-    const { tienda_id, supabase } = await getTienda()
+    const { tienda_id, supabase, canDelete } = await getTienda()
+    if (!canDelete) return { error: 'No tienes permisos para eliminar eventos' }
     const { error } = await supabase.from('eventos').delete().eq('id', id).eq('tienda_id', tienda_id)
     if (error) return { error: error.message }
     revalidatePath('/eventos')

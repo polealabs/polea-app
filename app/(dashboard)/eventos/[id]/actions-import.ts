@@ -1,7 +1,7 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requireEdit } from '@/lib/tienda-server'
 
 const MENSAJE_ABORTO = (n: number) =>
   `Se encontraron ${n} error(es). No se importó ningún registro. Corrige los errores y vuelve a intentarlo.`
@@ -9,22 +9,16 @@ const MENSAJE_ABORTO = (n: number) =>
 const MEDIOS_VALIDOS = ['efectivo', 'transferencia', 'nequi', 'datafono']
 
 async function getTiendaYEvento(eventoId: string) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-  const { data: tienda } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!tienda) throw new Error('Tienda no encontrada')
+  const { tienda_id, supabase } = await requireEdit()
   const { data: evento } = await supabase
     .from('eventos')
     .select('id, estado')
     .eq('id', eventoId)
-    .eq('tienda_id', tienda.id)
+    .eq('tienda_id', tienda_id)
     .maybeSingle()
   if (!evento) throw new Error('Evento no encontrado')
   if (evento.estado === 'cerrado') throw new Error('El evento ya está cerrado')
-  return { tienda_id: tienda.id, supabase }
+  return { tienda_id, supabase }
 }
 
 type FilaInventario = { producto_id: string; cantidad_llevada: number; numFila: number }

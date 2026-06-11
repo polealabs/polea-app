@@ -3,16 +3,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { EstadoDocumento, ItemDocumento, TipoDocumento } from '@/lib/types'
+import { getTiendaContext } from '@/lib/tienda-server'
 
 async function getTienda() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-  const { data } = await supabase.from('tiendas').select('*').eq('owner_id', user.id).maybeSingle()
+  const { tienda_id, supabase, canEdit, canDelete } = await getTiendaContext()
+  const { data } = await supabase.from('tiendas').select('*').eq('id', tienda_id).maybeSingle()
   if (!data) throw new Error('Tienda no encontrada')
-  return { tienda: data, supabase }
+  return { tienda: data, supabase, canEdit, canDelete }
 }
 
 async function generarNumero(
@@ -67,7 +64,8 @@ export async function crearDocumento(payload: {
   notas?: string
 }) {
   try {
-    const { tienda, supabase } = await getTienda()
+    const { tienda, supabase, canEdit } = await getTienda()
+    if (!canEdit) return { error: 'No tienes permisos para crear documentos' }
     const numero = await generarNumero(tienda.id, payload.tipo, supabase)
     const { data: doc, error } = await supabase
       .from('documentos')
@@ -94,7 +92,8 @@ export async function crearDocumento(payload: {
 
 export async function actualizarEstado(id: string, estado: EstadoDocumento) {
   try {
-    const { tienda, supabase } = await getTienda()
+    const { tienda, supabase, canEdit } = await getTienda()
+    if (!canEdit) return { error: 'No tienes permisos para editar documentos' }
     const { error } = await supabase
       .from('documentos')
       .update({ estado })
@@ -110,7 +109,8 @@ export async function actualizarEstado(id: string, estado: EstadoDocumento) {
 
 export async function eliminarDocumento(id: string) {
   try {
-    const { tienda, supabase } = await getTienda()
+    const { tienda, supabase, canDelete } = await getTienda()
+    if (!canDelete) return { error: 'No tienes permisos para eliminar documentos' }
     await supabase.from('documentos').delete().eq('id', id).eq('tienda_id', tienda.id)
     revalidatePath('/documentos')
     return { ok: true }

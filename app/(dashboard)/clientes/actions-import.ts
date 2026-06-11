@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireEdit } from '@/lib/tienda-server'
 import { revalidatePath } from 'next/cache'
 
 const MENSAJE_ABORTO = (n: number) =>
@@ -19,14 +19,14 @@ type FilaClienteValida = {
 }
 
 export async function importarClientes(filas: Record<string, string>[]) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return { exitosos: 0, errores: [{ fila: 0, mensaje: 'No autenticado' }] }
-
-  const { data: tienda } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!tienda) return { exitosos: 0, errores: [{ fila: 0, mensaje: 'Tienda no encontrada' }] }
+  let ctx
+  try {
+    ctx = await requireEdit()
+  } catch (e) {
+    return { exitosos: 0, errores: [{ fila: 0, mensaje: e instanceof Error ? e.message : 'No autorizado' }] }
+  }
+  const { tienda_id, supabase } = ctx
+  const tienda = { id: tienda_id }
 
   const errores: { fila: number; mensaje: string }[] = []
   const filasValidas: FilaClienteValida[] = []

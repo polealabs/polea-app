@@ -1,17 +1,11 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requireEdit } from '@/lib/tienda-server'
 
 async function getTienda() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-  const { data } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!data) throw new Error('Tienda no encontrada')
-  return { tienda_id: data.id, supabase }
+  const { tienda_id, supabase, canDelete } = await requireEdit()
+  return { tienda_id, supabase, canDelete }
 }
 
 // TIENDAS CONSIGNATARIAS
@@ -63,7 +57,8 @@ export async function editarConsignataria(id: string, formData: FormData) {
 
 export async function eliminarConsignataria(id: string) {
   try {
-    const { tienda_id, supabase } = await getTienda()
+    const { tienda_id, supabase, canDelete } = await getTienda()
+    if (!canDelete) return { error: 'No tienes permisos para eliminar tiendas aliadas' }
     const { error } = await supabase
       .from('tiendas_consignatarias')
       .delete()
@@ -147,18 +142,11 @@ export async function registrarSalidaMultiple(payload: {
 
       if (item.variante_id) {
         // El trigger trg_consignacion_resta_stock resta del producto padre (incorrecto para variantes).
-        // Reducir la variante manualmente y dejar el padre en 0.
-        const { data: varStock } = await supabase
-          .from('producto_variantes')
-          .select('stock_actual')
-          .eq('id', item.variante_id)
-          .maybeSingle()
-        if (varStock) {
-          await supabase
-            .from('producto_variantes')
-            .update({ stock_actual: Math.max(0, varStock.stock_actual - item.cantidad) })
-            .eq('id', item.variante_id)
-        }
+        // Reducir la variante de forma atomica y dejar el padre en 0.
+        await supabase.rpc('ajustar_stock_variante', {
+          p_variante_id: item.variante_id,
+          p_delta: -item.cantidad,
+        })
         await supabase.from('productos').update({ stock_actual: 0 }).eq('id', item.producto_id)
       }
     }
@@ -268,44 +256,18 @@ export async function registrarMovimiento(payload: {
 
     if (payload.tipo === 'devolucion') {
       if (consig.variante_id) {
-        // Producto con variante: restaurar stock en la variante y dejar el padre en 0.
-        const { data: varStock } = await supabase
-          .from('producto_variantes')
-          .select('stock_actual')
-          .eq('id', consig.variante_id)
-          .maybeSingle()
-        if (varStock) {
-          await supabase
-            .from('producto_variantes')
-            .update({ stock_actual: varStock.stock_actual + payload.cantidad })
-            .eq('id', consig.variante_id)
-        }
+        // Producto con variante: restaurar stock en la variante (atomico) y dejar el padre en 0.
+        await supabase.rpc('ajustar_stock_variante', {
+          p_variante_id: consig.variante_id,
+          p_delta: payload.cantidad,
+        })
         // El trigger trg_consignacion_devolucion_stock suma al producto padre (incorrecto).
         await supabase.from('productos').update({ stock_actual: 0 }).eq('id', consig.producto_id)
       } else {
-        const { error: rpcError } = await supabase.rpc('increment_stock', {
+        await supabase.rpc('ajustar_stock_producto', {
           p_producto_id: consig.producto_id,
-          p_cantidad: payload.cantidad,
+          p_delta: payload.cantidad,
         })
-
-        if (rpcError) {
-          const { data } = await supabase
-            .from('productos')
-            .select('stock_actual')
-            .eq('id', consig.producto_id)
-            .eq('tienda_id', tienda_id)
-            .maybeSingle()
-
-          if (data) {
-            await supabase
-              .from('productos')
-              .update({
-                stock_actual: data.stock_actual + payload.cantidad,
-              })
-              .eq('id', consig.producto_id)
-              .eq('tienda_id', tienda_id)
-          }
-        }
       }
     }
 
