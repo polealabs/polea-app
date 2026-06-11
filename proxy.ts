@@ -107,6 +107,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/productos') ||
     pathname.startsWith('/entradas') ||
     pathname.startsWith('/ventas') ||
+    pathname.startsWith('/pos') ||
     pathname.startsWith('/clientes') ||
     pathname.startsWith('/consignaciones') ||
     pathname.startsWith('/documentos') ||
