@@ -201,7 +201,9 @@ Historial de corrupción de caracteres. `.vscode/settings.json` tiene `"files.en
 
 > ⚠️ El campo FK de `venta_items` se llama `cabecera_id` en el código (no `venta_id`).
 
-**clientes** — `id, tienda_id, nombre, email, telefono, direccion, ciudad, fecha_creacion, created_at`
+**clientes** — `id, tienda_id, nombre, correo, telefono, direccion, ciudad, fecha_creacion, created_at`
+
+> ⚠️ La columna de email del cliente se llama `correo` (no `email`) en BD y en el código (`clientes/actions.ts`, `clientes/page.tsx`).
 
 **gastos** — `id, tienda_id, descripcion, monto, fecha, categoria, tipo_gasto (variable/fijo/financiero/compra_inventario), subcategoria, proveedor_id`
 

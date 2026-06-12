@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { LevaLogo } from '@/components/ui/LevaLogo'
+import { unwrapRelacion } from '@/lib/utils'
 
 export default async function CuentaBloqueadaPage() {
   const supabase = await createClient()
@@ -31,8 +32,9 @@ export default async function CuentaBloqueadaPage() {
 
     if (sus) {
       fechaVencimiento = sus.fecha_fin
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      planNombre = (sus as any).planes?.nombre ?? null
+      planNombre = unwrapRelacion<{ nombre: string }>(
+        (sus as { planes?: { nombre: string } | { nombre: string }[] | null }).planes,
+      )?.nombre ?? null
     }
   }
 
