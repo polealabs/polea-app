@@ -55,6 +55,14 @@ interface ItemCarrito {
   cantidad: number
 }
 
+type ProductoRow = {
+  id: string
+  nombre: string
+  precio_venta: number
+  stock_actual: number
+  producto_variantes?: { id: string; nombre: string; precio_venta: number | null; stock_actual: number }[] | null
+}
+
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n)
 
@@ -140,13 +148,13 @@ export default function POSPage() {
           .order('nombre'),
       ])
 
-      const prods: ProductoPOS[] = ((prodsRes.data as any[]) ?? []).map((p) => ({
+      const prods: ProductoPOS[] = ((prodsRes.data as ProductoRow[]) ?? []).map((p) => ({
         id: p.id,
         nombre: p.nombre,
         precio_venta: p.precio_venta,
         stock_actual: p.stock_actual,
         tiene_variantes: (p.producto_variantes?.length ?? 0) > 0,
-        variantes: ((p.producto_variantes as any[]) ?? []).map((v) => ({
+        variantes: (p.producto_variantes ?? []).map((v) => ({
           id: v.id,
           nombre: v.nombre,
           precio_venta: v.precio_venta,
@@ -234,13 +242,13 @@ export default function POSPage() {
       .eq('estado', 'activo')
       .order('nombre')
     if (data) {
-      setTodos(((data as any[]) ?? []).map((p) => ({
+      setTodos(((data as ProductoRow[]) ?? []).map((p) => ({
         id: p.id,
         nombre: p.nombre,
         precio_venta: p.precio_venta,
         stock_actual: p.stock_actual,
         tiene_variantes: (p.producto_variantes?.length ?? 0) > 0,
-        variantes: ((p.producto_variantes as any[]) ?? []).map((v) => ({
+        variantes: (p.producto_variantes ?? []).map((v) => ({
           id: v.id,
           nombre: v.nombre,
           precio_venta: v.precio_venta,

@@ -52,6 +52,12 @@ export function formatCOP(n: number): string {
   }).format(n || 0)
 }
 
+/** Supabase devuelve una relación to-one como objeto o (a veces) array; normaliza a objeto. */
+export function unwrapRelacion<T>(rel: T | T[] | null | undefined): T | null {
+  if (!rel) return null
+  return Array.isArray(rel) ? (rel[0] ?? null) : rel
+}
+
 /** Fecha calendario local en YYYY-MM-DD (evita desfase UTC con toISOString). */
 export function toLocalISODateString(d: Date = new Date()) {
   const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000)

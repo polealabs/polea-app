@@ -36,15 +36,6 @@ export async function invitarMiembro(formData: FormData) {
 
     if (invExistente) return { error: 'Ya existe una invitación pendiente para este email' }
 
-    // Verificar si el usuario ya existe en Auth (dato opcional informativo)
-    const { data: userExistente } = await supabase
-      .from('auth.users')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle()
-    const yaRegistrado = Boolean(userExistente)
-    void yaRegistrado
-
     const { data: perfilOwner } = await supabase
       .from('perfiles')
       .select('nombre')

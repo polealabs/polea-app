@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { formatCOP } from '@/lib/utils'
+import { formatCOP, unwrapRelacion } from '@/lib/utils'
 
 const ESTADO_LABELS: Record<string, { label: string; color: string; bg: string }> = {
   trial: { label: 'Período de prueba', color: '#D4A853', bg: '#FEF9EE' },
@@ -229,7 +229,7 @@ export default async function SuscripcionPage() {
                     {new Date(c.fecha_cobro).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>
                   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                  <td className="px-5 py-3 text-sm" style={{ color: 'var(--color-text-soft)' }}>{(c as any).planes?.nombre ?? '—'}</td>
+                  <td className="px-5 py-3 text-sm" style={{ color: 'var(--color-text-soft)' }}>{unwrapRelacion<{ nombre: string }>((c as { planes?: { nombre: string } | { nombre: string }[] | null }).planes)?.nombre ?? '—'}</td>
                   <td className="px-5 py-3 text-sm font-medium" style={{ color: 'var(--color-text)' }}>{formatCOP(c.monto)}</td>
                   <td className="px-5 py-3">
                     <span
