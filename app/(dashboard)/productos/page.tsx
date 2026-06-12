@@ -809,8 +809,9 @@ export default function ProductosPage() {
           <h2 className="text-base font-semibold text-[#1E3A2F] mb-4">Nuevo producto</h2>
           <form action={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
-              <label className={labelClass}>Nombre</label>
+              <label htmlFor="prod-nombre" className={labelClass}>Nombre</label>
               <input
+                id="prod-nombre"
                 name="nombre"
                 type="text"
                 required
@@ -821,8 +822,9 @@ export default function ProductosPage() {
               />
             </div>
             <div>
-              <label className={labelClass}>SKU</label>
+              <label htmlFor="prod-sku" className={labelClass}>SKU</label>
               <input
+                id="prod-sku"
                 name="sku"
                 type="text"
                 placeholder="Ej: VZ-001"
@@ -832,8 +834,9 @@ export default function ProductosPage() {
               />
             </div>
             <div>
-              <label className={labelClass}>Tipo</label>
+              <label htmlFor="prod-tipo" className={labelClass}>Tipo</label>
               <select
+                id="prod-tipo"
                 name="tipo"
                 required
                 className={inputClass}
@@ -849,7 +852,7 @@ export default function ProductosPage() {
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className={labelClass}>Precio de venta *</label>
+                <label htmlFor="prod-precio" className={labelClass}>Precio de venta *</label>
                 <button
                   type="button"
                   onClick={() => setShowCalculadora(true)}
@@ -860,6 +863,7 @@ export default function ProductosPage() {
                 </button>
               </div>
               <input
+                id="prod-precio"
                 name="precio_venta"
                 type="number"
                 required
@@ -1039,8 +1043,9 @@ export default function ProductosPage() {
               )}
             </div>
             <div>
-              <label className={labelClass}>Costo del producto (opcional)</label>
+              <label htmlFor="prod-costo" className={labelClass}>Costo del producto (opcional)</label>
               <input
+                id="prod-costo"
                 type="number"
                 name="costo_produccion"
                 value={form.costo_produccion === 0 ? '' : form.costo_produccion}
@@ -1060,8 +1065,9 @@ export default function ProductosPage() {
               </p>
             </div>
             <div>
-              <label className={labelClass}>Stock mínimo</label>
+              <label htmlFor="prod-stock-minimo" className={labelClass}>Stock mínimo</label>
               <input
+                id="prod-stock-minimo"
                 name="stock_minimo"
                 type="number"
                 required

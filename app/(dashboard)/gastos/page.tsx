@@ -457,8 +457,9 @@ export default function GastosPage() {
             )}
             {tipoGasto && (
               <div className="sm:col-span-4">
-                <label className={labelClass}>Subcategoría</label>
+                <label htmlFor="gasto-subcategoria" className={labelClass}>Subcategoría</label>
                 <select
+                  id="gasto-subcategoria"
                   value={subcategoria}
                   onChange={(e) => setSubcategoria(e.target.value)}
                   className={inputClass}
@@ -473,8 +474,9 @@ export default function GastosPage() {
               </div>
             )}
             <div className="sm:col-span-2">
-              <label className={labelClass}>Descripción</label>
+              <label htmlFor="gasto-descripcion" className={labelClass}>Descripción</label>
               <input
+                id="gasto-descripcion"
                 name="descripcion"
                 type="text"
                 required
@@ -485,8 +487,9 @@ export default function GastosPage() {
               />
             </div>
             <div>
-              <label className={labelClass}>Monto COP</label>
+              <label htmlFor="gasto-monto" className={labelClass}>Monto COP</label>
               <input
+                id="gasto-monto"
                 name="monto"
                 type="number"
                 min="0"
@@ -499,8 +502,9 @@ export default function GastosPage() {
               />
             </div>
             <div>
-              <label className={labelClass}>Fecha</label>
+              <label htmlFor="gasto-fecha" className={labelClass}>Fecha</label>
               <input
+                id="gasto-fecha"
                 name="fecha"
                 type="date"
                 required
@@ -510,8 +514,9 @@ export default function GastosPage() {
               />
             </div>
             <div className="sm:col-span-4">
-              <label className={labelClass}>Nota de categoría (opcional)</label>
+              <label htmlFor="gasto-categoria" className={labelClass}>Nota de categoría (opcional)</label>
               <input
+                id="gasto-categoria"
                 name="categoria"
                 type="text"
                 className={inputClass}
@@ -521,10 +526,11 @@ export default function GastosPage() {
               />
             </div>
             <div className="sm:col-span-2">
-              <label className={labelClass}>Proveedor (opcional)</label>
+              <label htmlFor="gasto-proveedor" className={labelClass}>Proveedor (opcional)</label>
               {!showProveedorForm ? (
                 <div className="flex gap-2">
                   <select
+                    id="gasto-proveedor"
                     value={proveedorIdSeleccionado}
                     onChange={(e) => setProveedorIdSeleccionado(e.target.value)}
                     className={inputClass}

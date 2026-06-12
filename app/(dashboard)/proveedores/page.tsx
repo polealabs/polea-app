@@ -242,8 +242,9 @@ export default function ProveedoresPage() {
       >
           <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className={labelClass}>Nombre</label>
+              <label htmlFor="prov-nombre" className={labelClass}>Nombre</label>
               <input
+                id="prov-nombre"
                 type="text"
                 required
                 value={nombre}
@@ -272,8 +273,9 @@ export default function ProveedoresPage() {
               </div>
             </div>
             <div>
-              <label className={labelClass}>Teléfono</label>
+              <label htmlFor="prov-telefono" className={labelClass}>Teléfono</label>
               <input
+                id="prov-telefono"
                 type="text"
                 value={telefono}
                 onChange={(e) => setTelefono(e.target.value)}
@@ -282,12 +284,13 @@ export default function ProveedoresPage() {
               />
             </div>
             <div>
-              <label className={labelClass}>NIT</label>
-              <input type="text" value={nit} onChange={(e) => setNit(e.target.value)} className={inputClass} placeholder="900123456-1" />
+              <label htmlFor="prov-nit" className={labelClass}>NIT</label>
+              <input id="prov-nit" type="text" value={nit} onChange={(e) => setNit(e.target.value)} className={inputClass} placeholder="900123456-1" />
             </div>
             <div>
-              <label className={labelClass}>Ciudad</label>
+              <label htmlFor="prov-ciudad" className={labelClass}>Ciudad</label>
               <input
+                id="prov-ciudad"
                 type="text"
                 value={ciudad}
                 onChange={(e) => setCiudad(e.target.value)}

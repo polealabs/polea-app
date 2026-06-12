@@ -329,8 +329,9 @@ export default function ClientesPage() {
       >
         <form action={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className={labelClass}>Nombre</label>
+            <label htmlFor="cliente-nombre" className={labelClass}>Nombre</label>
             <input
+              id="cliente-nombre"
               name="nombre"
               type="text"
               required
@@ -340,8 +341,9 @@ export default function ClientesPage() {
             />
           </div>
           <div>
-            <label className={labelClass}>Teléfono</label>
+            <label htmlFor="cliente-telefono" className={labelClass}>Teléfono</label>
             <input
+              id="cliente-telefono"
               name="telefono"
               type="text"
               defaultValue={editando?.telefono}
@@ -350,8 +352,9 @@ export default function ClientesPage() {
             />
           </div>
           <div>
-            <label className={labelClass}>Dirección (opcional)</label>
+            <label htmlFor="cliente-direccion" className={labelClass}>Dirección (opcional)</label>
             <input
+              id="cliente-direccion"
               type="text"
               name="direccion"
               defaultValue={editando?.direccion ?? ''}
@@ -360,8 +363,9 @@ export default function ClientesPage() {
             />
           </div>
           <div>
-            <label className={labelClass}>Ciudad</label>
+            <label htmlFor="cliente-ciudad" className={labelClass}>Ciudad</label>
             <input
+              id="cliente-ciudad"
               name="ciudad"
               type="text"
               defaultValue={editando?.ciudad}
@@ -370,8 +374,9 @@ export default function ClientesPage() {
             />
           </div>
           <div>
-            <label className={labelClass}>Correo</label>
+            <label htmlFor="cliente-correo" className={labelClass}>Correo</label>
             <input
+              id="cliente-correo"
               name="correo"
               type="email"
               defaultValue={editando?.correo}
