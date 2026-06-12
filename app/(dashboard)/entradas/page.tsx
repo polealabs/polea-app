@@ -850,8 +850,9 @@ function EntradasPageContent() {
             {modoProducto === 'nuevo' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="sm:col-span-2">
-                  <label className={labelClass}>Nombre del producto *</label>
+                  <label htmlFor="entrada-nuevo-nombre" className={labelClass}>Nombre del producto *</label>
                   <input
+                    id="entrada-nuevo-nombre"
                     className={inputClass}
                     value={nuevoNombre}
                     onChange={(e) => setNuevoNombre(e.target.value)}
@@ -859,8 +860,9 @@ function EntradasPageContent() {
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Precio de venta (COP) *</label>
+                  <label htmlFor="entrada-nuevo-precio" className={labelClass}>Precio de venta (COP) *</label>
                   <input
+                    id="entrada-nuevo-precio"
                     type="number"
                     min={0}
                     className={inputClass}
@@ -869,8 +871,9 @@ function EntradasPageContent() {
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Costo (opcional)</label>
+                  <label htmlFor="entrada-nuevo-costo" className={labelClass}>Costo (opcional)</label>
                   <input
+                    id="entrada-nuevo-costo"
                     type="number"
                     min={0}
                     className={inputClass}
@@ -882,8 +885,8 @@ function EntradasPageContent() {
                   </p>
                 </div>
                 <div>
-                  <label className={labelClass}>Tipo</label>
-                  <select className={inputClass} value={nuevoTipo} onChange={(e) => setNuevoTipo(e.target.value as Producto['tipo'])}>
+                  <label htmlFor="entrada-nuevo-tipo" className={labelClass}>Tipo</label>
+                  <select id="entrada-nuevo-tipo" className={inputClass} value={nuevoTipo} onChange={(e) => setNuevoTipo(e.target.value as Producto['tipo'])}>
                     {TIPOS.map((t) => (
                       <option key={t} value={t}>
                         {t}
@@ -892,8 +895,8 @@ function EntradasPageContent() {
                   </select>
                 </div>
                 <div>
-                  <label className={labelClass}>SKU (opcional)</label>
-                  <input className={inputClass} value={nuevoSku} onChange={(e) => setNuevoSku(e.target.value)} />
+                  <label htmlFor="entrada-nuevo-sku" className={labelClass}>SKU (opcional)</label>
+                  <input id="entrada-nuevo-sku" className={inputClass} value={nuevoSku} onChange={(e) => setNuevoSku(e.target.value)} />
                 </div>
               </div>
             )}
@@ -905,8 +908,9 @@ function EntradasPageContent() {
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className={labelClass}>Cantidad</label>
+                <label htmlFor="entrada-cantidad" className={labelClass}>Cantidad</label>
                 <input
+                  id="entrada-cantidad"
                   type="number"
                   min={1}
                   className={inputClass}
@@ -915,8 +919,9 @@ function EntradasPageContent() {
                 />
               </div>
               <div>
-                <label className={labelClass}>Costo unitario (COP)</label>
+                <label htmlFor="entrada-costo-unitario" className={labelClass}>Costo unitario (COP)</label>
                 <input
+                  id="entrada-costo-unitario"
                   type="number"
                   min={0}
                   className={inputClass}
@@ -941,10 +946,11 @@ function EntradasPageContent() {
             </div>
 
             <div>
-              <label className={labelClass}>Proveedor (opcional)</label>
+              <label htmlFor="entrada-proveedor" className={labelClass}>Proveedor (opcional)</label>
               {!showProveedorForm ? (
                 <div className="flex gap-2">
                   <select
+                    id="entrada-proveedor"
                     value={proveedorId}
                     onChange={(e) => setProveedorId(e.target.value)}
                     className={inputClass}
@@ -970,8 +976,9 @@ function EntradasPageContent() {
             </div>
 
             <div>
-              <label className={labelClass}>Fecha de recepción</label>
+              <label htmlFor="entrada-fecha-recepcion" className={labelClass}>Fecha de recepción</label>
               <input
+                id="entrada-fecha-recepcion"
                 type="date"
                 value={fechaRecepcion}
                 onChange={(e) => setFechaRecepcion(e.target.value)}
@@ -979,8 +986,9 @@ function EntradasPageContent() {
               />
             </div>
             <div>
-              <label className={labelClass}>Notas (opcional)</label>
+              <label htmlFor="entrada-notas" className={labelClass}>Notas (opcional)</label>
               <textarea
+                id="entrada-notas"
                 className={inputClass + ' min-h-[72px]'}
                 value={notas}
                 onChange={(e) => setNotas(e.target.value)}

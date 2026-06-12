@@ -197,8 +197,9 @@ export default function MediosPagoPage() {
           <h2 className="text-base font-semibold text-[#1E3A2F] mb-4">{editando ? 'Editar medio' : 'Nuevo medio de pago'}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>Nombre</label>
+              <label htmlFor="mp-nombre" className={labelClass}>Nombre</label>
               <input
+                id="mp-nombre"
                 value={form.nombre}
                 onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
                 placeholder='Ej: Datáfono Bold'
@@ -206,8 +207,9 @@ export default function MediosPagoPage() {
               />
             </div>
             <div>
-              <label className={labelClass}>Tipo</label>
+              <label htmlFor="mp-tipo" className={labelClass}>Tipo</label>
               <select
+                id="mp-tipo"
                 value={form.tipo}
                 onChange={(e) => setForm((f) => ({ ...f, tipo: e.target.value as TipoMedioPago }))}
                 className={inputClass}
@@ -220,8 +222,9 @@ export default function MediosPagoPage() {
               </select>
             </div>
             <div>
-              <label className={labelClass}>Comisión %</label>
+              <label htmlFor="mp-comision" className={labelClass}>Comisión %</label>
               <input
+                id="mp-comision"
                 type="number"
                 step="0.01"
                 min="0"
@@ -232,8 +235,9 @@ export default function MediosPagoPage() {
               />
             </div>
             <div>
-              <label className={labelClass}>Tarifa fija COP</label>
+              <label htmlFor="mp-tarifa" className={labelClass}>Tarifa fija COP</label>
               <input
+                id="mp-tarifa"
                 type="number"
                 min="0"
                 value={form.tarifa_fija === 0 ? '' : form.tarifa_fija}

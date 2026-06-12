@@ -140,8 +140,9 @@ export default function PreferenciasPage() {
           <p className="text-xs text-[#8A7D72] mt-1">Ajusta cómo se muestra la información en los módulos.</p>
         </div>
         <div>
-          <p className="text-xs text-[#8A7D72] mb-1">Registros por página en tablas</p>
+          <label htmlFor="pref-registros" className="text-xs text-[#8A7D72] mb-1 block">Registros por página en tablas</label>
           <select
+            id="pref-registros"
             value={form.registros_por_pagina}
             onChange={(e) => setForm((s) => ({ ...s, registros_por_pagina: Number(e.target.value) }))}
             className={inputClass}

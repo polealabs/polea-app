@@ -129,31 +129,31 @@ export default function EventosPage() {
           <h2 className="text-base font-semibold text-[#1E3A2F] mb-4">Nuevo evento</h2>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className={labelClass}>Nombre del evento *</label>
-              <input name="nombre" type="text" required placeholder="Ej: Feria Artesanal Cali" className={inputClass} />
+              <label htmlFor="evento-nombre" className={labelClass}>Nombre del evento *</label>
+              <input id="evento-nombre" name="nombre" type="text" required placeholder="Ej: Feria Artesanal Cali" className={inputClass} />
             </div>
             <div>
-              <label className={labelClass}>Lugar</label>
-              <input name="lugar" type="text" placeholder="Ej: Centro Comercial Chipichape" className={inputClass} />
+              <label htmlFor="evento-lugar" className={labelClass}>Lugar</label>
+              <input id="evento-lugar" name="lugar" type="text" placeholder="Ej: Centro Comercial Chipichape" className={inputClass} />
             </div>
             <div>
-              <label className={labelClass}>Fecha inicio *</label>
-              <input name="fecha_inicio" type="date" required defaultValue={toLocalISODateString()} className={inputClass} />
+              <label htmlFor="evento-fecha-inicio" className={labelClass}>Fecha inicio *</label>
+              <input id="evento-fecha-inicio" name="fecha_inicio" type="date" required defaultValue={toLocalISODateString()} className={inputClass} />
             </div>
             <div>
-              <label className={labelClass}>Fecha fin (opcional)</label>
-              <input name="fecha_fin" type="date" className={inputClass} />
+              <label htmlFor="evento-fecha-fin" className={labelClass}>Fecha fin (opcional)</label>
+              <input id="evento-fecha-fin" name="fecha_fin" type="date" className={inputClass} />
             </div>
             <div>
-              <label className={labelClass}>Tipo *</label>
-              <select name="tipo" required className={inputClass}>
+              <label htmlFor="evento-tipo" className={labelClass}>Tipo *</label>
+              <select id="evento-tipo" name="tipo" required className={inputClass}>
                 <option value="feria">Feria / Mercado</option>
                 <option value="consignacion">Consignación</option>
               </select>
             </div>
             <div>
-              <label className={labelClass}>Notas (opcional)</label>
-              <input name="notas" type="text" placeholder="Observaciones del evento" className={inputClass} />
+              <label htmlFor="evento-notas" className={labelClass}>Notas (opcional)</label>
+              <input id="evento-notas" name="notas" type="text" placeholder="Observaciones del evento" className={inputClass} />
             </div>
             {error && (
               <p className="sm:col-span-2 text-sm text-red-600 bg-red-50 px-4 py-2.5 rounded-lg">{error}</p>
