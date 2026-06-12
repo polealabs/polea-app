@@ -296,6 +296,7 @@ export default function OnboardingPage() {
                 <p className="text-sm text-[#4A463C] mb-6">Este nombre aparecerá en tus documentos y reportes.</p>
                 <input
                   type="text"
+                  aria-label="Nombre del negocio"
                   placeholder="Ej: Vaza Jewelry, Ferretería El Maestro…"
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
@@ -314,6 +315,7 @@ export default function OnboardingPage() {
                 <div className="space-y-3">
                   <input
                     type="text"
+                    aria-label="Ciudad"
                     placeholder="Ciudad — Ej: Cali"
                     value={ciudad}
                     onChange={(e) => setCiudad(e.target.value)}
@@ -322,6 +324,7 @@ export default function OnboardingPage() {
                   />
                   <input
                     type="text"
+                    aria-label="Dirección"
                     placeholder="Dirección — Ej: Calle 10 #5-23"
                     value={direccion}
                     onChange={(e) => setDireccion(e.target.value)}
@@ -375,6 +378,7 @@ export default function OnboardingPage() {
                 {categoriaEsOtro && (
                   <input
                     type="text"
+                    aria-label="Categoría personalizada"
                     placeholder="Ej: Artesanías, Taller de motos, Papelería…"
                     value={categoria}
                     onChange={(e) => setCategoria(e.target.value)}
@@ -397,6 +401,7 @@ export default function OnboardingPage() {
                 <p className="text-sm text-[#4A463C] mb-6">Opcional. Se usa para generar links de contacto directo.</p>
                 <input
                   type="tel"
+                  aria-label="WhatsApp del negocio"
                   placeholder="Ej: 3001234567"
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
