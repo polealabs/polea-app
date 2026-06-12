@@ -320,8 +320,9 @@ export default function NuevoDocumentoPage() {
 
       <form onSubmit={onSubmit} className="space-y-5">
         <div className="bg-white rounded-2xl border border-[#EDE5DC] p-5 shadow-sm">
-          <label className="block text-xs font-medium text-ink-soft mb-1">Tipo</label>
+          <label htmlFor="doc-tipo" className="block text-xs font-medium text-ink-soft mb-1">Tipo</label>
           <select
+            id="doc-tipo"
             value={tipo}
             onChange={(e) => {
               const v = e.target.value as TipoDocumento
@@ -423,12 +424,13 @@ export default function NuevoDocumentoPage() {
               </div>
             )}
             <div>
-              <label className="block text-xs font-medium text-ink-soft mb-1">Nombre *</label>
-              <input value={destinatarioNombre} onChange={(e) => setDestinatarioNombre(e.target.value)} className={inputClass} />
+              <label htmlFor="doc-nombre" className="block text-xs font-medium text-ink-soft mb-1">Nombre *</label>
+              <input id="doc-nombre" value={destinatarioNombre} onChange={(e) => setDestinatarioNombre(e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-ink-soft mb-1">NIT / Cédula del destinatario</label>
+              <label htmlFor="doc-nit" className="block text-xs font-medium text-ink-soft mb-1">NIT / Cédula del destinatario</label>
               <input
+                id="doc-nit"
                 type="text"
                 value={destinatarioNit}
                 onChange={(e) => setDestinatarioNit(e.target.value)}
@@ -437,16 +439,16 @@ export default function NuevoDocumentoPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-ink-soft mb-1">Email</label>
-              <input value={destinatarioEmail} onChange={(e) => setDestinatarioEmail(e.target.value)} className={inputClass} />
+              <label htmlFor="doc-email" className="block text-xs font-medium text-ink-soft mb-1">Email</label>
+              <input id="doc-email" value={destinatarioEmail} onChange={(e) => setDestinatarioEmail(e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-ink-soft mb-1">Teléfono</label>
-              <input value={destinatarioTelefono} onChange={(e) => setDestinatarioTelefono(e.target.value)} className={inputClass} />
+              <label htmlFor="doc-telefono" className="block text-xs font-medium text-ink-soft mb-1">Teléfono</label>
+              <input id="doc-telefono" value={destinatarioTelefono} onChange={(e) => setDestinatarioTelefono(e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-ink-soft mb-1">Ciudad</label>
-              <input value={destinatarioCiudad} onChange={(e) => setDestinatarioCiudad(e.target.value)} className={inputClass} />
+              <label htmlFor="doc-ciudad" className="block text-xs font-medium text-ink-soft mb-1">Ciudad</label>
+              <input id="doc-ciudad" value={destinatarioCiudad} onChange={(e) => setDestinatarioCiudad(e.target.value)} className={inputClass} />
             </div>
           </div>
         </div>
@@ -501,13 +503,13 @@ export default function NuevoDocumentoPage() {
           <div className="space-y-4 bg-white rounded-2xl border border-[#EDE5DC] p-5 shadow-sm">
             <h2 className="text-sm font-semibold text-ink mb-3">Información del cobro</h2>
             <div>
-              <label className="block text-xs font-medium text-ink-soft mb-1">Valor total</label>
-              <input type="number" min={0} value={totalCuentaCobro} onChange={(e) => setTotalCuentaCobro(Number(e.target.value))} className={`${inputClass} text-lg font-semibold`} />
+              <label htmlFor="doc-valor" className="block text-xs font-medium text-ink-soft mb-1">Valor total</label>
+              <input id="doc-valor" type="number" min={0} value={totalCuentaCobro} onChange={(e) => setTotalCuentaCobro(Number(e.target.value))} className={`${inputClass} text-lg font-semibold`} />
               <p className="text-xs text-ink-soft mt-1 italic">{numeroALetras(totalCuentaCobro)}</p>
             </div>
             <div>
-              <label className="block text-xs font-medium text-ink-soft mb-1">Concepto</label>
-              <textarea value={concepto} onChange={(e) => setConcepto(e.target.value)} className={`${inputClass} min-h-[90px]`} />
+              <label htmlFor="doc-concepto" className="block text-xs font-medium text-ink-soft mb-1">Concepto</label>
+              <textarea id="doc-concepto" value={concepto} onChange={(e) => setConcepto(e.target.value)} className={`${inputClass} min-h-[90px]`} />
             </div>
           </div>
         )}
@@ -526,9 +528,9 @@ export default function NuevoDocumentoPage() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-white rounded-2xl border border-[#EDE5DC] p-5 shadow-sm">
-          <div><label className="block text-xs font-medium text-ink-soft mb-1">Fecha del documento</label><input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className={inputClass} /></div>
-          <div><label className="block text-xs font-medium text-ink-soft mb-1">{tipo === 'cotizacion' ? 'Válida hasta' : 'Fecha de vencimiento'}</label><input type="date" value={fechaVencimiento} onChange={(e) => setFechaVencimiento(e.target.value)} className={inputClass} /></div>
-          <div className="md:col-span-2"><label className="block text-xs font-medium text-ink-soft mb-1">Notas adicionales</label><textarea value={notas} onChange={(e) => setNotas(e.target.value)} className={`${inputClass} min-h-[90px]`} /></div>
+          <div><label htmlFor="doc-fecha" className="block text-xs font-medium text-ink-soft mb-1">Fecha del documento</label><input id="doc-fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className={inputClass} /></div>
+          <div><label htmlFor="doc-fecha-venc" className="block text-xs font-medium text-ink-soft mb-1">{tipo === 'cotizacion' ? 'Válida hasta' : 'Fecha de vencimiento'}</label><input id="doc-fecha-venc" type="date" value={fechaVencimiento} onChange={(e) => setFechaVencimiento(e.target.value)} className={inputClass} /></div>
+          <div className="md:col-span-2"><label htmlFor="doc-notas" className="block text-xs font-medium text-ink-soft mb-1">Notas adicionales</label><textarea id="doc-notas" value={notas} onChange={(e) => setNotas(e.target.value)} className={`${inputClass} min-h-[90px]`} /></div>
         </div>
 
         {error && <p className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">{error}</p>}
