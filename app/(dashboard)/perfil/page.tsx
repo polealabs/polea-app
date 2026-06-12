@@ -199,8 +199,9 @@ export default function PerfilPage() {
           </div>
 
           <div>
-            <label className={labelClass}>Tu nombre</label>
+            <label htmlFor="perfil-nombre-usuario" className={labelClass}>Tu nombre</label>
             <input
+              id="perfil-nombre-usuario"
               name="nombre_usuario"
               value={nombreUsuario}
               onChange={(e) => setNombreUsuario(e.target.value)}
@@ -209,20 +210,20 @@ export default function PerfilPage() {
             />
           </div>
           <div>
-            <label className={labelClass}>Nombre de tienda *</label>
-            <input name="nombre" defaultValue={tienda?.nombre ?? ''} className={inputClass} required />
+            <label htmlFor="perfil-nombre" className={labelClass}>Nombre de tienda *</label>
+            <input id="perfil-nombre" name="nombre" defaultValue={tienda?.nombre ?? ''} className={inputClass} required />
           </div>
           <div>
-            <label className={labelClass}>Ciudad</label>
-            <input name="ciudad" defaultValue={tienda?.ciudad ?? ''} className={inputClass} />
+            <label htmlFor="perfil-ciudad" className={labelClass}>Ciudad</label>
+            <input id="perfil-ciudad" name="ciudad" defaultValue={tienda?.ciudad ?? ''} className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>WhatsApp</label>
-            <input name="whatsapp" defaultValue={tienda?.whatsapp ?? ''} className={inputClass} />
+            <label htmlFor="perfil-whatsapp" className={labelClass}>WhatsApp</label>
+            <input id="perfil-whatsapp" name="whatsapp" defaultValue={tienda?.whatsapp ?? ''} className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Moneda</label>
-            <select name="moneda" defaultValue={tienda?.moneda ?? 'COP'} className={inputClass}>
+            <label htmlFor="perfil-moneda" className={labelClass}>Moneda</label>
+            <select id="perfil-moneda" name="moneda" defaultValue={tienda?.moneda ?? 'COP'} className={inputClass}>
               <option value="COP">COP</option>
               <option value="USD">USD</option>
               <option value="EUR">EUR</option>
@@ -230,8 +231,9 @@ export default function PerfilPage() {
             </select>
           </div>
           <div className="sm:col-span-2">
-            <label className={labelClass}>Categoría / industria</label>
+            <label htmlFor="perfil-categoria" className={labelClass}>Categoría / industria</label>
             <select
+              id="perfil-categoria"
               name="categoria"
               value={categoriaSeleccionada}
               onChange={(e) => {
@@ -263,12 +265,13 @@ export default function PerfilPage() {
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className={labelClass}>NIT o Cédula</label>
-                <input name="nit" defaultValue={tienda?.nit ?? ''} placeholder="900123456-1" className={inputClass} />
+                <label htmlFor="perfil-nit" className={labelClass}>NIT o Cédula</label>
+                <input id="perfil-nit" name="nit" defaultValue={tienda?.nit ?? ''} placeholder="900123456-1" className={inputClass} />
               </div>
               <div>
-                <label className={labelClass}>Nombre del representante</label>
+                <label htmlFor="perfil-representante" className={labelClass}>Nombre del representante</label>
                 <input
+                  id="perfil-representante"
                   name="representante"
                   defaultValue={tienda?.representante ?? ''}
                   placeholder="Valentina Sánchez"
@@ -276,12 +279,13 @@ export default function PerfilPage() {
                 />
               </div>
               <div>
-                <label className={labelClass}>Teléfono</label>
-                <input name="telefono" defaultValue={tienda?.telefono ?? ''} placeholder="3017433083" className={inputClass} />
+                <label htmlFor="perfil-telefono" className={labelClass}>Teléfono</label>
+                <input id="perfil-telefono" name="telefono" defaultValue={tienda?.telefono ?? ''} placeholder="3017433083" className={inputClass} />
               </div>
               <div>
-                <label className={labelClass}>Email de contacto</label>
+                <label htmlFor="perfil-email" className={labelClass}>Email de contacto</label>
                 <input
+                  id="perfil-email"
                   type="email"
                   name="email"
                   defaultValue={tienda?.email ?? ''}
@@ -290,8 +294,9 @@ export default function PerfilPage() {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className={labelClass}>Dirección</label>
+                <label htmlFor="perfil-direccion" className={labelClass}>Dirección</label>
                 <input
+                  id="perfil-direccion"
                   name="direccion"
                   defaultValue={tienda?.direccion ?? ''}
                   placeholder="Calle 10 # 5-23, Cali"

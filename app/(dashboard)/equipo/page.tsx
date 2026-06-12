@@ -230,8 +230,9 @@ export default function EquipoPage() {
           <h2 className="text-base font-semibold text-[#1A1510] mb-4">Enviar invitación</h2>
           <form action={handleInvitar} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-[#8A7D72] mb-1">Email</label>
+              <label htmlFor="equipo-email" className="block text-xs font-medium text-[#8A7D72] mb-1">Email</label>
               <input
+                id="equipo-email"
                 name="email"
                 type="email"
                 required
@@ -240,8 +241,9 @@ export default function EquipoPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[#8A7D72] mb-1">Rol</label>
+              <label htmlFor="equipo-rol" className="block text-xs font-medium text-[#8A7D72] mb-1">Rol</label>
               <select
+                id="equipo-rol"
                 name="rol"
                 defaultValue="vendedor"
                 className="w-full px-3 py-2 rounded-lg border border-[#EDE5DC] text-sm"
