@@ -93,9 +93,11 @@ polea-app/
 │   ├── Toast.tsx / ConfirmModal.tsx / Tooltip.tsx
 │   └── LevaLogo.tsx               # Símbolo cam sobre fondo #0D0D0D
 ├── lib/
-│   ├── hooks/useTienda.ts         # Hook principal — tienda + roles
+│   ├── hooks/useTienda.ts         # Hook de roles en el CLIENTE (tienda + permisos)
+│   ├── tienda-server.ts           # getTiendaContext + requireEdit/Delete/Finanzas/Owner (server actions)
+│   ├── auth-admin.ts              # verificarAdmin() — gate de los server actions de /polealabs
 │   ├── context/TemaContext.tsx
-│   ├── supabase/client.ts + server.ts
+│   ├── supabase/client.ts + server.ts + admin.ts
 │   ├── types.ts / utils.ts / csv.ts / temas.ts
 │   └── notificaciones.ts
 ├── proxy.ts                       # Reemplaza middleware.ts (Next.js 16)
@@ -115,24 +117,37 @@ if (request.method === 'POST' && request.headers.get('next-action')) {
   return NextResponse.next()
 }
 ```
+Por ese early return el proxy NO autoriza server actions: cada uno valida solo — los de `/polealabs` con `verificarAdmin()`, los del dashboard con `lib/tienda-server.ts` (rol). El proxy sí protege la navegación GET: `/polealabs` (solo admin), rutas del dashboard (incluida `/pos`) exigen sesión, y bloquea por suscripción vencida/cancelada.
 
 ### Upload de archivos
 En Next.js 16 + Turbopack, los `File` en `FormData` manual no se serializan al pasarse a server actions programáticamente (`formData.get('logo')` llega null).
 
 **Patrón correcto:** subir directo browser → Supabase Storage, pasar la URL como string al server action. Ver `onboarding/page.tsx → handleCrear()` y `perfil/page.tsx → handleSubmit()`.
 
-### RLS en Supabase
-- **`tiendas`**: referencia circular con `miembros` resuelta con función `get_tiendas_usuario()` (`SECURITY DEFINER`). Política: `id IN (SELECT get_tiendas_usuario())`.
-- **Resto**: `tienda_id IN (SELECT id FROM tiendas WHERE owner_id = auth.uid())`.
-- **`casos_soporte` / `mensajes_soporte`**: política `tienda_id IN (SELECT get_tiendas_usuario())`. El admin escribe con `createAdminClient()` (service role) para bypassear RLS.
+### RLS en Supabase (con enforcement de ROL por comando)
+Funciones `SECURITY DEFINER` que devuelven los `tienda_id` del usuario según permiso: `get_tiendas_usuario()` (owner + cualquier miembro), `get_tiendas_editables()` (owner/admin/vendedor), `get_tiendas_admin()` (owner/admin).
+- **`tiendas`**: `id IN (SELECT get_tiendas_usuario())`.
+- **Tablas de datos** (migración `20260611170000`, políticas POR COMANDO):
+  - SELECT → `get_tiendas_usuario()` · INSERT/UPDATE → `get_tiendas_editables()` · DELETE → `get_tiendas_admin()`.
+  - Excepción: `evento_inventario` / `evento_ventas` / `evento_gastos` permiten DELETE a editables (quitar una línea es flujo de edición del vendedor).
+- **`notificaciones` / `preferencias`**: tenant simple (cualquier miembro) — se escriben desde lecturas del cliente.
+- **`casos_soporte` / `mensajes_soporte`**: `tienda_id IN (SELECT get_tiendas_usuario())`. El admin escribe con `createAdminClient()` (service role) para bypassear RLS.
+- **`admins`**: SELECT solo de la propia fila (`(auth.jwt() ->> 'email') = email`).
+- El mismo rol se aplica en la APP vía `lib/tienda-server.ts` (`requireEdit/Delete/Finanzas`) — primera línea de defensa; la RLS es la segunda (PostgREST directo).
 
 ### Triggers activos / eliminados
 | Trigger | Estado | Qué hace |
 |---------|--------|----------|
 | `trg_entrada_suma_stock` | ✅ Activo | Suma cantidad a `productos.stock_actual` al INSERT en `entradas` |
+| `trg_venta_item_resta_stock` | ✅ Activo | Resta stock al INSERT en `venta_items` (variante si hay `variante_id`, si no el producto) |
+| `trg_venta_item_suma_stock` | ✅ Activo | Restaura stock al DELETE de `venta_items` (eliminar venta → cascade). Espejo del anterior |
 | `trg_consignacion_resta_stock` | ✅ Activo | Resta stock al registrar salida a tienda aliada |
 | `trg_consignacion_devolucion_stock` | ✅ Activo | Restaura stock al registrar devolución |
 | `trg_entrada_crea_gasto` | ❌ Eliminado | Creaba gastos duplicados en el P&L |
+
+**Stock atómico:** los flujos que ajustan stock desde JS usan RPC atómicas (un solo `UPDATE`, evita race) en vez de read-modify-write: `ajustar_stock_producto`, `ajustar_stock_variante`, `registrar_defectuoso_producto` (`SECURITY INVOKER`, respetan RLS). Aplican en entradas, consignaciones, devoluciones y cierre de evento.
+
+**`cerrarEvento`:** inserta `venta_items` (lo que dispara `trg_venta_item_resta_stock`), así que **NO** descuenta stock de no-variantes manualmente (evita doble descuento); solo corrige la variante única.
 
 ### Constraints eliminados
 - `gastos_categoria_check`: eliminado para permitir subcategorías libres.
@@ -164,8 +179,10 @@ ALTER TABLE venta_items ADD COLUMN IF NOT EXISTS variante_id uuid REFERENCES pro
 |---------|----------|-----------------|
 | `consignaciones.variante_id` | 2026-06-09 | CSV salidas Tiendas Aliadas falla |
 | `consignacion_movimientos.consignataria_id` | 2026-06-11 | CSV devoluciones y liquidaciones falla |
-| `ventas_cabecera.evento_id` | pendiente | POS falla al vincular venta a evento |
-| `venta_items.variante_id` | pendiente | Ventas con variantes fallan |
+| `ventas_cabecera.evento_id` | ✅ aplicada | POS falla al vincular venta a evento |
+| `venta_items.variante_id` | ✅ aplicada | Ventas con variantes fallan |
+
+**Migraciones de la auditoría (2026-06-12, en `supabase/migrations/`, todas aplicadas):** RLS `admins` self-read, RLS tenant de miembros, RLS de roles por comando, trigger `trg_venta_item_suma_stock` (restaurar stock al eliminar venta), índices de rendimiento, y RPC de stock atómico. Son idempotentes (`IF NOT EXISTS` / `CREATE OR REPLACE`).
 
 ### Sistema de emails
 - `lib/email.ts` → `enviarEmailInvitacion()` usa Resend, falla en silencio porque la var se llama `RESEND_API_KEY1` en `.env.local` (nombre incorrecto).
@@ -288,7 +305,9 @@ Historial de corrupción de caracteres. `.vscode/settings.json` tiene `"files.en
 | vendedor | Parcial | ✅ | ❌ | ❌ |
 | readonly | ✅ | ❌ | ❌ | ❌ |
 
-**`useTienda`** — busca tienda como owner primero, luego como miembro. Expone: `tienda`, `loading`, `rol`, `isOwner/isAdmin/isVendedor/isReadonly`, `canEdit`, `canDelete`, `canViewFinanzas`.
+**`useTienda`** (cliente) — busca tienda como owner primero, luego como miembro. Expone: `tienda`, `loading`, `rol`, `isOwner/isAdmin/isVendedor/isReadonly`, `canEdit`, `canDelete`, `canViewFinanzas`.
+
+**Enforcement (no es solo UI):** en el servidor `lib/tienda-server.ts` espeja estos permisos. Los server actions resuelven tienda como owner-o-miembro y aplican `requireEdit` (bloquea readonly) / `requireDelete` (bloquea vendedor) / `requireFinanzas` (solo owner/admin) / `requireOwner`. La RLS los aplica además por comando (§5). Reemplazó al viejo patrón `getTienda()` con `owner_id = user.id` que dejaba a los miembros sin acceso.
 
 ---
 
@@ -374,23 +393,15 @@ Admin responde desde `/polealabs/soporte` usando `createAdminClient()` para bypa
 ## 12. CONVENCIONES DE CÓDIGO
 
 ### Server Actions
+Resuelve tienda + rol con `lib/tienda-server.ts` (NUNCA el viejo `getTienda()` con `owner_id`, que excluía a los miembros). Elige el helper según el permiso:
 ```typescript
 'use server'
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-
-async function getTienda() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-  const { data } = await supabase.from('tiendas').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!data) throw new Error('Tienda no encontrada')
-  return { tienda_id: data.id, supabase }
-}
+import { requireEdit } from '@/lib/tienda-server' // o requireDelete / requireFinanzas / requireOwner / getTiendaContext
 
 export async function miAccion(params) {
   try {
-    const { tienda_id, supabase } = await getTienda()
+    const { tienda_id, supabase } = await requireEdit()
     // ...
     revalidatePath('/ruta')
     return { ok: true as const }
@@ -399,6 +410,9 @@ export async function miAccion(params) {
   }
 }
 ```
+- `getTiendaContext()` → `{ tienda_id, supabase, rol, canEdit, canDelete, canViewFinanzas, ... }` (resuelve owner-o-miembro, sin gate).
+- `requireEdit/Delete/Finanzas/Owner` lanzan si falta el permiso. Para deletes parciales (sub-ítems de evento) usar `requireEdit` + chequear `canDelete`.
+- Server actions de `/polealabs`: `verificarAdmin()` de `lib/auth-admin.ts`.
 
 ### Cliente Supabase
 - **Server Actions / Server Components:** `import { createClient } from '@/lib/supabase/server'` + `await createClient()`
@@ -436,7 +450,13 @@ const mesActual = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).
 Editar `components/layout/Sidebar.tsx` + agregar título en `components/layout/HeaderWrapper.tsx`.
 
 ### Nueva tabla en Supabase
-Siempre agregar RLS: `tienda_id IN (SELECT id FROM tiendas WHERE owner_id = auth.uid())`.
+Agregar RLS por comando (espeja §5): SELECT con `get_tiendas_usuario()`, INSERT/UPDATE con `get_tiendas_editables()`, DELETE con `get_tiendas_admin()`. Patrón en `supabase/migrations/20260611170000_rls_roles_por_comando.sql`.
+
+### Helpers compartidos (`lib/utils.ts`)
+`formatCOP` (pesos sin decimales, null-safe — centralizado, no redefinir local), `unwrapRelacion<T>` (normaliza relaciones to-one de Supabase objeto/array), `calcularComisionMedioPago`, `toLocalISODateString/YearMonth`.
+
+### SEO / metadata
+`app/layout.tsx` define metadata raíz (title template, Open Graph, Twitter). `app/robots.ts` + `app/sitemap.ts` (solo home pública). `app/opengraph-image.tsx` genera la imagen OG con `next/og`. Áreas privadas (dashboard, auth, `/polealabs`) tienen `robots: { index: false }` en su layout.
 
 ---
 
@@ -447,6 +467,7 @@ Siempre agregar RLS: `tienda_id IN (SELECT id FROM tiendas WHERE owner_id = auth
 | **Suscripciones Fase 3** | Alta | Tokenización Wompi post-registro + cron job de cobros (requiere credenciales Wompi) |
 | **Suscripciones Fase 4** | Alta | Webhooks Wompi + emails Resend + reintentos automáticos |
 | **Resend dominio** | Media | Verificar dominio → cambiar `from` en `lib/email.ts` → renombrar `RESEND_API_KEY1` → reactivar "Confirm email" en Supabase |
-| **Migraciones BD pendientes** | Media | Aplicar SQL de `ventas_cabecera.evento_id` y `venta_items.variante_id` (ver sección 5) |
 | PWA | Media | Instalar `@ducanh2912/next-pwa`, crear `app/manifest.ts`, íconos PNG en `public/` |
 | Facturación DIAN | Baja | Proveedor: Factus (Brightidea). Bloqueante: cada tienda necesita NIT + resolución propia ante DIAN. |
+
+**Auditoría 2026-06-12 (completada):** seguridad (admin auth, roles app + RLS por comando, `/pos`, `admins`), integridad y atomicidad de stock, índices de rendimiento, SEO (robots/sitemap/OG/noindex) y accesibilidad (forms + aria-labels + contraste). Todos los SQL aplicados. Gaps menores restantes: asociar labels de campos condicionales (pago a crédito de entradas; selectores de entidad y datos bancarios de documentos), alt text de imágenes (`<img>` → `next/image`), contraste del panel admin interno.
