@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
 import { DashboardHomeSkeleton } from '@/components/skeletons/DashboardHomeSkeleton'
 import ProductoSelect from '@/components/ui/ProductoSelect'
+import ClienteInlineForm from '@/components/ui/ClienteInlineForm'
 import type { Cliente, MedioPago, Producto, VentaCabecera } from '@/lib/types'
 import { crearVentaMulti } from '@/app/(dashboard)/ventas/actions'
 import { calcularComisionMedioPago, toLocalISODateString, toLocalISOYearMonthString, formatCOP } from '@/lib/utils'
@@ -152,7 +153,7 @@ export default function DashboardPage() {
   ])
   const [submittingVenta, setSubmittingVenta] = useState(false)
   const [errorVenta, setErrorVenta] = useState<string | null>(null)
-  const [, setShowClienteFormModal] = useState(false)
+  const [showClienteFormModal, setShowClienteFormModal] = useState(false)
 
   useEffect(() => {
     if (!tiendaLoading && !tienda) {
@@ -504,6 +505,22 @@ export default function DashboardPage() {
       await loadDashboardData()
     }
     setSubmittingVenta(false)
+  }
+
+  async function handleClienteCreado(cliente: { id: string; nombre: string }) {
+    if (!tienda) return
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('clientes')
+      .select('*')
+      .eq('tienda_id', tienda.id)
+      .order('nombre')
+    const lista = (data ?? []) as Cliente[]
+    setClientesVenta(lista)
+    const nombreNorm = cliente.nombre.trim().toLowerCase()
+    const nuevo = lista.find((c) => c.nombre.trim().toLowerCase() === nombreNorm)
+    if (nuevo) setClienteId(nuevo.id)
+    setShowClienteFormModal(false)
   }
 
   useEffect(() => {
@@ -1053,20 +1070,35 @@ export default function DashboardPage() {
 
               <div>
                 <label className="block text-xs font-medium text-[var(--color-text-soft)] mb-1">Cliente (opcional)</label>
-                <div className="flex gap-2">
-                  <select
-                    value={clienteId}
-                    onChange={(e) => setClienteId(e.target.value)}
-                    className="flex-1 px-3 py-2 rounded-lg border border-[var(--color-border)] text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
-                  >
-                    <option value="">Sin cliente</option>
-                    {clientesVenta.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {!showClienteFormModal ? (
+                  <div className="flex gap-2">
+                    <select
+                      value={clienteId}
+                      onChange={(e) => setClienteId(e.target.value)}
+                      className="flex-1 px-3 py-2 rounded-lg border border-[var(--color-border)] text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+                    >
+                      <option value="">Sin cliente</option>
+                      {clientesVenta.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nombre}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => setShowClienteFormModal(true)}
+                      className="text-xs text-[var(--color-accent)] hover:underline whitespace-nowrap font-medium px-2"
+                    >
+                      + Nuevo
+                    </button>
+                  </div>
+                ) : (
+                  <ClienteInlineForm
+                    tiendaId={tienda.id}
+                    onCreado={(cliente) => void handleClienteCreado(cliente)}
+                    onCancelar={() => setShowClienteFormModal(false)}
+                  />
+                )}
               </div>
 
               <div className="max-w-[260px]">
