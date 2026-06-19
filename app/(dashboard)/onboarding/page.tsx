@@ -108,6 +108,7 @@ export default function OnboardingPage() {
   const [categoria, setCategoria] = useState('')
   const [categoriaEsOtro, setCategoriaEsOtro] = useState(false)
   const [whatsapp, setWhatsapp] = useState('')
+  const [cobraIva, setCobraIva] = useState(false)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
@@ -163,6 +164,7 @@ export default function OnboardingPage() {
     fd.set('categoria', categoria)
     fd.set('whatsapp', whatsapp.trim())
     fd.set('moneda', 'COP')
+    fd.set('cobra_iva', cobraIva ? 'true' : 'false')
 
     // Subir logo desde el cliente para evitar problemas de serialización de File en server actions
     if (logoFile) {
@@ -447,6 +449,21 @@ export default function OnboardingPage() {
                   </label>
                 )}
                 {logoError && <p className="text-xs text-[#C44040] mt-2">{logoError}</p>}
+
+                <label className="flex items-start gap-3 mt-6 p-4 rounded-xl border border-[#DCD7CA] bg-[#F4F1EA] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={cobraIva}
+                    onChange={(e) => setCobraIva(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 accent-[#4A90D9]"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-[#1E3A2F]">Mi negocio cobra IVA (19%)</span>
+                    <span className="block text-xs text-[#4A463C] mt-0.5">
+                      El IVA se suma sobre el precio en cada venta. Puedes cambiarlo luego en tu perfil.
+                    </span>
+                  </span>
+                </label>
               </div>
             )}
 

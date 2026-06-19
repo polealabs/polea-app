@@ -303,6 +303,22 @@ export default function PerfilPage() {
                   className={inputClass}
                 />
               </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="perfil-cobra-iva" className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    id="perfil-cobra-iva"
+                    type="checkbox"
+                    name="cobra_iva"
+                    value="true"
+                    defaultChecked={tienda?.cobra_iva ?? false}
+                    className="mt-0.5 h-4 w-4 accent-[var(--color-accent)]"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium" style={{ color: 'var(--color-text)' }}>Cobrar IVA (19%) en mis ventas</span>
+                    <span className="block text-xs" style={{ color: 'var(--color-text-soft)' }}>El IVA se suma sobre el precio base en cada venta.</span>
+                  </span>
+                </label>
+              </div>
             </div>
           </div>
           <div className="sm:col-span-2">

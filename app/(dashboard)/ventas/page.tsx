@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
 import { crearVentaMulti, eliminarVenta } from './actions'
 import { obtenerDevoluciones, registrarDevolucion } from './devoluciones'
-import { calcularComisionMedioPago, toLocalISODateString, formatCOP } from '@/lib/utils'
+import { calcularComisionMedioPago, toLocalISODateString, formatCOP, TASA_IVA } from '@/lib/utils'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import ClienteInlineForm from '@/components/ui/ClienteInlineForm'
 import ImportCSV from '@/components/ui/ImportCSV'
@@ -448,8 +448,11 @@ export default function VentasPage() {
     const calcComision = medioSeleccionado
       ? calcularComisionMedioPago(subtotalLineas, envio, medioSeleccionado)
       : { base_comision: 0, comision_base: 0, iva_comision: 0, comision_total: 0, neto: subtotalLineas + envio }
-    return { total_bruto, total_descuentos, subtotalLineas, calcComision, medioSeleccionado }
-  }, [envio, lineas, medioId, mediosPago])
+    // IVA aditivo (solo si la tienda cobra IVA): se suma sobre la base gravable.
+    const iva = tienda?.cobra_iva ? Math.round(subtotalLineas * TASA_IVA) : 0
+    const totalCobrar = calcComision.neto + iva
+    return { total_bruto, total_descuentos, subtotalLineas, calcComision, medioSeleccionado, iva, totalCobrar }
+  }, [envio, lineas, medioId, mediosPago, tienda?.cobra_iva])
 
   const advertenciasStockPorLinea = lineas.map((l, i) => {
     if (!l.producto_id) return null
@@ -755,14 +758,24 @@ export default function VentasPage() {
                       <label className={labelClass}>Producto</label>
                       <ProductoSelect
                         opciones={productos
-                          .filter((p) => p.stock_actual > 0 || p.id === l.producto_id)
-                          .map((p) => ({
-                            id: p.id,
-                            label: p.nombre,
-                            sublabel: p.tiene_variantes
-                              ? `Con variantes · ${formatCOP(p.precio_venta)} base`
-                              : `Stock: ${p.stock_actual} uds · ${formatCOP(p.precio_venta)}`,
-                          }))}
+                          .filter(
+                            (p) =>
+                              p.stock_actual > 0 ||
+                              (variantesPorProducto.get(p.id) ?? []).some((v) => v.stock_actual > 0) ||
+                              p.id === l.producto_id,
+                          )
+                          .map((p) => {
+                            const vars = variantesPorProducto.get(p.id) ?? []
+                            const stockVariantes = vars.reduce((s, v) => s + v.stock_actual, 0)
+                            return {
+                              id: p.id,
+                              label: p.nombre,
+                              sublabel:
+                                vars.length > 0
+                                  ? `Variantes · ${stockVariantes} uds · ${formatCOP(p.precio_venta)} base`
+                                  : `Stock: ${p.stock_actual} uds · ${formatCOP(p.precio_venta)}`,
+                            }
+                          })}
                         value={l.producto_id}
                         onChange={(id) => {
                           const prod = productos.find((p) => p.id === id)
@@ -958,6 +971,18 @@ export default function VentasPage() {
                   <span style={{ color: 'var(--color-text)' }}>Total neto</span>
                   <span style={{ color: 'var(--color-primary)' }}>{formatCOP(resumen.calcComision.neto)}</span>
                 </div>
+                {resumen.iva > 0 && (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span style={{ color: 'var(--color-text-soft)' }}>IVA (19%)</span>
+                      <span style={{ color: 'var(--color-text)' }}>+{formatCOP(resumen.iva)}</span>
+                    </div>
+                    <div className="border-t pt-2 flex justify-between font-bold text-sm" style={{ borderColor: 'var(--color-border)' }}>
+                      <span style={{ color: 'var(--color-text)' }}>Total a cobrar</span>
+                      <span style={{ color: 'var(--color-primary)' }}>{formatCOP(resumen.totalCobrar)}</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

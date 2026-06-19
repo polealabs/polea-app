@@ -610,6 +610,49 @@ export default function ReportesPage() {
             </div>
           </>
         )}
+
+        {datos.ventasTiendasAliadas.length > 0 && (
+          <div className="bg-white rounded-2xl border border-[#EDE5DC] p-6 shadow-sm mt-6">
+            <h3 className="text-sm font-semibold text-[#1A1510] mb-1">🏬 Ventas por tienda aliada</h3>
+            <p className="text-xs text-[#8A7D72] mb-4">Liquidaciones del mes en consignación. No se incluyen en las ventas netas del estado de resultados.</p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[#EDE5DC]">
+                    <th className="text-left py-2 text-xs font-semibold uppercase tracking-wide text-[#8A7D72]">Tienda</th>
+                    <th className="text-right py-2 text-xs font-semibold uppercase tracking-wide text-[#8A7D72]">Vendido</th>
+                    <th className="text-right py-2 text-xs font-semibold uppercase tracking-wide text-[#8A7D72]">Comisión</th>
+                    <th className="text-right py-2 text-xs font-semibold uppercase tracking-wide text-[#8A7D72]">Neto para ti</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {datos.ventasTiendasAliadas.map((t) => (
+                    <tr key={t.consignataria_id} className="border-b border-[#EDE5DC] last:border-0">
+                      <td className="py-2 font-medium text-[#1A1510]">{t.nombre}</td>
+                      <td className="py-2 text-right text-[#1A1510]">{formatCOP(t.totalVendido)}</td>
+                      <td className="py-2 text-right text-[#C44040]">−{formatCOP(t.comision)}</td>
+                      <td className="py-2 text-right font-semibold text-[#1E3A2F]">{formatCOP(t.neto)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-[#EDE5DC]">
+                    <td className="py-2 font-semibold text-[#1A1510]">Total</td>
+                    <td className="py-2 text-right font-semibold text-[#1A1510]">
+                      {formatCOP(datos.ventasTiendasAliadas.reduce((s, t) => s + t.totalVendido, 0))}
+                    </td>
+                    <td className="py-2 text-right font-semibold text-[#C44040]">
+                      −{formatCOP(datos.ventasTiendasAliadas.reduce((s, t) => s + t.comision, 0))}
+                    </td>
+                    <td className="py-2 text-right font-semibold text-[#1E3A2F]">
+                      {formatCOP(datos.ventasTiendasAliadas.reduce((s, t) => s + t.neto, 0))}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

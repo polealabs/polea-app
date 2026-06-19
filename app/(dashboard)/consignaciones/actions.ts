@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { requireEdit } from '@/lib/tienda-server'
+import { TASA_IVA } from '@/lib/utils'
 
 async function getTienda() {
   const { tienda_id, supabase, canDelete } = await requireEdit()
@@ -22,6 +23,7 @@ export async function crearConsignataria(formData: FormData) {
       ciudad: (formData.get('ciudad') as string)?.trim() || null,
       nit: (formData.get('nit') as string)?.trim() || null,
       porcentaje_comision: Number(formData.get('porcentaje_comision')) || 0,
+      cobra_iva: formData.get('cobra_iva') === 'true',
       activa: true,
     })
     if (error) return { error: error.message }
@@ -44,6 +46,7 @@ export async function editarConsignataria(id: string, formData: FormData) {
         ciudad: (formData.get('ciudad') as string)?.trim() || null,
         nit: (formData.get('nit') as string)?.trim() || null,
         porcentaje_comision: Number(formData.get('porcentaje_comision')) || 0,
+        cobra_iva: formData.get('cobra_iva') === 'true',
       })
       .eq('id', id)
       .eq('tienda_id', tienda_id)
@@ -206,7 +209,7 @@ export async function registrarMovimiento(payload: {
 
     const { data: consig } = await supabase
       .from('consignaciones')
-      .select('*, tiendas_consignatarias(porcentaje_comision)')
+      .select('*, tiendas_consignatarias(porcentaje_comision, cobra_iva)')
       .eq('id', payload.consignacion_id)
       .eq('tienda_id', tienda_id)
       .maybeSingle()
@@ -217,13 +220,16 @@ export async function registrarMovimiento(payload: {
       return { error: `Solo hay ${consig.unidades_disponibles} unidades disponibles` }
     }
 
-    const porcentaje = (consig.tiendas_consignatarias as { porcentaje_comision?: number } | null)?.porcentaje_comision ?? 0
+    const consignataria = consig.tiendas_consignatarias as { porcentaje_comision?: number; cobra_iva?: boolean } | null
+    const porcentaje = consignataria?.porcentaje_comision ?? 0
     const total_bruto =
       payload.tipo === 'liquidacion' && payload.precio_venta
         ? payload.precio_venta * payload.cantidad
         : null
     const comision = total_bruto ? Math.round(total_bruto * (porcentaje / 100)) : null
     const neto = total_bruto && comision !== null ? total_bruto - comision : null
+    // IVA aditivo opcional: solo en liquidaciones y si la tienda aliada cobra IVA.
+    const iva = total_bruto && consignataria?.cobra_iva ? Math.round(total_bruto * TASA_IVA) : 0
 
     const { error: errMov } = await supabase.from('consignacion_movimientos').insert({
       tienda_id,
@@ -234,6 +240,7 @@ export async function registrarMovimiento(payload: {
       total_bruto,
       comision,
       neto,
+      iva,
       fecha: payload.fecha,
       notas: payload.notas || null,
     })
@@ -311,7 +318,7 @@ export async function registrarLiquidacion(payload: {
 
     const { data: consignataria } = await supabase
       .from('tiendas_consignatarias')
-      .select('porcentaje_comision')
+      .select('porcentaje_comision, cobra_iva')
       .eq('id', payload.consignataria_id)
       .eq('tienda_id', tienda_id)
       .maybeSingle()
@@ -321,6 +328,7 @@ export async function registrarLiquidacion(payload: {
     const porcentaje = consignataria.porcentaje_comision
     const comision = Math.round(payload.total_vendido * (porcentaje / 100))
     const neto = payload.total_vendido - comision
+    const iva = consignataria.cobra_iva ? Math.round(payload.total_vendido * TASA_IVA) : 0
 
     const { error } = await supabase.from('liquidaciones').insert({
       tienda_id,
@@ -328,6 +336,7 @@ export async function registrarLiquidacion(payload: {
       porcentaje_comision: porcentaje,
       comision,
       neto,
+      iva,
       consignataria_id: payload.consignataria_id,
       mes: payload.mes,
       total_vendido: payload.total_vendido,

@@ -71,7 +71,7 @@ export default function ConsignacionesPage() {
   const [productos, setProductos] = useState<Producto[]>([])
   const [salidas, setSalidas] = useState<SalidaReciente[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'tiendas' | 'inventario' | 'devoluciones' | 'liquidaciones'>('tiendas')
+  const [tab, setTab] = useState<'tiendas' | 'inventario' | 'remisiones' | 'devoluciones' | 'liquidaciones'>('tiendas')
 
   const [showModalSalida, setShowModalSalida] = useState(false)
   const [showModalMovimiento, setShowModalMovimiento] = useState(false)
@@ -112,6 +112,7 @@ export default function ConsignacionesPage() {
 
   const [inventarioVista, setInventarioVista] = useState<'tienda' | 'global'>('global')
   const [filtroConsignatariaInv, setFiltroConsignatariaInv] = useState('')
+  const [filtroConsignatariaRem, setFiltroConsignatariaRem] = useState('')
   const [mesDevoluciones, setMesDevoluciones] = useState(() => toLocalISOYearMonthString())
   const [mesLiquidaciones, setMesLiquidaciones] = useState(() => toLocalISOYearMonthString())
   const [mesRemisiones, setMesRemisiones] = useState(() => {
@@ -127,6 +128,7 @@ export default function ConsignacionesPage() {
     ciudad: '',
     nit: '',
     porcentaje_comision: 0,
+    cobra_iva: false,
   })
 
   const loadData = useCallback(async () => {
@@ -233,7 +235,10 @@ export default function ConsignacionesPage() {
   const tabCounts = useMemo(
     () => ({
       tiendas: consignatarias.length,
-      inventario: consignaciones.filter((c) => c.unidades_disponibles > 0).length,
+      inventario: new Set(
+        consignaciones.filter((c) => c.unidades_disponibles > 0).map((c) => c.producto_id),
+      ).size,
+      remisiones: consignaciones.filter((c) => c.unidades_disponibles > 0).length,
       devoluciones: movimientos.filter((m) => m.tipo === 'devolucion').length,
       liquidaciones: movimientos.filter((m) => m.tipo === 'liquidacion').length,
     }),
@@ -259,12 +264,40 @@ export default function ConsignacionesPage() {
     return map
   }, [movimientos])
 
-  const consignacionesPorTienda = useMemo(() => {
+  // Inventario "Por tienda": consolidado por producto (suma a traves de todas las
+  // remisiones de esa consignataria). Solo productos con stock disponible.
+  const inventarioPorTiendaConsolidado = useMemo(() => {
     if (!filtroConsignatariaInv) return []
-    return consignaciones.filter(
-      (c) => c.consignataria_id === filtroConsignatariaInv && c.unidades_disponibles > 0,
-    )
-  }, [consignaciones, filtroConsignatariaInv])
+    const grouped = new Map<
+      string,
+      { nombre: string; enviadas: number; disponibles: number; devueltas: number; liquidadas: number }
+    >()
+    consignaciones
+      .filter((c) => c.consignataria_id === filtroConsignatariaInv)
+      .forEach((c) => {
+        const movs = movimientosPorConsignacion.get(c.id) ?? []
+        const devueltas = movs.filter((m) => m.tipo === 'devolucion').reduce((s, m) => s + m.cantidad, 0)
+        const liquidadas = Math.max(0, c.cantidad - c.unidades_disponibles - devueltas)
+        if (!grouped.has(c.producto_id)) {
+          grouped.set(c.producto_id, { nombre: c.producto_nombre, enviadas: 0, disponibles: 0, devueltas: 0, liquidadas: 0 })
+        }
+        const item = grouped.get(c.producto_id)!
+        item.enviadas += c.cantidad
+        item.disponibles += c.unidades_disponibles
+        item.devueltas += devueltas
+        item.liquidadas += liquidadas
+      })
+    return Array.from(grouped.entries())
+      .map(([producto_id, val]) => ({ producto_id, ...val }))
+      .filter((row) => row.disponibles > 0)
+  }, [consignaciones, filtroConsignatariaInv, movimientosPorConsignacion])
+
+  // Pestaña Remisiones: filas crudas por remision (con fecha de envio y acciones).
+  const remisionesRows = useMemo(() => {
+    return consignaciones
+      .filter((c) => c.unidades_disponibles > 0)
+      .filter((c) => !filtroConsignatariaRem || c.consignataria_id === filtroConsignatariaRem)
+  }, [consignaciones, filtroConsignatariaRem])
 
   const inventarioGlobal = useMemo(() => {
     const grouped = new Map<string, { nombre: string; enviado: number; disponible: number; porTienda: Map<string, number> }>()
@@ -306,6 +339,10 @@ export default function ConsignacionesPage() {
     () => salidas.filter((s) => s.fecha.startsWith(mesRemisiones)),
     [salidas, mesRemisiones],
   )
+  const hayIvaLiquidaciones = useMemo(
+    () => liquidacionesHistorial.some((m) => (m.iva ?? 0) > 0),
+    [liquidacionesHistorial],
+  )
 
   const pctConsignacionActiva = useMemo(() => {
     if (!consignacionActiva) return 0
@@ -329,6 +366,7 @@ export default function ConsignacionesPage() {
     fd.set('ciudad', formData.ciudad)
     fd.set('nit', formData.nit)
     fd.set('porcentaje_comision', String(formData.porcentaje_comision))
+    fd.set('cobra_iva', formData.cobra_iva ? 'true' : 'false')
     const res = editando ? await editarConsignataria(editando.id, fd) : await crearConsignataria(fd)
     if (res?.error) {
       showToast(res.error, 'error')
@@ -344,6 +382,7 @@ export default function ConsignacionesPage() {
       ciudad: '',
       nit: '',
       porcentaje_comision: 0,
+      cobra_iva: false,
     })
     void loadData()
   }
@@ -440,6 +479,7 @@ export default function ConsignacionesPage() {
       ciudad: '',
       nit: '',
       porcentaje_comision: 0,
+      cobra_iva: false,
     })
     setShowFormTienda(true)
   }
@@ -453,6 +493,7 @@ export default function ConsignacionesPage() {
       ciudad: t.ciudad ?? '',
       nit: t.nit ?? '',
       porcentaje_comision: t.porcentaje_comision ?? 0,
+      cobra_iva: t.cobra_iva ?? false,
     })
     setShowFormTienda(true)
   }
@@ -572,13 +613,14 @@ export default function ConsignacionesPage() {
         {[
           { id: 'tiendas', label: `Tiendas (${tabCounts.tiendas})` },
           { id: 'inventario', label: `Inventario (${tabCounts.inventario})` },
+          { id: 'remisiones', label: `Remisiones (${tabCounts.remisiones})` },
           { id: 'devoluciones', label: `Devoluciones (${tabCounts.devoluciones})` },
           { id: 'liquidaciones', label: `Liquidaciones (${tabCounts.liquidaciones})` },
         ].map((t) => (
           <button
             key={t.id}
             type="button"
-            onClick={() => setTab(t.id as 'tiendas' | 'inventario' | 'devoluciones' | 'liquidaciones')}
+            onClick={() => setTab(t.id as 'tiendas' | 'inventario' | 'remisiones' | 'devoluciones' | 'liquidaciones')}
             className={`text-xs font-medium px-3 py-1.5 rounded-full border transition ${
               tab === t.id
                 ? 'border-[#1E3A2F] bg-[#1E3A2F] text-white'
@@ -623,6 +665,15 @@ export default function ConsignacionesPage() {
                 }}
                 className={inputClass}
               />
+              <label className="md:col-span-2 flex items-center gap-2 text-sm text-[#4A3F35] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.cobra_iva}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, cobra_iva: e.target.checked }))}
+                  className="h-4 w-4 accent-[var(--color-accent)]"
+                />
+                Cobra IVA (19%) al liquidar
+              </label>
               <div className="md:col-span-2 flex justify-end gap-2">
                 <button type="button" className="px-4 py-2 border border-[#EDE5DC] rounded-lg text-sm text-[#4A3F35]" onClick={() => { setShowFormTienda(false); setEditando(null) }}>Cancelar</button>
                 <button type="submit" className="btn-primary px-4 py-2 rounded-lg">Guardar</button>
@@ -767,6 +818,12 @@ export default function ConsignacionesPage() {
                 ))}
               </select>
 
+              {filtroConsignatariaInv && (
+                <p className="text-xs text-[#8A7D72]">
+                  Inventario consolidado por producto en esta tienda. Para operar por remisión (liquidar/devolver) usa la pestaña <strong>Remisiones</strong>.
+                </p>
+              )}
+
               <div className="min-w-0 rounded-2xl overflow-x-auto border" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
                 <table className="w-full text-sm">
                   <thead>
@@ -781,38 +838,33 @@ export default function ConsignacionesPage() {
                       </th>
                       <th className={`${thClass} text-right`}>Devueltas</th>
                       <th className={`${thClass} text-right`}>Liquidadas</th>
-                      <th className={thClass}>Fecha envío</th>
                       <th className={thClass}>Progreso</th>
-                      <th className={`${thClass} text-right`}>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {consignacionesPorTienda.map((c) => {
-                      const movs = movimientosPorConsignacion.get(c.id) ?? []
-                      const devueltas = movs.filter((m) => m.tipo === 'devolucion').reduce((s, m) => s + m.cantidad, 0)
-                      const liquidadas = Math.max(0, c.cantidad - c.unidades_disponibles - devueltas)
-                      const progreso = c.cantidad > 0 ? Math.round((c.unidades_disponibles / c.cantidad) * 100) : 0
+                    {inventarioPorTiendaConsolidado.map((row) => {
+                      const progreso = row.enviadas > 0 ? Math.round((row.disponibles / row.enviadas) * 100) : 0
                       return (
-                        <tr key={c.id} className="border-t" style={{ borderColor: 'var(--color-border)' }}>
-                          <td className="px-4 py-3">{c.producto_nombre}</td>
-                          <td className="px-4 py-3 text-right">{c.cantidad}</td>
-                          <td className="px-4 py-3 text-right font-semibold">{c.unidades_disponibles}</td>
-                          <td className="px-4 py-3 text-right">{devueltas}</td>
-                          <td className="px-4 py-3 text-right">{liquidadas}</td>
-                          <td className="px-4 py-3">{formatFecha(c.fecha)}</td>
+                        <tr key={row.producto_id} className="border-t" style={{ borderColor: 'var(--color-border)' }}>
+                          <td className="px-4 py-3 font-medium">{row.nombre}</td>
+                          <td className="px-4 py-3 text-right">{row.enviadas}</td>
+                          <td className="px-4 py-3 text-right font-semibold">{row.disponibles}</td>
+                          <td className="px-4 py-3 text-right">{row.devueltas}</td>
+                          <td className="px-4 py-3 text-right">{row.liquidadas}</td>
                           <td className="px-4 py-3 min-w-[180px]">
                             <div className="w-full h-2 rounded-full bg-[#EDE5DC]">
                               <div className="h-2 rounded-full" style={{ width: `${progreso}%`, background: 'var(--color-primary)' }} />
                             </div>
-                            <p className="text-xs mt-1 text-[#8A7D72]">{c.unidades_disponibles}/{c.cantidad} disponibles</p>
-                          </td>
-                          <td className="px-4 py-3 text-right space-x-2">
-                            <button type="button" className="text-xs text-[var(--color-accent)] hover:underline" onClick={() => abrirMovimiento(c, 'liquidacion')}>Liquidar</button>
-                            <button type="button" className="text-xs text-red-500 hover:underline" onClick={() => abrirMovimiento(c, 'devolucion')}>Devolver</button>
+                            <p className="text-xs mt-1 text-[#8A7D72]">{row.disponibles}/{row.enviadas} disponibles</p>
                           </td>
                         </tr>
                       )
                     })}
+                    {filtroConsignatariaInv && inventarioPorTiendaConsolidado.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-6 text-center text-sm text-[#8A7D72]">Esta tienda no tiene inventario disponible.</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -854,6 +906,77 @@ export default function ConsignacionesPage() {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {tab === 'remisiones' && (
+        <div className="space-y-4">
+          <p className="text-xs text-[#8A7D72]">
+            Cada remisión (salida) por fecha de envío. Aquí liquidas o devuelves unidades de un envío específico.
+          </p>
+          <select value={filtroConsignatariaRem} onChange={(e) => setFiltroConsignatariaRem(e.target.value)} className={`max-w-md w-full ${inputClass}`}>
+            <option value="">Todas las tiendas</option>
+            {consignatarias.filter((c) => c.activa).map((c) => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            ))}
+          </select>
+
+          <div className="min-w-0 rounded-2xl overflow-x-auto border" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ background: 'var(--color-background)' }}>
+                  <th className={thClass}>Tienda</th>
+                  <th className={thClass}>Producto</th>
+                  <th className={`${thClass} text-right`}>Enviadas</th>
+                  <th className={`${thClass} text-right`}>
+                    <span className="inline-flex items-center justify-end gap-0">
+                      Disponibles
+                      <Tooltip texto="Unidades en consignación que aún no han sido vendidas ni devueltas" />
+                    </span>
+                  </th>
+                  <th className={`${thClass} text-right`}>Devueltas</th>
+                  <th className={`${thClass} text-right`}>Liquidadas</th>
+                  <th className={thClass}>Fecha envío</th>
+                  <th className={thClass}>Progreso</th>
+                  <th className={`${thClass} text-right`}>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {remisionesRows.map((c) => {
+                  const movs = movimientosPorConsignacion.get(c.id) ?? []
+                  const devueltas = movs.filter((m) => m.tipo === 'devolucion').reduce((s, m) => s + m.cantidad, 0)
+                  const liquidadas = Math.max(0, c.cantidad - c.unidades_disponibles - devueltas)
+                  const progreso = c.cantidad > 0 ? Math.round((c.unidades_disponibles / c.cantidad) * 100) : 0
+                  return (
+                    <tr key={c.id} className="border-t" style={{ borderColor: 'var(--color-border)' }}>
+                      <td className="px-4 py-3">{c.consignataria_nombre}</td>
+                      <td className="px-4 py-3">{c.producto_nombre}</td>
+                      <td className="px-4 py-3 text-right">{c.cantidad}</td>
+                      <td className="px-4 py-3 text-right font-semibold">{c.unidades_disponibles}</td>
+                      <td className="px-4 py-3 text-right">{devueltas}</td>
+                      <td className="px-4 py-3 text-right">{liquidadas}</td>
+                      <td className="px-4 py-3">{formatFecha(c.fecha)}</td>
+                      <td className="px-4 py-3 min-w-[180px]">
+                        <div className="w-full h-2 rounded-full bg-[#EDE5DC]">
+                          <div className="h-2 rounded-full" style={{ width: `${progreso}%`, background: 'var(--color-primary)' }} />
+                        </div>
+                        <p className="text-xs mt-1 text-[#8A7D72]">{c.unidades_disponibles}/{c.cantidad} disponibles</p>
+                      </td>
+                      <td className="px-4 py-3 text-right space-x-2">
+                        <button type="button" className="text-xs text-[var(--color-accent)] hover:underline" onClick={() => abrirMovimiento(c, 'liquidacion')}>Liquidar</button>
+                        <button type="button" className="text-xs text-red-500 hover:underline" onClick={() => abrirMovimiento(c, 'devolucion')}>Devolver</button>
+                      </td>
+                    </tr>
+                  )
+                })}
+                {remisionesRows.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="px-4 py-6 text-center text-sm text-[#8A7D72]">No hay remisiones con unidades disponibles.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -929,6 +1052,7 @@ export default function ConsignacionesPage() {
                   <th className={`${thCompactClass} text-right`}>Precio unit</th>
                   <th className={`${thCompactClass} text-right`}>Total bruto</th>
                   <th className={`${thCompactClass} text-right`}>Comisión</th>
+                  {hayIvaLiquidaciones && <th className={`${thCompactClass} text-right`}>IVA</th>}
                   <th className={`${thCompactClass} text-right`}>Neto</th>
                   <th className={thCompactClass}>Notas</th>
                 </tr>
@@ -943,6 +1067,7 @@ export default function ConsignacionesPage() {
                     <td className="px-3 py-3 text-sm text-right">{formatCOP(m.precio_venta ?? 0)}</td>
                     <td className="px-3 py-3 text-sm text-right">{formatCOP(m.total_bruto ?? 0)}</td>
                     <td className="px-3 py-3 text-sm text-right">{formatCOP(m.comision ?? 0)}</td>
+                    {hayIvaLiquidaciones && <td className="px-3 py-3 text-sm text-right">{formatCOP(m.iva ?? 0)}</td>}
                     <td className="px-3 py-3 text-sm text-right font-semibold">{formatCOP(m.neto ?? 0)}</td>
                     <td className="px-3 py-3 text-sm max-w-[220px] truncate" title={m.notas ?? undefined}>
                       {m.notas ? (m.notas.length > 30 ? `${m.notas.slice(0, 30)}…` : m.notas) : '—'}

@@ -45,7 +45,12 @@ export async function actualizarTienda(formData: FormData) {
   const logoUrl = (formData.get('logo_url') as string)?.trim()
   if (logoUrl) updates.logo_url = logoUrl
 
-  const { error } = await supabase.from('tiendas').update(updates).eq('id', tienda.id)
+  const cobraIva = formData.get('cobra_iva') === 'true'
+
+  const { error } = await supabase
+    .from('tiendas')
+    .update({ ...updates, cobra_iva: cobraIva })
+    .eq('id', tienda.id)
   if (error) return { error: error.message }
 
   revalidatePath('/perfil')

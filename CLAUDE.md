@@ -164,6 +164,16 @@ Funciones `SECURITY DEFINER` que devuelven los `tienda_id` del usuario según pe
 ### compra_inventario
 Tipo de gasto que aparece **solo en flujo de caja, NO en P&L**. Evita doble conteo con CPV.
 
+### IVA opcional (aditivo, 19%)
+Migración `20260618130000_iva.sql`. Constante `TASA_IVA = 0.19` en `lib/utils.ts`.
+- **Opcional por negocio** (`tiendas.cobra_iva`, toggle en onboarding y `/perfil`) y **por tienda aliada** (`tiendas_consignatarias.cobra_iva`, toggle en el modal de consignataria).
+- **Aditivo:** el IVA se SUMA sobre la base gravable (subtotal tras descuentos). No está incluido en el precio.
+- **No es ingreso → NO entra al P&L.** Es recaudo a favor de la DIAN. `ventasNetas`, utilidades y márgenes de reportes no cambian. Se guarda y se muestra aparte.
+  - Ventas: `iva` en `ventas_cabecera` (`crearVentaMulti`). Total a cobrar = total neto + IVA (display en `ventas/page.tsx`).
+  - Aliadas: `iva` en `consignacion_movimientos` (liquidación por remisión) y `liquidaciones` (masiva). Solo se calcula en liquidaciones, sobre el total vendido.
+- La comisión del medio de pago se calcula sobre la base **sin** IVA (simplificación deliberada).
+- **Gap conocido:** las liquidaciones importadas por CSV (`actions-import-historial.ts`) quedan con `iva = 0` (no pasan por `registrarMovimiento`/`registrarLiquidacion`). El IVA solo se calcula en liquidaciones hechas desde la UI.
+
 ### Migraciones manuales en Supabase
 
 Patrón recurrente: columnas nullable de FK agregadas sobre tablas existentes al implementar nuevas features. **SQL seguro (IF NOT EXISTS):**
@@ -196,7 +206,7 @@ Historial de corrupción de caracteres. `.vscode/settings.json` tiene `"files.en
 
 ## 6. TABLAS DE BASE DE DATOS
 
-**tiendas** — `id, nombre, owner_id, ciudad, categoria, whatsapp, moneda, logo_url, tema, tamano_letra, nit, representante, telefono, email, direccion, es_beta, beta_hasta`
+**tiendas** — `id, nombre, owner_id, ciudad, categoria, whatsapp, moneda, logo_url, tema, tamano_letra, nit, representante, telefono, email, direccion, cobra_iva, es_beta, beta_hasta`
 
 **perfiles** — `id (→ auth.users), nombre, updated_at`
 
@@ -212,7 +222,9 @@ Historial de corrupción de caracteres. `.vscode/settings.json` tiene `"files.en
 
 **entradas** — `id, tienda_id, producto_id, proveedor_id, cantidad, costo_unitario, fecha, notas`
 
-**ventas_cabecera** — `id, tienda_id, cliente_id, canal, plataforma_pago, medio_pago_id, fecha, total_bruto, total_neto, total_costo_transaccion, comision_iva, envio, evento_id`
+**ventas_cabecera** — `id, tienda_id, cliente_id, canal, plataforma_pago, medio_pago_id, fecha, total_bruto, total_neto, total_costo_transaccion, comision_iva, iva, envio, evento_id`
+
+> ⚠️ `comision_iva` = IVA sobre la comisión del medio de pago. `iva` = IVA aditivo recaudado en la venta (opcional, ver §5).
 
 **venta_items** — `id, tienda_id, cabecera_id, producto_id, variante_id, cantidad, precio_venta, descuento, neto, costo_transaccion`
 
@@ -242,15 +254,15 @@ Historial de corrupción de caracteres. `.vscode/settings.json` tiene `"files.en
 
 ### Tiendas aliadas
 
-**tiendas_consignatarias** — `id, tienda_id, nombre, contacto, telefono, ciudad, nit, porcentaje_comision, activa`
+**tiendas_consignatarias** — `id, tienda_id, nombre, contacto, telefono, ciudad, nit, porcentaje_comision, cobra_iva, activa`
 
 **consignacion_salidas** — `id, tienda_id, consignataria_id, fecha, notas`
 
 **consignaciones** — `id, tienda_id, consignataria_id, producto_id, variante_id, salida_id, cantidad, precio_unitario, unidades_disponibles, fecha, estado (activa/liquidada/devuelta)`
 
-**consignacion_movimientos** — `id, tienda_id, consignacion_id, consignataria_id, tipo (devolucion/liquidacion), cantidad, precio_venta, total_bruto, comision, neto, fecha, notas`
+**consignacion_movimientos** — `id, tienda_id, consignacion_id, consignataria_id, tipo (devolucion/liquidacion), cantidad, precio_venta, total_bruto, comision, neto, iva, fecha, notas`
 
-**liquidaciones** — `id, tienda_id, consignataria_id, fecha, mes, total_vendido, porcentaje_comision, comision, neto, notas, consignaciones_ids (array)`
+**liquidaciones** — `id, tienda_id, consignataria_id, fecha, mes, total_vendido, porcentaje_comision, comision, neto, iva, notas, consignaciones_ids (array)`
 
 ### Eventos
 
@@ -285,6 +297,8 @@ Historial de corrupción de caracteres. `.vscode/settings.json` tiene `"files.en
 **casos_soporte** — `id, tienda_id, titulo, estado (abierto/en_proceso/resuelto), created_at, updated_at`
 
 **mensajes_soporte** — `id, caso_id, tienda_id, autor (cliente/admin), mensaje, created_at`
+
+> Creadas en `supabase/migrations/20260618120000_soporte_tables.sql` (antes faltaba la migración → "Could not find the table 'public.casos_soporte'").
 
 ---
 
@@ -361,6 +375,11 @@ neto = base − comision_base − iva_comision
 
 ### Eventos — cierre
 Al cerrar un evento, exporta: `evento_ventas` → `ventas_cabecera` + `venta_items`; `evento_gastos` → `gastos`. Actualiza stock. Mapea medios de pago con `mapEventoMedioATipo()` en `eventos/actions.ts`.
+
+### Tiendas aliadas — pestañas Inventario vs Remisiones
+- **Inventario › Por tienda:** consolidado por producto (suma todas las remisiones de la consignataria), **solo lectura**, solo productos con stock disponible. Inventario › Global ya estaba consolidado.
+- **Remisiones:** cada salida por fecha de envío, con las acciones **Liquidar / Devolver** (`abrirMovimiento`, operan a nivel de remisión individual). Filtrable por tienda.
+- **Reportes:** sección "Ventas por tienda aliada" (`DatosReporte.ventasTiendasAliadas`) agrega liquidaciones del mes (`consignacion_movimientos` tipo liquidación + `liquidaciones` masivas). NO entran en las ventas netas del P&L (flujo aparte).
 
 ### Soporte widget (`components/ui/SoporteWidget.tsx`)
 Botón flotante en todas las páginas del dashboard. Posición dinámica: en `/dashboard` sube a `bottom: 5.5rem` para no tapar el botón de nueva venta; resto: `bottom: 1.5rem`.

@@ -1,3 +1,6 @@
+/** Tasa general de IVA en Colombia (19%). El IVA es opcional por negocio/tienda aliada. */
+export const TASA_IVA = 0.19
+
 export function calcularCostoTransaccion(
   plataforma: string,
   precioVenta: number

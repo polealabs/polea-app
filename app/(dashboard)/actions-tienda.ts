@@ -17,6 +17,7 @@ export async function crearTienda(formData: FormData) {
     categoria: string
     whatsapp: string
     moneda: string
+    cobra_iva: boolean
     logo_url?: string
   } = {
     owner_id: user.id,
@@ -26,6 +27,7 @@ export async function crearTienda(formData: FormData) {
     categoria: String(formData.get('categoria') ?? '').trim(),
     whatsapp: String(formData.get('whatsapp') ?? '').trim(),
     moneda: String(formData.get('moneda') ?? 'COP').trim() || 'COP',
+    cobra_iva: formData.get('cobra_iva') === 'true',
   }
 
   if (!payload.nombre) return { error: 'El nombre de la tienda es obligatorio' }

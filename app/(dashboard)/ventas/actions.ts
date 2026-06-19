@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { calcularComisionMedioPago } from '@/lib/utils'
+import { calcularComisionMedioPago, TASA_IVA } from '@/lib/utils'
 import { requireEdit } from '@/lib/tienda-server'
 
 async function getTiendaId() {
@@ -110,6 +110,16 @@ export async function crearVentaMulti(payload: {
     const subtotal = lineasCalculadas.reduce((s, l) => s + l.base_neta, 0)
     const envio = Math.max(0, Number(payload.envio ?? 0))
 
+    // IVA opcional (aditivo): solo si la tienda cobra IVA. Se calcula sobre la base
+    // gravable (subtotal tras descuentos). Es recaudo a favor de la DIAN, no ingreso:
+    // no entra al P&L; la comision del medio de pago se sigue calculando sobre la base.
+    const { data: tiendaIva } = await supabase
+      .from('tiendas')
+      .select('cobra_iva')
+      .eq('id', tienda_id)
+      .maybeSingle()
+    const iva = tiendaIva?.cobra_iva ? Math.round(subtotal * TASA_IVA) : 0
+
     let comisionTotal = 0
     let ivaComision = 0
     let netoFinal = subtotal + envio
@@ -139,6 +149,7 @@ export async function crearVentaMulti(payload: {
         envio,
         evento_id: payload.evento_id || null,
         comision_iva: ivaComision,
+        iva,
         fecha: payload.fecha,
         total_bruto,
         total_costo_transaccion: comisionTotal,

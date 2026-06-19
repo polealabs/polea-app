@@ -44,6 +44,7 @@ export interface DatosReporte {
   top3Clientes: { nombre: string; total: number }[]
   ventasNetasMesAnterior: number
   variacionVentas: number | null
+  ventasTiendasAliadas: { consignataria_id: string; nombre: string; totalVendido: number; comision: number; neto: number }[]
 }
 
 type VentaCabeceraRow = {
@@ -434,6 +435,48 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
   const variacionVentas =
     ventasNetasMesAnterior > 0 ? ((ventasNetas - ventasNetasMesAnterior) / ventasNetasMesAnterior) * 100 : null
 
+  // Ventas de tiendas aliadas (consignación) del mes: liquidaciones por remisión
+  // (consignacion_movimientos) + liquidaciones masivas (liquidaciones). No están
+  // en ventasNetas (son un flujo aparte), por eso se reportan por separado.
+  const [{ data: movsLiq }, { data: liqsMasivas }, { data: consignatariasData }] = await Promise.all([
+    supabase
+      .from('consignacion_movimientos')
+      .select('consignataria_id, total_bruto, comision, neto')
+      .eq('tienda_id', tienda.id)
+      .eq('tipo', 'liquidacion')
+      .gte('fecha', start)
+      .lt('fecha', end),
+    supabase
+      .from('liquidaciones')
+      .select('consignataria_id, total_vendido, comision, neto')
+      .eq('tienda_id', tienda.id)
+      .gte('fecha', start)
+      .lt('fecha', end),
+    supabase.from('tiendas_consignatarias').select('id, nombre').eq('tienda_id', tienda.id),
+  ])
+
+  const nombresConsig = new Map((consignatariasData ?? []).map((c) => [c.id as string, c.nombre as string]))
+  const aliadasMap = new Map<string, { totalVendido: number; comision: number; neto: number }>()
+  const acumularAliada = (id: string | null, vendido: number, comision: number, neto: number) => {
+    if (!id) return
+    const prev = aliadasMap.get(id) ?? { totalVendido: 0, comision: 0, neto: 0 }
+    aliadasMap.set(id, {
+      totalVendido: prev.totalVendido + (Number(vendido) || 0),
+      comision: prev.comision + (Number(comision) || 0),
+      neto: prev.neto + (Number(neto) || 0),
+    })
+  }
+  ;(movsLiq ?? []).forEach((m) => acumularAliada(m.consignataria_id, m.total_bruto, m.comision, m.neto))
+  ;(liqsMasivas ?? []).forEach((l) => acumularAliada(l.consignataria_id, l.total_vendido, l.comision, l.neto))
+
+  const ventasTiendasAliadas = [...aliadasMap.entries()]
+    .map(([consignataria_id, v]) => ({
+      consignataria_id,
+      nombre: nombresConsig.get(consignataria_id) ?? 'Sin nombre',
+      ...v,
+    }))
+    .sort((a, b) => b.totalVendido - a.totalVendido)
+
   return {
     mes,
     ventasBrutas,
@@ -468,5 +511,6 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
     top3Clientes,
     ventasNetasMesAnterior,
     variacionVentas,
+    ventasTiendasAliadas,
   }
 }

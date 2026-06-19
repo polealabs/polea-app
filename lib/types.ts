@@ -13,6 +13,7 @@ export interface Tienda {
   whatsapp?: string
   moneda?: string
   tema?: string
+  cobra_iva?: boolean
   es_beta?: boolean
   beta_hasta?: string | null
   created_at: string
@@ -329,6 +330,7 @@ export interface TiendaConsignataria {
   ciudad?: string
   nit?: string
   porcentaje_comision: number
+  cobra_iva?: boolean
   activa: boolean
   created_at: string
 }
@@ -366,6 +368,7 @@ export interface ConsignacionMovimiento {
   total_bruto?: number
   comision?: number
   neto?: number
+  iva?: number
   fecha: string
   notas?: string
   created_at: string
@@ -387,6 +390,7 @@ export interface Liquidacion {
   porcentaje_comision: number
   comision: number
   neto: number
+  iva?: number
   notas?: string
   consignaciones_ids: string[]
   created_at: string
