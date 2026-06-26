@@ -214,6 +214,9 @@ export default function DashboardPage() {
       clientesMesRes,
       clientesRecientesRes,
       clientesInfoRes,
+      liqHoyRes,
+      liqMesRes,
+      liqMesAntRes,
     ] =
       await Promise.all([
         supabase.from('ventas_cabecera').select('total_neto').eq('tienda_id', tiendaId).eq('fecha', hoy),
@@ -251,6 +254,26 @@ export default function DashboardPage() {
           .gte('fecha', hace30)
           .not('cliente_id', 'is', null),
         supabase.from('clientes').select('id, nombre').eq('tienda_id', tiendaId),
+        // Liquidaciones de tiendas aliadas: el neto entra como venta (igual que reportes).
+        supabase
+          .from('consignacion_movimientos')
+          .select('neto')
+          .eq('tienda_id', tiendaId)
+          .eq('tipo', 'liquidacion')
+          .eq('fecha', hoy),
+        supabase
+          .from('consignacion_movimientos')
+          .select('neto')
+          .eq('tienda_id', tiendaId)
+          .eq('tipo', 'liquidacion')
+          .gte('fecha', `${mesActual}-01`),
+        supabase
+          .from('consignacion_movimientos')
+          .select('neto')
+          .eq('tienda_id', tiendaId)
+          .eq('tipo', 'liquidacion')
+          .gte('fecha', `${mesAnteriorStr}-01`)
+          .lt('fecha', `${mesActualStr}-01`),
       ])
 
     const { data: primeraVenta } = await supabase
@@ -270,8 +293,10 @@ export default function DashboardPage() {
     for (let y = anioMasAntiguo; y <= anioActual; y++) years.push(y)
     setAniosDisponibles(years)
 
-    const totalHoy = (ventasHoyRes.data ?? []).reduce((s, v) => s + (v.total_neto ?? 0), 0)
-    const totalMes = (ventasMesRes.data ?? []).reduce((s, v) => s + (v.total_neto ?? 0), 0)
+    const liqNetoHoy = (liqHoyRes.data ?? []).reduce((s, m) => s + (m.neto ?? 0), 0)
+    const liqNetoMes = (liqMesRes.data ?? []).reduce((s, m) => s + (m.neto ?? 0), 0)
+    const totalHoy = (ventasHoyRes.data ?? []).reduce((s, v) => s + (v.total_neto ?? 0), 0) + liqNetoHoy
+    const totalMes = (ventasMesRes.data ?? []).reduce((s, v) => s + (v.total_neto ?? 0), 0) + liqNetoMes
 
     const listaProductos = todosProductosRes.data ?? []
 
@@ -419,7 +444,9 @@ export default function DashboardPage() {
       })
     }
 
-    const totalMesAnt = (ventasMesAntRes.data ?? []).reduce((s, v) => s + (v.total_neto ?? 0), 0)
+    const liqNetoMesAnt = (liqMesAntRes.data ?? []).reduce((s, m) => s + (m.neto ?? 0), 0)
+    const totalMesAnt =
+      (ventasMesAntRes.data ?? []).reduce((s, v) => s + (v.total_neto ?? 0), 0) + liqNetoMesAnt
     if (totalMesAnt > 0 && totalMes > 0) {
       const pct = (totalMes / totalMesAnt) * 100
       if (pct < 80 && new Date().getDate() >= 7) {
@@ -567,14 +594,33 @@ export default function DashboardPage() {
     const supabase = createClient()
     setDatosGrafico([])
 
+    // Serie de ventas del periodo: ventas directas + neto de liquidaciones de tiendas
+    // aliadas (mismas que entran al P&L), unificadas por fecha como { fecha, total_neto }.
+    const fetchSerie = async (desde: string, hasta: string) => {
+      const [{ data: ventasData }, { data: liqData }] = await Promise.all([
+        supabase
+          .from('ventas_cabecera')
+          .select('fecha, total_neto')
+          .eq('tienda_id', tienda.id)
+          .gte('fecha', desde)
+          .lte('fecha', hasta),
+        supabase
+          .from('consignacion_movimientos')
+          .select('fecha, neto')
+          .eq('tienda_id', tienda.id)
+          .eq('tipo', 'liquidacion')
+          .gte('fecha', desde)
+          .lte('fecha', hasta),
+      ])
+      return [
+        ...(ventasData ?? []),
+        ...(liqData ?? []).map((l) => ({ fecha: l.fecha, total_neto: l.neto ?? 0 })),
+      ]
+    }
+
     if (periodoGrafico === 'semana') {
       const { desde, hasta, dias } = getRangoSemana(semanaOffset)
-      const { data } = await supabase
-        .from('ventas_cabecera')
-        .select('fecha, total_neto')
-        .eq('tienda_id', tienda.id)
-        .gte('fecha', desde)
-        .lte('fecha', hasta)
+      const data = await fetchSerie(desde, hasta)
 
       const resultado = dias.map((fecha) => ({
         label: getDiaLabel(fecha),
@@ -586,12 +632,7 @@ export default function DashboardPage() {
       const inicioStr = `${anioSeleccionado}-${String(mesSeleccionado + 1).padStart(2, '0')}-01`
       const finStr = `${anioSeleccionado}-${String(mesSeleccionado + 1).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`
 
-      const { data } = await supabase
-        .from('ventas_cabecera')
-        .select('fecha, total_neto')
-        .eq('tienda_id', tienda.id)
-        .gte('fecha', inicioStr)
-        .lte('fecha', finStr)
+      const data = await fetchSerie(inicioStr, finStr)
 
       const semanas: { label: string; total: number }[] = []
       let diaActual = 1
@@ -610,12 +651,7 @@ export default function DashboardPage() {
       }
       setDatosGrafico(semanas)
     } else {
-      const { data } = await supabase
-        .from('ventas_cabecera')
-        .select('fecha, total_neto')
-        .eq('tienda_id', tienda.id)
-        .gte('fecha', `${anioSeleccionado}-01-01`)
-        .lte('fecha', `${anioSeleccionado}-12-31`)
+      const data = await fetchSerie(`${anioSeleccionado}-01-01`, `${anioSeleccionado}-12-31`)
 
       const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
       const resultado = meses.map((label, i) => ({

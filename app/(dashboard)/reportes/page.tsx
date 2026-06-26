@@ -89,7 +89,9 @@ export default function ReportesPage() {
   const sinActividad = datos.ventasNetas === 0 && datos.totalGastos === 0 && datos.totalComprasInventario === 0
   const top3Productos = datos.top3Productos ?? []
   const top3Clientes = datos.top3Clientes ?? []
-  const totalSalidasInventario = datos.totalComprasMes + datos.totalComprasInventario
+  // Las compras de inventario salen por el gasto `compra_inventario` (no por las
+  // entradas, que duplicarían). Espeja `flujoNeto` del server.
+  const totalSalidasInventario = datos.totalComprasInventario
   const flujoNetoMes = datos.ventasNetas - totalSalidasInventario - datos.totalGastos
 
   return (
@@ -220,6 +222,15 @@ export default function ReportesPage() {
                 <p className="text-sm text-[#4A3F35]">Comisiones de plataforma</p>
                 <p className="text-sm font-semibold text-[#4A3F35]">- {formatCOP(datos.totalComisionesPlataforma)}</p>
               </div>
+              {datos.comisionesAliadas > 0 && (
+                <div className="flex items-center justify-between py-2">
+                  <p className="text-sm text-[#4A3F35] flex items-center">
+                    Comisiones tiendas aliadas
+                    <Tooltip texto="Lo que se quedan las tiendas aliadas por vender tus productos en consignación. Las ventas brutas ya incluyen lo vendido en esas tiendas." />
+                  </p>
+                  <p className="text-sm font-semibold text-[#4A3F35]">- {formatCOP(datos.comisionesAliadas)}</p>
+                </div>
+              )}
 
               <div className="border-t border-[#EDE5DC] my-3" />
 
@@ -431,12 +442,6 @@ export default function ReportesPage() {
 
               <p className="text-xs font-semibold text-[#8A7D72] uppercase tracking-wide mb-2">Salidas operativas</p>
               <div className="space-y-2 mb-4">
-                {datos.totalComprasMes > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span style={{ color: 'var(--color-text-soft)' }}>Compras a proveedores (entradas)</span>
-                    <span className="font-semibold text-[#C44040]">- {formatCOP(datos.totalComprasMes)}</span>
-                  </div>
-                )}
                 {datos.totalComprasInventario > 0 && (
                   <div className="flex justify-between text-sm">
                     <span style={{ color: 'var(--color-text-soft)' }}>Compras de inventario</span>
@@ -614,7 +619,7 @@ export default function ReportesPage() {
         {datos.ventasTiendasAliadas.length > 0 && (
           <div className="bg-white rounded-2xl border border-[#EDE5DC] p-6 shadow-sm mt-6">
             <h3 className="text-sm font-semibold text-[#1A1510] mb-1">🏬 Ventas por tienda aliada</h3>
-            <p className="text-xs text-[#8A7D72] mb-4">Liquidaciones del mes en consignación. No se incluyen en las ventas netas del estado de resultados.</p>
+            <p className="text-xs text-[#8A7D72] mb-4">Liquidaciones del mes en consignación. Ya están incluidas en las ventas netas del estado de resultados; aquí ves el desglose por tienda.</p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>

@@ -170,12 +170,26 @@ export async function importarEntradas(filas: Record<string, string>[]) {
           .eq('id', vid)
       }
     }
+
+    // Gasto de compra de inventario (salida de caja), igual que el alta manual de
+    // contado. Sin esto la entrada importada no aparecería en el flujo de caja.
+    await supabase.from('gastos').insert({
+      tienda_id: tienda.id,
+      descripcion: 'Compra de inventario (importada)',
+      monto: fv.insert.cantidad * fv.insert.costo_unitario,
+      fecha: fv.insert.fecha,
+      categoria: 'Compra de inventario',
+      tipo_gasto: 'compra_inventario',
+      subcategoria: 'Producto terminado',
+      proveedor_id: fv.insert.proveedor_id,
+    })
     exitosos++
   }
 
   if (exitosos > 0) {
     revalidatePath('/entradas')
     revalidatePath('/productos')
+    revalidatePath('/gastos')
     revalidatePath('/dashboard')
   }
   return { exitosos, errores: erroresPaso2 }

@@ -44,6 +44,7 @@ export interface DatosReporte {
   top3Clientes: { nombre: string; total: number }[]
   ventasNetasMesAnterior: number
   variacionVentas: number | null
+  comisionesAliadas: number
   ventasTiendasAliadas: { consignataria_id: string; nombre: string; totalVendido: number; comision: number; neto: number }[]
 }
 
@@ -109,6 +110,17 @@ type EntradaRow = {
   productos?: { nombre?: string; tipo?: string } | { nombre?: string; tipo?: string }[] | null
 }
 
+type LiqConsigRel = { producto_id: string; variante_id: string | null; consignataria_id: string | null }
+type LiqMovRow = {
+  consignataria_id: string | null
+  total_bruto: number | null
+  comision: number | null
+  neto: number | null
+  cantidad: number | null
+  fecha: string
+  consignaciones?: LiqConsigRel | LiqConsigRel[] | null
+}
+
 function calcularCPV(
   itemsVendidos: ItemVendidoRow[],
   entradasCosto: EntradaRow[],
@@ -145,7 +157,7 @@ async function calcularSaldoFinalMes(
   const inicio = `${mes}-01`
   const fin = new Date(year, month, 1).toISOString().split('T')[0]
 
-  const [{ data: ventas }, { data: entradas }, { data: gastos }, { data: devoluciones }] =
+  const [{ data: ventas }, { data: gastos }, { data: devoluciones }, { data: liqMes }] =
     await Promise.all([
       supabase
         .from('ventas_cabecera')
@@ -153,12 +165,8 @@ async function calcularSaldoFinalMes(
         .eq('tienda_id', tienda_id)
         .gte('fecha', inicio)
         .lt('fecha', fin),
-      supabase
-        .from('entradas')
-        .select('cantidad, costo_unitario')
-        .eq('tienda_id', tienda_id)
-        .gte('fecha', inicio)
-        .lt('fecha', fin),
+      // Incluye los gastos `compra_inventario` (salida de caja por compras). NO se
+      // suman las entradas aparte: sería el mismo doble conteo del flujo del mes.
       supabase
         .from('gastos')
         .select('monto, tipo_gasto')
@@ -170,10 +178,17 @@ async function calcularSaldoFinalMes(
         .select('precio_original, cantidad, resolucion')
         .eq('tienda_id', tienda_id)
         .eq('mes_contable', mes),
+      // Liquidaciones de tiendas aliadas: el neto es efectivo recibido en el mes.
+      supabase
+        .from('consignacion_movimientos')
+        .select('neto')
+        .eq('tienda_id', tienda_id)
+        .eq('tipo', 'liquidacion')
+        .gte('fecha', inicio)
+        .lt('fecha', fin),
     ])
 
   const ventasNetas = (ventas ?? []).reduce((s, v) => s + (v.total_neto ?? 0), 0)
-  const comprasEntradas = (entradas ?? []).reduce((s, e) => s + e.cantidad * e.costo_unitario, 0)
   const totalGastos = (gastos ?? []).reduce((s, g) => s + (g.monto ?? 0), 0)
   const devs = ((devoluciones ?? []) as DevolucionRow[]).reduce((s, d) => {
     if (d.resolucion === 'reembolso' || d.resolucion === 'credito') {
@@ -181,8 +196,9 @@ async function calcularSaldoFinalMes(
     }
     return s
   }, 0)
+  const aliadasNeto = (liqMes ?? []).reduce((s, m) => s + (m.neto ?? 0), 0)
 
-  return ventasNetas - comprasEntradas - totalGastos - devs
+  return ventasNetas - totalGastos - devs + aliadasNeto
 }
 
 export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | null> {
@@ -289,7 +305,63 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
     (productosConCosto ?? []).map((p) => [p.id, p.costo_produccion as number]),
   )
 
-  const ventasBrutas = ventasRows.reduce((s, v) => s + v.total_bruto, 0)
+  // Costos de variante (productos con variantes guardan el costo a nivel variante).
+  const { data: variantesConCosto } = await supabase
+    .from('producto_variantes')
+    .select('id, costo_produccion')
+    .eq('tienda_id', tienda.id)
+    .not('costo_produccion', 'is', null)
+    .gt('costo_produccion', 0)
+  const costoPorVariante = new Map(
+    (variantesConCosto ?? []).map((v) => [v.id as string, v.costo_produccion as number]),
+  )
+
+  // Liquidaciones de tiendas aliadas del mes. Fuente única: consignacion_movimientos
+  // (tipo liquidacion). NO se usa la tabla `liquidaciones` (masiva): el import CSV
+  // escribe ambas y duplicaría. Estas liquidaciones SON ventas reales: entran al P&L
+  // (bruto → ventas, comisión → costo de venta, CPV → costo) y al flujo de caja (neto).
+  const { data: liquidacionesMes } = await supabase
+    .from('consignacion_movimientos')
+    .select(
+      'consignataria_id, total_bruto, comision, neto, cantidad, fecha, consignaciones(producto_id, variante_id, consignataria_id)',
+    )
+    .eq('tienda_id', tienda.id)
+    .eq('tipo', 'liquidacion')
+    .gte('fecha', start)
+    .lt('fecha', end)
+  const liqRows = (liquidacionesMes ?? []) as LiqMovRow[]
+  const relConsig = (m: LiqMovRow) =>
+    Array.isArray(m.consignaciones) ? m.consignaciones[0] : m.consignaciones
+
+  const aliadasBrutas = liqRows.reduce((s, m) => s + (m.total_bruto ?? 0), 0)
+  const comisionesAliadas = liqRows.reduce((s, m) => s + (m.comision ?? 0), 0)
+  const aliadasNeto = liqRows.reduce((s, m) => s + (m.neto ?? 0), 0)
+  const cpvAliadas = liqRows.reduce((s, m) => {
+    const rel = relConsig(m)
+    if (!rel) return s
+    let costoUnit = rel.variante_id ? costoPorVariante.get(rel.variante_id) : undefined
+    if (!costoUnit || costoUnit <= 0) costoUnit = costoPorProducto.get(rel.producto_id)
+    if (!costoUnit || costoUnit <= 0) {
+      const entrada = entradasCostoRows.find(
+        (e) => e.producto_id === rel.producto_id && (!e.fecha || e.fecha <= m.fecha),
+      )
+      costoUnit = entrada?.costo_unitario ?? 0
+    }
+    return s + (m.cantidad ?? 0) * costoUnit
+  }, 0)
+
+  // Liquidaciones del mes anterior (para que la variación compare total contra total).
+  const { data: liqMesAnterior } = await supabase
+    .from('consignacion_movimientos')
+    .select('neto')
+    .eq('tienda_id', tienda.id)
+    .eq('tipo', 'liquidacion')
+    .gte('fecha', prevStart)
+    .lt('fecha', prevEnd)
+  const aliadasNetoMesAnterior = (liqMesAnterior ?? []).reduce((s, m) => s + (m.neto ?? 0), 0)
+
+  const ventasBrutasDirectas = ventasRows.reduce((s, v) => s + v.total_bruto, 0)
+  const ventasBrutas = ventasBrutasDirectas + aliadasBrutas
   const totalDescuentos = itemsRows.reduce((s, i) => s + i.precio_venta * i.cantidad * ((i.descuento ?? 0) / 100), 0)
   const costoTransacciones = ventasRows.reduce((s, v) => s + v.total_costo_transaccion, 0)
   const totalComisionesPlataforma = costoTransacciones
@@ -299,11 +371,14 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
     }
     return s
   }, 0)
-  const ventasNetasAntesComision = ventasBrutas - totalDescuentos - totalDevoluciones
-  const ventasNetas = ventasNetasAntesComision - totalComisionesPlataforma
+  // Ventas netas SOLO de ventas directas (para ticket promedio y ranking de clientes).
+  const ventasNetasDirectas =
+    ventasBrutasDirectas - totalDescuentos - totalDevoluciones - totalComisionesPlataforma
+  // Ventas netas totales: incluye el neto de tiendas aliadas (bruto − comisión aliada).
+  const ventasNetas = ventasNetasDirectas + aliadasNeto
 
   const totalComprasMes = entradasRows.reduce((s, e) => s + e.cantidad * e.costo_unitario, 0)
-  const cpvMes = calcularCPV(itemsVendidosRows, entradasCostoRows, costoPorProducto)
+  const cpvMes = calcularCPV(itemsVendidosRows, entradasCostoRows, costoPorProducto) + cpvAliadas
   const totalUnidadesVendidas = itemsVendidosRows.reduce((s, i) => s + (i.cantidad ?? 0), 0)
   const utilidadBruta = ventasNetas - cpvMes
   const margenBruto = ventasNetas > 0 ? (utilidadBruta / ventasNetas) * 100 : 0
@@ -347,7 +422,10 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
   const gastosFinancieros = gastosPorTipo.financiero.total
   const totalGastos =
     gastosVariables + gastosFijos + gastosFinancieros + gastosPorTipo.sin_clasificar.total
-  const flujoNeto = ventasNetas - totalComprasMes - totalComprasInventario - totalGastos
+  // Flujo de caja: las compras de inventario salen como gasto `compra_inventario`
+  // (al pagar: contado al instante, crédito cuando se paga la cuota). NO se resta
+  // `totalComprasMes` (entradas) para no contar la misma compra dos veces.
+  const flujoNeto = ventasNetas - totalComprasInventario - totalGastos
 
   const [prevYearSaldo, prevMonthSaldo] = (() => {
     const [y, m] = mes.split('-').map(Number)
@@ -378,7 +456,7 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
   const margenNeto = ventasNetas > 0 ? (utilidadNeta / ventasNetas) * 100 : 0
 
   const totalTransacciones = ventasRows.length
-  const ticketPromedio = totalTransacciones > 0 ? ventasNetas / totalTransacciones : 0
+  const ticketPromedio = totalTransacciones > 0 ? ventasNetasDirectas / totalTransacciones : 0
   const unidadesVendidas = itemsRows.reduce((s, i) => s + i.cantidad, 0)
 
   const conteoProductos = new Map<string, { nombre: string; cantidad: number }>()
@@ -431,43 +509,30 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
     clienteQueMasCompro = rankingClientes[0] ?? null
   }
 
-  const ventasNetasMesAnterior = ventasAntRows.reduce((s, v) => s + v.total_neto, 0)
+  const ventasNetasMesAnterior =
+    ventasAntRows.reduce((s, v) => s + v.total_neto, 0) + aliadasNetoMesAnterior
   const variacionVentas =
     ventasNetasMesAnterior > 0 ? ((ventasNetas - ventasNetasMesAnterior) / ventasNetasMesAnterior) * 100 : null
 
-  // Ventas de tiendas aliadas (consignación) del mes: liquidaciones por remisión
-  // (consignacion_movimientos) + liquidaciones masivas (liquidaciones). No están
-  // en ventasNetas (son un flujo aparte), por eso se reportan por separado.
-  const [{ data: movsLiq }, { data: liqsMasivas }, { data: consignatariasData }] = await Promise.all([
-    supabase
-      .from('consignacion_movimientos')
-      .select('consignataria_id, total_bruto, comision, neto')
-      .eq('tienda_id', tienda.id)
-      .eq('tipo', 'liquidacion')
-      .gte('fecha', start)
-      .lt('fecha', end),
-    supabase
-      .from('liquidaciones')
-      .select('consignataria_id, total_vendido, comision, neto')
-      .eq('tienda_id', tienda.id)
-      .gte('fecha', start)
-      .lt('fecha', end),
-    supabase.from('tiendas_consignatarias').select('id, nombre').eq('tienda_id', tienda.id),
-  ])
-
+  // Desglose por tienda aliada. Misma fuente única que el P&L (liqRows), sin doble
+  // conteo. El flujo en vivo (registrarMovimiento) no setea consignataria_id en el
+  // movimiento, así que se usa el de la consignación como fallback.
+  const { data: consignatariasData } = await supabase
+    .from('tiendas_consignatarias')
+    .select('id, nombre')
+    .eq('tienda_id', tienda.id)
   const nombresConsig = new Map((consignatariasData ?? []).map((c) => [c.id as string, c.nombre as string]))
   const aliadasMap = new Map<string, { totalVendido: number; comision: number; neto: number }>()
-  const acumularAliada = (id: string | null, vendido: number, comision: number, neto: number) => {
+  liqRows.forEach((m) => {
+    const id = m.consignataria_id ?? relConsig(m)?.consignataria_id ?? null
     if (!id) return
     const prev = aliadasMap.get(id) ?? { totalVendido: 0, comision: 0, neto: 0 }
     aliadasMap.set(id, {
-      totalVendido: prev.totalVendido + (Number(vendido) || 0),
-      comision: prev.comision + (Number(comision) || 0),
-      neto: prev.neto + (Number(neto) || 0),
+      totalVendido: prev.totalVendido + (Number(m.total_bruto) || 0),
+      comision: prev.comision + (Number(m.comision) || 0),
+      neto: prev.neto + (Number(m.neto) || 0),
     })
-  }
-  ;(movsLiq ?? []).forEach((m) => acumularAliada(m.consignataria_id, m.total_bruto, m.comision, m.neto))
-  ;(liqsMasivas ?? []).forEach((l) => acumularAliada(l.consignataria_id, l.total_vendido, l.comision, l.neto))
+  })
 
   const ventasTiendasAliadas = [...aliadasMap.entries()]
     .map(([consignataria_id, v]) => ({
@@ -511,6 +576,7 @@ export async function obtenerDatosReporte(mes: string): Promise<DatosReporte | n
     top3Clientes,
     ventasNetasMesAnterior,
     variacionVentas,
+    comisionesAliadas,
     ventasTiendasAliadas,
   }
 }

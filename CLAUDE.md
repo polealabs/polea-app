@@ -164,6 +164,9 @@ Funciones `SECURITY DEFINER` que devuelven los `tienda_id` del usuario según pe
 ### compra_inventario
 Tipo de gasto que aparece **solo en flujo de caja, NO en P&L**. Evita doble conteo con CPV.
 
+**Fuente única del flujo de caja para compras de inventario = el gasto `compra_inventario`** (corregido 2026-06-25). Una entrada de contado crea ese gasto (`entradas/actions.ts`); a crédito lo crea al pagar la cuota (`registrarPagoCuenta`); el import CSV de entradas también lo crea (`entradas/actions-import.ts`). El flujo de caja **NO** resta además las `entradas` (`totalComprasMes`): hacerlo contaba la misma compra dos veces ("Compras a proveedores (entradas)" + "Compras de inventario"). Ya corregido en `flujoNeto`, `calcularSaldoFinalMes` y `reportes/page.tsx`. El gasto sale en la fecha de **pago** (timing real de caja); a crédito no impacta caja hasta pagar.
+- **Gap histórico:** las entradas importadas por CSV **antes** del 2026-06-25 no tienen su gasto `compra_inventario` → desaparecen del flujo de caja hasta hacer un backfill (crear el gasto faltante por cada una). Las entradas manuales no se ven afectadas (siempre crearon el gasto).
+
 ### IVA opcional (aditivo, 19%)
 Migración `20260618130000_iva.sql`. Constante `TASA_IVA = 0.19` en `lib/utils.ts`.
 - **Opcional por negocio** (`tiendas.cobra_iva`, toggle en onboarding y `/perfil`) y **por tienda aliada** (`tiendas_consignatarias.cobra_iva`, toggle en el modal de consignataria).
@@ -379,7 +382,11 @@ Al cerrar un evento, exporta: `evento_ventas` → `ventas_cabecera` + `venta_ite
 ### Tiendas aliadas — pestañas Inventario vs Remisiones
 - **Inventario › Por tienda:** consolidado por producto (suma todas las remisiones de la consignataria), **solo lectura**, solo productos con stock disponible. Inventario › Global ya estaba consolidado.
 - **Remisiones:** cada salida por fecha de envío, con las acciones **Liquidar / Devolver** (`abrirMovimiento`, operan a nivel de remisión individual). Filtrable por tienda.
-- **Reportes:** sección "Ventas por tienda aliada" (`DatosReporte.ventasTiendasAliadas`) agrega liquidaciones del mes (`consignacion_movimientos` tipo liquidación + `liquidaciones` masivas). NO entran en las ventas netas del P&L (flujo aparte).
+- **Reportes — liquidaciones SÍ entran al P&L y al flujo de caja (desde 2026-06-25).** Una liquidación es una venta real: `total_bruto` → ventas brutas, `comision` (lo que se queda la tienda aliada) → línea propia "Comisiones tiendas aliadas" que reduce a ventas netas, CPV de esas unidades → costo, `neto` → efectivo en el flujo de caja (vía `ventasNetas`).
+  - **Fuente única de verdad: `consignacion_movimientos` tipo `liquidacion`.** NO se suma la tabla `liquidaciones` (masiva): el import CSV (`actions-import-historial.ts`) escribe **ambas** tablas para la misma venta, así que sumarlas duplicaba (bug viejo del `ventasTiendasAliadas`, ya corregido).
+  - **`registrarLiquidacion` (masiva) está muerta** — no se llama desde la UI; la única liquidación viva es `registrarMovimiento` por remisión (sí captura producto/cantidad/precio → CPV calculable). Las filas `liquidaciones` solo provienen del CSV histórico.
+  - El flujo en vivo NO setea `consignacion_movimientos.consignataria_id`; el desglose por tienda usa `consignaciones.consignataria_id` como fallback. CPV de variantes vía `producto_variantes.costo_produccion` (fallback a entrada).
+  - `ticketPromedio` y ranking de clientes siguen siendo solo de ventas directas (`ventasNetasDirectas`). Lógica en `reportes/actions.ts → obtenerDatosReporte` + `calcularSaldoFinalMes` (saldo histórico). Dashboard (tarjetas + gráfico) también suma el `neto` de liquidaciones.
 
 ### Soporte widget (`components/ui/SoporteWidget.tsx`)
 Botón flotante en todas las páginas del dashboard. Posición dinámica: en `/dashboard` sube a `bottom: 5.5rem` para no tapar el botón de nueva venta; resto: `bottom: 1.5rem`.
