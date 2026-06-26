@@ -36,7 +36,7 @@ export default function AdminCasoActions({ caso_id, tienda_id, estado }: Props) 
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Cambiar estado */}
       <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '16px 20px', border: '1px solid rgba(255,255,255,0.08)' }}>
-        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 12px' }}>
+        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 12px' }}>
           Cambiar estado
         </p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -49,7 +49,7 @@ export default function AdminCasoActions({ caso_id, tienda_id, estado }: Props) 
                 fontSize: 12, fontWeight: 600, padding: '7px 14px', borderRadius: 8,
                 border: 'none', cursor: estado === s ? 'default' : 'pointer',
                 background: estado === s ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.06)',
-                color: estado === s ? 'white' : 'rgba(255,255,255,0.45)',
+                color: estado === s ? 'white' : 'rgba(255,255,255,0.6)',
                 opacity: estado === s ? 1 : 0.8,
                 transition: 'all 0.15s',
               }}
@@ -65,7 +65,7 @@ export default function AdminCasoActions({ caso_id, tienda_id, estado }: Props) 
       {/* Responder */}
       {estado !== 'resuelto' && (
         <form onSubmit={handleResponder} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '16px 20px', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 12px' }}>
+          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 12px' }}>
             Responder al cliente
           </p>
           <textarea

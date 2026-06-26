@@ -28,7 +28,7 @@ export default async function AdminTiendaDetalle({ params }: { params: Promise<{
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center gap-3 flex-wrap">
-        <Link href="/polealabs/tiendas" className="text-white/40 hover:text-white text-sm transition">
+        <Link href="/polealabs/tiendas" className="text-white/60 hover:text-white text-sm transition">
           ← Tiendas
         </Link>
         <span className="text-white/20">/</span>
@@ -47,7 +47,7 @@ export default async function AdminTiendaDetalle({ params }: { params: Promise<{
             className="rounded-xl p-4 border border-white/10"
             style={{ background: 'rgba(255,255,255,0.05)' }}
           >
-            <p className="text-white/40 text-xs mb-1">{item.label}</p>
+            <p className="text-white/60 text-xs mb-1">{item.label}</p>
             <p className="text-white font-semibold">{item.valor}</p>
           </div>
         ))}
@@ -56,7 +56,7 @@ export default async function AdminTiendaDetalle({ params }: { params: Promise<{
       <div className="rounded-2xl p-6 border border-white/10" style={{ background: 'rgba(255,255,255,0.05)' }}>
         <p className="text-sm font-semibold text-white mb-4">Ventas por mes</p>
         {Object.keys(ventasMensuales).length === 0 ? (
-          <p className="text-white/40 text-sm">Sin ventas registradas</p>
+          <p className="text-white/60 text-sm">Sin ventas registradas</p>
         ) : (
           <div className="space-y-3">
             {Object.entries(ventasMensuales).map(([mes, total]) => {
@@ -100,9 +100,9 @@ export default async function AdminTiendaDetalle({ params }: { params: Promise<{
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/5">
-                <th className="px-6 py-3 text-left text-xs text-white/40 uppercase">Email</th>
-                <th className="px-6 py-3 text-left text-xs text-white/40 uppercase">Rol</th>
-                <th className="px-6 py-3 text-left text-xs text-white/40 uppercase">Desde</th>
+                <th className="px-6 py-3 text-left text-xs text-white/60 uppercase">Email</th>
+                <th className="px-6 py-3 text-left text-xs text-white/60 uppercase">Rol</th>
+                <th className="px-6 py-3 text-left text-xs text-white/60 uppercase">Desde</th>
               </tr>
             </thead>
             <tbody>

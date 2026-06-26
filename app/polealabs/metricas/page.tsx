@@ -51,7 +51,7 @@ export default async function AdminMetricas() {
     <div className="max-w-5xl mx-auto space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-white">Métricas de producto</h1>
-        <p className="text-white/40 text-sm mt-1">Uso global de features en la plataforma</p>
+        <p className="text-white/60 text-sm mt-1">Uso global de features en la plataforma</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -63,7 +63,7 @@ export default async function AdminMetricas() {
           >
             <p className="text-xl mb-2">{f.icon}</p>
             <p className="text-2xl font-bold text-white">{f.valor.toLocaleString()}</p>
-            <p className="text-white/40 text-xs mt-1">{f.label}</p>
+            <p className="text-white/60 text-xs mt-1">{f.label}</p>
           </div>
         ))}
       </div>

@@ -33,7 +33,7 @@ export default async function AdminUsuarios() {
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Usuarios</h1>
-        <p className="text-white/40 text-sm mt-1">{perfiles?.length ?? 0} usuarios registrados</p>
+        <p className="text-white/60 text-sm mt-1">{perfiles?.length ?? 0} usuarios registrados</p>
       </div>
 
       <div
@@ -43,11 +43,11 @@ export default async function AdminUsuarios() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-white/10">
-              <th className="px-6 py-3 text-left text-xs text-white/40 uppercase">Nombre</th>
-              <th className="px-6 py-3 text-left text-xs text-white/40 uppercase">Tienda</th>
-              <th className="px-6 py-3 text-left text-xs text-white/40 uppercase">Rol</th>
-              <th className="px-6 py-3 text-left text-xs text-white/40 uppercase">Email</th>
-              <th className="px-6 py-3 text-left text-xs text-white/40 uppercase">Última actividad</th>
+              <th className="px-6 py-3 text-left text-xs text-white/60 uppercase">Nombre</th>
+              <th className="px-6 py-3 text-left text-xs text-white/60 uppercase">Tienda</th>
+              <th className="px-6 py-3 text-left text-xs text-white/60 uppercase">Rol</th>
+              <th className="px-6 py-3 text-left text-xs text-white/60 uppercase">Email</th>
+              <th className="px-6 py-3 text-left text-xs text-white/60 uppercase">Última actividad</th>
             </tr>
           </thead>
           <tbody>

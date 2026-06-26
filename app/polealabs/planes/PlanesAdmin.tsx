@@ -115,7 +115,7 @@ function PlanForm({
               placeholder="Ilimitado"
               value={form.max_productos}
               onChange={(e) => set('max_productos', e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-white/10 text-white text-sm border border-white/20 focus:outline-none focus:border-[#C4622D] placeholder-white/30"
+              className="w-full px-3 py-2 rounded-lg bg-white/10 text-white text-sm border border-white/20 focus:outline-none focus:border-[#C4622D] placeholder-white/50"
             />
           </div>
           <div>
@@ -125,7 +125,7 @@ function PlanForm({
               placeholder="Ilimitado"
               value={form.max_miembros}
               onChange={(e) => set('max_miembros', e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-white/10 text-white text-sm border border-white/20 focus:outline-none focus:border-[#C4622D] placeholder-white/30"
+              className="w-full px-3 py-2 rounded-lg bg-white/10 text-white text-sm border border-white/20 focus:outline-none focus:border-[#C4622D] placeholder-white/50"
             />
           </div>
         </div>
@@ -246,19 +246,19 @@ export default function PlanesAdmin({ planes }: { planes: Plan[] }) {
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-white font-semibold text-lg">{plan.nombre}</p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${plan.activo ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/40'}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${plan.activo ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/60'}`}>
                       {plan.activo ? 'Activo' : 'Inactivo'}
                     </span>
                   </div>
-                  {plan.descripcion && <p className="text-white/40 text-sm mt-0.5">{plan.descripcion}</p>}
+                  {plan.descripcion && <p className="text-white/60 text-sm mt-0.5">{plan.descripcion}</p>}
                 </div>
               </div>
               <div className="flex items-center gap-4 shrink-0">
                 <div className="text-right">
-                  <p className="text-white font-semibold">{formatCOP(plan.precio_mensual)}<span className="text-white/40 text-xs font-normal">/mes</span></p>
-                  <p className="text-white/40 text-xs">{formatCOP(plan.precio_anual)}/año · {plan.descuento_anual_porcentaje}% dto</p>
+                  <p className="text-white font-semibold">{formatCOP(plan.precio_mensual)}<span className="text-white/60 text-xs font-normal">/mes</span></p>
+                  <p className="text-white/60 text-xs">{formatCOP(plan.precio_anual)}/año · {plan.descuento_anual_porcentaje}% dto</p>
                 </div>
-                <div className="text-right text-xs text-white/40">
+                <div className="text-right text-xs text-white/60">
                   <p>{plan.max_productos != null ? `${plan.max_productos} productos` : 'Productos ilimitados'}</p>
                   <p>{plan.max_miembros != null ? `${plan.max_miembros} miembros` : 'Equipo ilimitado'}</p>
                 </div>
@@ -312,7 +312,7 @@ export default function PlanesAdmin({ planes }: { planes: Plan[] }) {
       ) : (
         <button
           onClick={() => setShowCreate(true)}
-          className="w-full py-3 rounded-2xl border border-dashed border-white/20 text-white/40 text-sm hover:border-white/40 hover:text-white/60 transition"
+          className="w-full py-3 rounded-2xl border border-dashed border-white/20 text-white/60 text-sm hover:border-white/40 hover:text-white/60 transition"
         >
           + Agregar plan
         </button>

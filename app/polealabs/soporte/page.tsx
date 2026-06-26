@@ -37,7 +37,7 @@ export default async function SoportePage({
     <div style={{ maxWidth: 900 }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ color: 'white', fontSize: 22, fontWeight: 700, margin: '0 0 4px' }}>Soporte</h1>
-        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, margin: 0 }}>Casos reportados por los clientes</p>
+        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, margin: 0 }}>Casos reportados por los clientes</p>
       </div>
 
       {/* KPIs */}
@@ -49,7 +49,7 @@ export default async function SoportePage({
           { label: 'Resueltos', valor: conteo.resuelto, color: '#3A7D5A' },
         ].map((k) => (
           <div key={k.label} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '14px 18px', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 500, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k.label}</p>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 500, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k.label}</p>
             <p style={{ color: k.color, fontSize: 26, fontWeight: 700, margin: 0 }}>{k.valor}</p>
           </div>
         ))}
@@ -73,7 +73,7 @@ export default async function SoportePage({
                 : 'rgba(255,255,255,0.05)',
               color: filtroEstado === f.value || (!filtroEstado && f.value === '')
                 ? 'white'
-                : 'rgba(255,255,255,0.4)',
+                : 'rgba(255,255,255,0.6)',
               border: '1px solid rgba(255,255,255,0.1)',
               textDecoration: 'none',
               transition: 'all 0.15s',
@@ -87,7 +87,7 @@ export default async function SoportePage({
       {/* Tabla */}
       <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
         {!casos || casos.length === 0 ? (
-          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', padding: '40px 0', fontSize: 14 }}>
+          <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.6)', padding: '40px 0', fontSize: 14 }}>
             No hay casos {filtroEstado ? `con estado "${ESTADO_BADGE[filtroEstado]?.label}"` : ''}.
           </p>
         ) : (
@@ -95,7 +95,7 @@ export default async function SoportePage({
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                 {['Tienda', 'Asunto', 'Estado', 'Fecha', ''].map((h) => (
-                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     {h}
                   </th>
                 ))}
@@ -119,7 +119,7 @@ export default async function SoportePage({
                         {badge.label}
                       </span>
                     </td>
-                    <td style={{ padding: '14px 16px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
+                    <td style={{ padding: '14px 16px', fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
                       {new Date(c.updated_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td style={{ padding: '14px 16px' }}>

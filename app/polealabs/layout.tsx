@@ -32,7 +32,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </div>
           <div>
             <p className="text-white text-sm font-semibold">Polea Admin</p>
-            <p className="text-white/40 text-xs">Panel de operaciones</p>
+            <p className="text-white/60 text-xs">Panel de operaciones</p>
           </div>
         </div>
         <div className="flex items-center gap-4 flex-wrap justify-end">
@@ -54,7 +54,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/polealabs/soporte" className="text-white/60 hover:text-white text-xs transition">
             Soporte
           </Link>
-          <span className="text-white/30 text-xs">{admin.nombre ?? user.email}</span>
+          <span className="text-white/60 text-xs">{admin.nombre ?? user.email}</span>
           <Link
             href="/dashboard"
             className="text-xs px-3 py-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition"

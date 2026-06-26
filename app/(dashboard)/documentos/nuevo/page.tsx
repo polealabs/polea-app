@@ -392,8 +392,8 @@ export default function NuevoDocumentoPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {tipo === 'cotizacion' && modoCotizacion === 'cliente' && (
               <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-ink-soft mb-1">Cliente existente</label>
-                <select value={clienteId} onChange={(e) => seleccionarCliente(e.target.value)} className={inputClass}>
+                <label htmlFor="doc-cliente" className="block text-xs font-medium text-ink-soft mb-1">Cliente existente</label>
+                <select id="doc-cliente" value={clienteId} onChange={(e) => seleccionarCliente(e.target.value)} className={inputClass}>
                   <option value="">Selecciona un cliente</option>
                   {clientes.map((c) => (
                     <option key={c.id} value={c.id}>{c.nombre}</option>
@@ -403,8 +403,8 @@ export default function NuevoDocumentoPage() {
             )}
             {tipo === 'cuenta_cobro' && modoCuentaCobroDest === 'proveedor' && (
               <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-ink-soft mb-1">Proveedor existente</label>
-                <select value={proveedorId} onChange={(e) => seleccionarProveedor(e.target.value)} className={inputClass}>
+                <label htmlFor="doc-proveedor" className="block text-xs font-medium text-ink-soft mb-1">Proveedor existente</label>
+                <select id="doc-proveedor" value={proveedorId} onChange={(e) => seleccionarProveedor(e.target.value)} className={inputClass}>
                   <option value="">Selecciona un proveedor</option>
                   {proveedores.map((p) => (
                     <option key={p.id} value={p.id}>{p.nombre}</option>
@@ -414,8 +414,8 @@ export default function NuevoDocumentoPage() {
             )}
             {tipo === 'cuenta_cobro' && modoCuentaCobroDest === 'consignataria' && (
               <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-ink-soft mb-1">Tienda consignataria</label>
-                <select value={consignatariaId} onChange={(e) => seleccionarConsignataria(e.target.value)} className={inputClass}>
+                <label htmlFor="doc-consignataria" className="block text-xs font-medium text-ink-soft mb-1">Tienda consignataria</label>
+                <select id="doc-consignataria" value={consignatariaId} onChange={(e) => seleccionarConsignataria(e.target.value)} className={inputClass}>
                   <option value="">Selecciona una tienda consignataria</option>
                   {consignatarias.map((c) => (
                     <option key={c.id} value={c.id}>{c.nombre}</option>
@@ -518,11 +518,11 @@ export default function NuevoDocumentoPage() {
           <div className="bg-white rounded-2xl border border-[#EDE5DC] p-5 shadow-sm">
             <h2 className="text-sm font-semibold text-ink mb-3">Datos bancarios</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div><label className="block text-xs font-medium text-ink-soft mb-1">Banco</label><input value={banco} onChange={(e) => setBanco(e.target.value)} className={inputClass} /></div>
-              <div><label className="block text-xs font-medium text-ink-soft mb-1">Tipo de cuenta</label><select value={tipoCuenta} onChange={(e) => setTipoCuenta(e.target.value)} className={inputClass}><option value="Ahorros">Ahorros</option><option value="Corriente">Corriente</option><option value="Nequi">Nequi</option><option value="Daviplata">Daviplata</option></select></div>
-              <div><label className="block text-xs font-medium text-ink-soft mb-1">Número de cuenta</label><input value={numeroCuenta} onChange={(e) => setNumeroCuenta(e.target.value)} className={inputClass} /></div>
-              <div><label className="block text-xs font-medium text-ink-soft mb-1">Titular de la cuenta</label><input value={titularCuenta} onChange={(e) => setTitularCuenta(e.target.value)} className={inputClass} /></div>
-              <div className="md:col-span-2"><label className="block text-xs font-medium text-ink-soft mb-1">Cédula del titular</label><input value={cedulaTitular} onChange={(e) => setCedulaTitular(e.target.value)} className={inputClass} /></div>
+              <div><label htmlFor="doc-banco" className="block text-xs font-medium text-ink-soft mb-1">Banco</label><input id="doc-banco" value={banco} onChange={(e) => setBanco(e.target.value)} className={inputClass} /></div>
+              <div><label htmlFor="doc-tipo-cuenta" className="block text-xs font-medium text-ink-soft mb-1">Tipo de cuenta</label><select id="doc-tipo-cuenta" value={tipoCuenta} onChange={(e) => setTipoCuenta(e.target.value)} className={inputClass}><option value="Ahorros">Ahorros</option><option value="Corriente">Corriente</option><option value="Nequi">Nequi</option><option value="Daviplata">Daviplata</option></select></div>
+              <div><label htmlFor="doc-numero-cuenta" className="block text-xs font-medium text-ink-soft mb-1">Número de cuenta</label><input id="doc-numero-cuenta" value={numeroCuenta} onChange={(e) => setNumeroCuenta(e.target.value)} className={inputClass} /></div>
+              <div><label htmlFor="doc-titular" className="block text-xs font-medium text-ink-soft mb-1">Titular de la cuenta</label><input id="doc-titular" value={titularCuenta} onChange={(e) => setTitularCuenta(e.target.value)} className={inputClass} /></div>
+              <div className="md:col-span-2"><label htmlFor="doc-cedula-titular" className="block text-xs font-medium text-ink-soft mb-1">Cédula del titular</label><input id="doc-cedula-titular" value={cedulaTitular} onChange={(e) => setCedulaTitular(e.target.value)} className={inputClass} /></div>
             </div>
           </div>
         )}

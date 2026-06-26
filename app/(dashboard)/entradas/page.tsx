@@ -1029,8 +1029,8 @@ function EntradasPageContent() {
 
             {tipoPago === 'contado_pendiente' && (
               <div className="rounded-xl p-4 space-y-2 bg-amber-50/80 border border-amber-200/60">
-                <label className={labelClass}>Fecha de vencimiento</label>
-                <input type="date" value={fechaPago} onChange={(e) => setFechaPago(e.target.value)} className={`${inputClass} max-w-xs`} />
+                <label htmlFor="entrada-fecha-vencimiento" className={labelClass}>Fecha de vencimiento</label>
+                <input id="entrada-fecha-vencimiento" type="date" value={fechaPago} onChange={(e) => setFechaPago(e.target.value)} className={`${inputClass} max-w-xs`} />
                 <p className="text-xs" style={{ color: 'var(--color-text-soft)' }}>
                   Se creará una alerta de pago pendiente por {formatCOP(montoTotalEntrada)}.
                 </p>
@@ -1041,8 +1041,9 @@ function EntradasPageContent() {
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className={labelClass}>Número de cuotas</label>
+                    <label htmlFor="entrada-numero-cuotas" className={labelClass}>Número de cuotas</label>
                     <input
+                      id="entrada-numero-cuotas"
                       type="number"
                       min={2}
                       max={12}
@@ -1052,8 +1053,9 @@ function EntradasPageContent() {
                     />
                   </div>
                   <div>
-                    <label className={labelClass}>Fecha primera cuota</label>
+                    <label htmlFor="entrada-fecha-primera-cuota" className={labelClass}>Fecha primera cuota</label>
                     <input
+                      id="entrada-fecha-primera-cuota"
                       type="date"
                       value={fechaPrimeraCuota || fechaRecepcion}
                       onChange={(e) => setFechaPrimeraCuota(e.target.value)}
@@ -1061,7 +1063,7 @@ function EntradasPageContent() {
                     />
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div role="group" aria-label="Frecuencia de las cuotas" className="flex flex-wrap gap-2">
                   {(['semanal', 'quincenal', 'mensual'] as const).map((f) => (
                     <button
                       key={f}

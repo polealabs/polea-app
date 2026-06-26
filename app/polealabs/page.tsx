@@ -50,7 +50,7 @@ export default async function AdminOverview() {
     <div className="max-w-7xl mx-auto space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-white">Overview</h1>
-        <p className="text-white/40 text-sm mt-1">Estado global de Leva</p>
+        <p className="text-white/60 text-sm mt-1">Estado global de Leva</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -62,14 +62,14 @@ export default async function AdminOverview() {
           >
             <p className="text-2xl mb-2">{kpi.icon}</p>
             <p className="text-3xl font-bold text-white">{kpi.valor.toLocaleString()}</p>
-            <p className="text-white/40 text-xs mt-1">{kpi.label}</p>
+            <p className="text-white/60 text-xs mt-1">{kpi.label}</p>
             <div className="h-0.5 rounded-full mt-3" style={{ background: kpi.color }} />
           </div>
         ))}
       </div>
 
       <div className="rounded-2xl p-6 border border-white/10" style={{ background: 'rgba(255,255,255,0.05)' }}>
-        <p className="text-white/40 text-xs uppercase tracking-widest mb-1">
+        <p className="text-white/60 text-xs uppercase tracking-widest mb-1">
           Total procesado en plataforma (este año)
         </p>
         <p className="text-4xl font-bold text-white">{formatCOP(totalVentasPlataforma)}</p>
@@ -79,7 +79,7 @@ export default async function AdminOverview() {
         <p className="text-sm font-semibold text-white mb-4">Ventas registradas por mes (este año)</p>
         <div className="space-y-3">
           {Object.keys(ventasMensuales).length === 0 ? (
-            <p className="text-white/40 text-sm">Sin ventas en el periodo</p>
+            <p className="text-white/60 text-sm">Sin ventas en el periodo</p>
           ) : (
             Object.entries(ventasMensuales).map(([mes, total]) => {
               const maxVal = Math.max(...Object.values(ventasMensuales))
@@ -115,10 +115,10 @@ export default async function AdminOverview() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-white/5">
-              <th className="px-6 py-3 text-left text-xs text-white/40 uppercase tracking-wide">Tienda</th>
-              <th className="px-6 py-3 text-left text-xs text-white/40 uppercase tracking-wide">Ciudad</th>
-              <th className="px-6 py-3 text-left text-xs text-white/40 uppercase tracking-wide">Industria</th>
-              <th className="px-6 py-3 text-left text-xs text-white/40 uppercase tracking-wide">Registro</th>
+              <th className="px-6 py-3 text-left text-xs text-white/60 uppercase tracking-wide">Tienda</th>
+              <th className="px-6 py-3 text-left text-xs text-white/60 uppercase tracking-wide">Ciudad</th>
+              <th className="px-6 py-3 text-left text-xs text-white/60 uppercase tracking-wide">Industria</th>
+              <th className="px-6 py-3 text-left text-xs text-white/60 uppercase tracking-wide">Registro</th>
             </tr>
           </thead>
           <tbody>

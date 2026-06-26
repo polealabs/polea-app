@@ -51,7 +51,7 @@ export default async function AdminTiendas() {
     <div className="max-w-7xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Tiendas</h1>
-        <p className="text-white/40 text-sm mt-1">{tiendas?.length ?? 0} tiendas registradas</p>
+        <p className="text-white/60 text-sm mt-1">{tiendas?.length ?? 0} tiendas registradas</p>
       </div>
 
       <div
@@ -61,16 +61,16 @@ export default async function AdminTiendas() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-white/10">
-              <th className="px-6 py-3 text-left text-xs text-white/40 uppercase tracking-wide">Tienda</th>
-              <th className="px-6 py-3 text-left text-xs text-white/40 uppercase tracking-wide">Owner</th>
-              <th className="px-6 py-3 text-left text-xs text-white/40 uppercase tracking-wide">Ciudad</th>
-              <th className="px-6 py-3 text-left text-xs text-white/40 uppercase tracking-wide">Industria</th>
-              <th className="px-6 py-3 text-right text-xs text-white/40 uppercase tracking-wide">Ventas totales</th>
-              <th className="px-6 py-3 text-right text-xs text-white/40 uppercase tracking-wide">Productos</th>
-              <th className="px-6 py-3 text-right text-xs text-white/40 uppercase tracking-wide">Equipo</th>
-              <th className="px-6 py-3 text-left text-xs text-white/40 uppercase tracking-wide">Registro</th>
-              <th className="px-6 py-3 text-left text-xs text-white/40 uppercase tracking-wide">Beta</th>
-              <th className="px-6 py-3 text-left text-xs text-white/40 uppercase tracking-wide">Contacto</th>
+              <th className="px-6 py-3 text-left text-xs text-white/60 uppercase tracking-wide">Tienda</th>
+              <th className="px-6 py-3 text-left text-xs text-white/60 uppercase tracking-wide">Owner</th>
+              <th className="px-6 py-3 text-left text-xs text-white/60 uppercase tracking-wide">Ciudad</th>
+              <th className="px-6 py-3 text-left text-xs text-white/60 uppercase tracking-wide">Industria</th>
+              <th className="px-6 py-3 text-right text-xs text-white/60 uppercase tracking-wide">Ventas totales</th>
+              <th className="px-6 py-3 text-right text-xs text-white/60 uppercase tracking-wide">Productos</th>
+              <th className="px-6 py-3 text-right text-xs text-white/60 uppercase tracking-wide">Equipo</th>
+              <th className="px-6 py-3 text-left text-xs text-white/60 uppercase tracking-wide">Registro</th>
+              <th className="px-6 py-3 text-left text-xs text-white/60 uppercase tracking-wide">Beta</th>
+              <th className="px-6 py-3 text-left text-xs text-white/60 uppercase tracking-wide">Contacto</th>
             </tr>
           </thead>
           <tbody>
@@ -119,7 +119,7 @@ export default async function AdminTiendas() {
                       WhatsApp
                     </a>
                   ) : (
-                    <span className="text-white/30 text-xs">—</span>
+                    <span className="text-white/60 text-xs">—</span>
                   )}
                 </td>
               </tr>

@@ -35,7 +35,7 @@ export default async function CasoDetallePage({ params }: { params: Promise<{ id
     <div style={{ maxWidth: 760 }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 28 }}>
-        <Link href="/polealabs/soporte" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: 13, marginTop: 2, flexShrink: 0 }}>
+        <Link href="/polealabs/soporte" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: 13, marginTop: 2, flexShrink: 0 }}>
           ← Volver
         </Link>
         <div style={{ flex: 1 }}>
@@ -45,7 +45,7 @@ export default async function CasoDetallePage({ params }: { params: Promise<{ id
               {badge.label}
             </span>
           </div>
-          <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, margin: '4px 0 0' }}>
+          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, margin: '4px 0 0' }}>
             {tienda?.nombre ?? '—'} · Abierto el{' '}
             {new Date(caso.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
           </p>
@@ -55,11 +55,11 @@ export default async function CasoDetallePage({ params }: { params: Promise<{ id
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20, alignItems: 'start' }}>
         {/* Hilo de mensajes */}
         <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
+          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
             Conversación
           </p>
           {!mensajes || mensajes.length === 0 ? (
-            <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>Sin mensajes aún.</p>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>Sin mensajes aún.</p>
           ) : (
             mensajes.map((m) => (
               <div
@@ -86,7 +86,7 @@ export default async function CasoDetallePage({ params }: { params: Promise<{ id
                   )}
                   <p style={{ fontSize: 13, margin: 0, lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{m.mensaje}</p>
                 </div>
-                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', margin: '3px 4px 0' }}>
+                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', margin: '3px 4px 0' }}>
                   {new Date(m.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>

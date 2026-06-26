@@ -37,7 +37,7 @@ export default function BetaPanel({ tiendaId, esBeta, betaHasta }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-white font-semibold">Acceso Beta</p>
-          <p className="text-white/40 text-xs mt-0.5">El cliente verá el badge BETA mientras esté activo y dentro de la fecha</p>
+          <p className="text-white/60 text-xs mt-0.5">El cliente verá el badge BETA mientras esté activo y dentro de la fecha</p>
         </div>
         {vigente && (
           <span className="text-xs px-2.5 py-1 rounded-full font-bold tracking-wide bg-violet-500/20 text-violet-300 border border-violet-500/30">
