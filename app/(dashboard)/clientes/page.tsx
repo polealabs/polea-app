@@ -55,9 +55,9 @@ export default function ClientesPage() {
   const [busqueda, setBusqueda] = useState('')
   const [mesActual, setMesActual] = useState(() => toLocalISOYearMonthString())
   const [filtroMes, setFiltroMes] = useState(false)
-  const [chipCliente, setChipCliente] = useState<'todos' | 'recurrentes' | 'activos-mes' | 'sin-compras'>(
-    () => (searchParams.get('filtro') === 'recurrentes' ? 'recurrentes' : 'todos'),
-  )
+  const [chipCliente, setChipCliente] = useState<
+    'todos' | 'mejores' | 'recurrentes' | 'activos-mes' | 'sin-compras'
+  >(() => (searchParams.get('filtro') === 'recurrentes' ? 'recurrentes' : 'todos'))
   const [ultimaCompraMap, setUltimaCompraMap] = useState<Map<string, string>>(new Map())
   const [fechasFiltro] = useState(() => ({
     hace35: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -80,33 +80,39 @@ export default function ClientesPage() {
       clientesQuery = clientesQuery.gte('fecha_creacion', start).lt('fecha_creacion', end)
     }
 
-    const [{ data: clientesData }, { data: ventasData }, { data: ultimasCompras }] = await Promise.all([
-      clientesQuery.order('nombre'),
-      supabase.from('ventas_cabecera').select('cliente_id').eq('tienda_id', tiendaId),
-      supabase
+    // Traer TODAS las ventas paginando: PostgREST corta en 1000 filas por request, lo que
+    // subcontaba las compras por cliente en tiendas con muchas ventas.
+    const ventasTodas: { cliente_id: string | null; fecha: string }[] = []
+    const pageSize = 1000
+    let desde = 0
+    for (;;) {
+      const { data: pagina } = await supabase
         .from('ventas_cabecera')
         .select('cliente_id, fecha')
         .eq('tienda_id', tiendaId)
-        .order('fecha', { ascending: false }),
-    ])
+        .order('fecha', { ascending: false })
+        .range(desde, desde + pageSize - 1)
+      if (!pagina || pagina.length === 0) break
+      ventasTodas.push(...pagina)
+      if (pagina.length < pageSize) break
+      desde += pageSize
+    }
+
+    const { data: clientesData } = await clientesQuery.order('nombre')
 
     const comprasPorCliente = new Map<string, number>()
-    ;(ventasData ?? []).forEach((venta: { cliente_id?: string | null }) => {
+    const ultimaCompra = new Map<string, string>()
+    ventasTodas.forEach((venta) => {
       if (!venta.cliente_id) return
       comprasPorCliente.set(venta.cliente_id, (comprasPorCliente.get(venta.cliente_id) ?? 0) + 1)
+      // Como vienen ordenadas por fecha desc, la primera que vemos es la más reciente.
+      if (!ultimaCompra.has(venta.cliente_id)) ultimaCompra.set(venta.cliente_id, venta.fecha)
     })
 
     const clientesConCompras: ClienteConCompras[] = (clientesData ?? []).map((cliente) => ({
       ...cliente,
       total_compras: comprasPorCliente.get(cliente.id) ?? 0,
     }))
-
-    const ultimaCompra = new Map<string, string>()
-    ;(ultimasCompras ?? []).forEach((v) => {
-      if (v.cliente_id && !ultimaCompra.has(v.cliente_id)) {
-        ultimaCompra.set(v.cliente_id, v.fecha)
-      }
-    })
 
     setUltimaCompraMap(ultimaCompra)
     setClientes(clientesConCompras)
@@ -174,6 +180,10 @@ export default function ClientesPage() {
 
   const clientesPorChip = useMemo(() => {
     switch (chipCliente) {
+      case 'mejores':
+        return [...clientes]
+          .filter((c) => c.total_compras > 0)
+          .sort((a, b) => b.total_compras - a.total_compras)
       case 'recurrentes':
         return clientes.filter(
           (c) => c.total_compras >= 2 && ultimaCompraMap.has(c.id) && (ultimaCompraMap.get(c.id) ?? '') < hace35,
@@ -207,6 +217,7 @@ export default function ClientesPage() {
   const conteosClientes = useMemo(
     () => ({
       todos: clientes.length,
+      mejores: clientes.filter((c) => c.total_compras > 0).length,
       recurrentes: clientes.filter(
         (c) => c.total_compras >= 2 && ultimaCompraMap.has(c.id) && (ultimaCompraMap.get(c.id) ?? '') < hace35,
       ).length,
@@ -220,6 +231,11 @@ export default function ClientesPage() {
 
   const chipsClientes = [
     { key: 'todos' as const, label: 'Todos', activeColor: 'border-[#1E3A2F] bg-[#1E3A2F] text-white' },
+    {
+      key: 'mejores' as const,
+      label: 'Mejores clientes',
+      activeColor: 'border-[#C4622D] bg-[#F9EDE5] text-[#C4622D]',
+    },
     {
       key: 'recurrentes' as const,
       label: 'Recurrentes sin comprar',

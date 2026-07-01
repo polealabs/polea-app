@@ -501,9 +501,7 @@ export async function importarLiquidacionesConsignacion(filas: Record<string, st
     const erroresPaso2: { fila: number; mensaje: string }[] = []
 
     for (const [, items] of grupos.entries()) {
-      const { fecha, consignataria_id, mes, porcentaje_comision } = items[0]
       const consignaciones_ids: string[] = []
-      let total_vendido = 0
       let grupoOk = true
 
       for (const op of items) {
@@ -577,33 +575,15 @@ export async function importarLiquidacionesConsignacion(filas: Record<string, st
           })
           .eq('id', consig.id)
 
-        total_vendido += total_bruto
         consignaciones_ids.push(consig.id)
       }
 
       if (!grupoOk || consignaciones_ids.length === 0) continue
 
-      const comision = Math.round(total_vendido * (porcentaje_comision / 100))
-      const neto = total_vendido - comision
-      const notasGrupo = items.map((i) => i.notas).filter(Boolean).join(' | ') || null
-
-      const { error } = await supabase.from('liquidaciones').insert({
-        tienda_id,
-        consignataria_id,
-        fecha,
-        mes,
-        total_vendido,
-        porcentaje_comision,
-        comision,
-        neto,
-        notas: notasGrupo,
-        consignaciones_ids,
-      })
-
-      if (error) {
-        erroresPaso2.push({ fila: items[0].fila, mensaje: error.message })
-        continue
-      }
+      // Nota: NO se inserta una fila masiva en `liquidaciones`. Cada línea ya creó su
+      // movimiento en `consignacion_movimientos` (tipo 'liquidacion'), que es lo que leen
+      // tanto la pestaña "Liquidaciones" como el reporte de ventas por tienda aliada.
+      // Insertar además en `liquidaciones` provocaba doble conteo en Reportes.
       exitosos++
     }
 

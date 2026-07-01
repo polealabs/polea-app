@@ -8,7 +8,7 @@ import { useTienda } from '@/lib/hooks/useTienda'
 import { DashboardHomeSkeleton } from '@/components/skeletons/DashboardHomeSkeleton'
 import ProductoSelect from '@/components/ui/ProductoSelect'
 import ClienteInlineForm from '@/components/ui/ClienteInlineForm'
-import type { Cliente, MedioPago, Producto, VentaCabecera } from '@/lib/types'
+import type { Cliente, MedioPago, Producto, ProductoVariante, VentaCabecera } from '@/lib/types'
 import { crearVentaMulti } from '@/app/(dashboard)/ventas/actions'
 import { calcularComisionMedioPago, toLocalISODateString, toLocalISOYearMonthString, formatCOP } from '@/lib/utils'
 
@@ -34,6 +34,7 @@ type VentaCabeceraRaw = VentaCabecera & {
 
 type LineaVentaForm = {
   producto_id: string
+  variante_id?: string
   cantidad: number
   precio_venta: number
   precio_original: number
@@ -135,12 +136,13 @@ export default function DashboardPage() {
   >([])
 
   const [totalGastosMes, setTotalGastosMes] = useState(0)
-  const [canalTop, setCanalTop] = useState<[string, number] | null>(null)
-  const [clienteTop, setClienteTop] = useState<{ nombre: string; total: number } | null>(null)
+  const [top3Canales, setTop3Canales] = useState<{ canal: string; total: number }[]>([])
+  const [top3Clientes, setTop3Clientes] = useState<{ nombre: string; total: number }[]>([])
   const [productoTop, setProductoTop] = useState<{ nombre: string; cantidad: number } | null>(null)
 
   const [showVentaModal, setShowVentaModal] = useState(false)
   const [productosVenta, setProductosVenta] = useState<Producto[]>([])
+  const [variantesVenta, setVariantesVenta] = useState<Map<string, ProductoVariante[]>>(() => new Map())
   const [clientesVenta, setClientesVenta] = useState<Cliente[]>([])
   const [mediosPago, setMediosPago] = useState<MedioPago[]>([])
   const [canal, setCanal] = useState('WhatsApp')
@@ -330,54 +332,62 @@ export default function DashboardPage() {
     setUltimasVentas(ventasMapeadas)
 
     const inicioMes = `${mesActual}-01`
+    const inicioMesSiguienteDate = new Date(`${inicioMes}T12:00:00`)
+    inicioMesSiguienteDate.setMonth(inicioMesSiguienteDate.getMonth() + 1)
+    const inicioMesSiguiente = toLocalISODateString(inicioMesSiguienteDate)
 
     const [
       { data: gastosData },
-      { data: ventasCanal },
-      { data: ventasClienteMes },
+      { data: ventasMesRows },
       { data: itemsMes },
     ] = await Promise.all([
-      supabase.from('gastos').select('monto').eq('tienda_id', tienda.id).gte('fecha', inicioMes),
-      supabase.from('ventas_cabecera').select('canal').eq('tienda_id', tienda.id).gte('fecha', inicioMes),
       supabase
-        .from('ventas_cabecera')
-        .select('cliente_id')
+        .from('gastos')
+        .select('monto')
         .eq('tienda_id', tienda.id)
         .gte('fecha', inicioMes)
-        .not('cliente_id', 'is', null),
+        .lt('fecha', inicioMesSiguiente),
+      supabase
+        .from('ventas_cabecera')
+        .select('canal, cliente_id, total_neto')
+        .eq('tienda_id', tienda.id)
+        .gte('fecha', inicioMes)
+        .lt('fecha', inicioMesSiguiente),
+      // Producto estrella: unidades vendidas del mes según la FECHA de la venta
+      // (no created_at, que registraba cuándo se digitó la fila y no reflejaba el mes).
       supabase
         .from('venta_items')
-        .select('producto_id, cantidad, productos(nombre)')
+        .select('producto_id, cantidad, productos(nombre), ventas_cabecera!inner(fecha)')
         .eq('tienda_id', tienda.id)
-        .gte('created_at', `${inicioMes}T00:00:00`),
+        .gte('ventas_cabecera.fecha', inicioMes)
+        .lt('ventas_cabecera.fecha', inicioMesSiguiente),
     ])
 
     const totalGastos = (gastosData ?? []).reduce((s, g) => s + (g.monto ?? 0), 0)
     setTotalGastosMes(totalGastos)
 
-    const conteoCanales = new Map<string, number>()
-    ;(ventasCanal ?? []).forEach((v) => {
-      conteoCanales.set(v.canal, (conteoCanales.get(v.canal) ?? 0) + 1)
+    // Top 3 canales y clientes del mes por MONTO vendido (total neto).
+    const montoPorCanal = new Map<string, number>()
+    const montoPorCliente = new Map<string, number>()
+    ;(ventasMesRows ?? []).forEach((v) => {
+      montoPorCanal.set(v.canal, (montoPorCanal.get(v.canal) ?? 0) + (v.total_neto ?? 0))
+      if (v.cliente_id) {
+        montoPorCliente.set(v.cliente_id, (montoPorCliente.get(v.cliente_id) ?? 0) + (v.total_neto ?? 0))
+      }
     })
-    const canalTopEntry =
-      conteoCanales.size > 0
-        ? ([...conteoCanales.entries()].sort((a, b) => b[1] - a[1])[0] as [string, number])
-        : null
-    setCanalTop(canalTopEntry)
-
-    const conteoClienteCompras = new Map<string, number>()
-    ;(ventasClienteMes ?? []).forEach((v) => {
-      if (!v.cliente_id) return
-      conteoClienteCompras.set(v.cliente_id, (conteoClienteCompras.get(v.cliente_id) ?? 0) + 1)
-    })
-    let clienteTopVal: { nombre: string; total: number } | null = null
-    if (conteoClienteCompras.size > 0) {
-      const [topClienteId, totalVentas] = [...conteoClienteCompras.entries()].sort((a, b) => b[1] - a[1])[0]
-      const nombreCli =
-        (clientesInfoRes.data ?? []).find((c) => c.id === topClienteId)?.nombre ?? '—'
-      clienteTopVal = { nombre: nombreCli, total: totalVentas }
-    }
-    setClienteTop(clienteTopVal)
+    setTop3Canales(
+      [...montoPorCanal.entries()]
+        .map(([canal, total]) => ({ canal, total }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 3),
+    )
+    const nombresClientes = new Map((clientesInfoRes.data ?? []).map((c) => [c.id, c.nombre]))
+    setTop3Clientes(
+      [...montoPorCliente.entries()]
+        .map(([id, total]) => ({ nombre: nombresClientes.get(id) ?? '—', total }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 3),
+    )
 
     const conteoProductosMes = new Map<string, { nombre: string; cantidad: number }>()
     ;(itemsMes ?? []).forEach(
@@ -479,6 +489,15 @@ export default function DashboardPage() {
       setErrorVenta('Agrega al menos un producto')
       return
     }
+    // Si el producto tiene variantes, exige elegir una.
+    const faltaVariante = lineasValidas.find(
+      (l) => (variantesVenta.get(l.producto_id) ?? []).length > 0 && !l.variante_id,
+    )
+    if (faltaVariante) {
+      const prod = productosVenta.find((p) => p.id === faltaVariante.producto_id)
+      setErrorVenta(`Selecciona una variante para «${prod?.nombre ?? 'el producto'}»`)
+      return
+    }
 
     setSubmittingVenta(true)
     setErrorVenta(null)
@@ -492,6 +511,7 @@ export default function DashboardPage() {
       fecha: fechaVenta,
       lineas: lineasValidas.map((l) => ({
         producto_id: l.producto_id,
+        variante_id: l.variante_id || undefined,
         cantidad: l.cantidad,
         precio_venta: l.precio_venta,
         descuento: l.descuento ?? 0,
@@ -527,17 +547,31 @@ export default function DashboardPage() {
     if (!showVentaModal || !tienda) return
     const supabase = createClient()
     void Promise.all([
+      // Sin filtro .gt('stock_actual', 0): los productos con variantes tienen
+      // stock_actual = 0 en el padre; su stock real vive en producto_variantes.
       supabase
         .from('productos')
         .select('*')
         .eq('tienda_id', tienda.id)
         .neq('estado', 'archivado')
-        .gt('stock_actual', 0)
         .order('nombre'),
       supabase.from('clientes').select('*').eq('tienda_id', tienda.id).order('nombre'),
       supabase.from('medios_pago').select('*').eq('tienda_id', tienda.id).eq('activo', true).order('nombre'),
-    ]).then(([{ data: prods }, { data: cls }, { data: medios }]) => {
-      setProductosVenta((prods ?? []) as Producto[])
+      supabase.from('producto_variantes').select('*').eq('tienda_id', tienda.id).eq('activa', true),
+    ]).then(([{ data: prods }, { data: cls }, { data: medios }, { data: vars }]) => {
+      const mapVar = new Map<string, ProductoVariante[]>()
+      ;(vars ?? []).forEach((v) => {
+        const row = v as ProductoVariante
+        const arr = mapVar.get(row.producto_id) ?? []
+        arr.push(row)
+        mapVar.set(row.producto_id, arr)
+      })
+      // Mostrar solo productos vendibles: con stock propio o con alguna variante con stock.
+      const vendibles = ((prods ?? []) as Producto[]).filter(
+        (p) => p.stock_actual > 0 || (mapVar.get(p.id) ?? []).some((v) => v.stock_actual > 0),
+      )
+      setProductosVenta(vendibles)
+      setVariantesVenta(mapVar)
       setClientesVenta((cls ?? []) as Cliente[])
       setMediosPago((medios ?? []) as MedioPago[])
     })
@@ -973,18 +1007,46 @@ export default function DashboardPage() {
             style={{ background: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
           >
             <p className="text-xs font-semibold text-[var(--color-text-soft)] uppercase tracking-wide mb-4">Destacados del mes</p>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center gap-2">
-                <span className="text-sm text-[var(--color-text-soft)] shrink-0">Canal top</span>
-                <span className="text-sm font-semibold text-[var(--color-text)] text-right">
-                  {canalTop ? `${canalTop[0]} (${canalTop[1]} ventas)` : '—'}
-                </span>
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-medium text-[var(--color-text-soft)] mb-2">Top 3 canales</p>
+                {top3Canales.length === 0 ? (
+                  <p className="text-sm text-[var(--color-text-faint)]">Sin ventas este mes</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {top3Canales.map((c, i) => (
+                      <div key={c.canal} className="flex justify-between items-center gap-2">
+                        <span className="text-sm text-[var(--color-text)] truncate">
+                          <span className="text-[var(--color-text-faint)] mr-1.5">{i + 1}.</span>
+                          {c.canal}
+                        </span>
+                        <span className="text-sm font-semibold text-[var(--color-text)] text-right shrink-0">
+                          {formatCOP(c.total)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="flex justify-between items-center gap-2">
-                <span className="text-sm text-[var(--color-text-soft)] shrink-0">Cliente top</span>
-                <span className="text-sm font-semibold text-[var(--color-text)] truncate max-w-[140px] text-right">
-                  {clienteTop?.nombre ?? '—'}
-                </span>
+              <div className="pt-3 border-t border-[var(--color-border)]">
+                <p className="text-xs font-medium text-[var(--color-text-soft)] mb-2">Top 3 clientes</p>
+                {top3Clientes.length === 0 ? (
+                  <p className="text-sm text-[var(--color-text-faint)]">Sin clientes con ventas este mes</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {top3Clientes.map((c, i) => (
+                      <div key={`${c.nombre}-${i}`} className="flex justify-between items-center gap-2">
+                        <span className="text-sm text-[var(--color-text)] truncate max-w-[150px]">
+                          <span className="text-[var(--color-text-faint)] mr-1.5">{i + 1}.</span>
+                          {c.nombre}
+                        </span>
+                        <span className="text-sm font-semibold text-[var(--color-text)] text-right shrink-0">
+                          {formatCOP(c.total)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1072,18 +1134,20 @@ export default function DashboardPage() {
                 <label className="block text-xs font-medium text-[var(--color-text-soft)] mb-1">Cliente (opcional)</label>
                 {!showClienteFormModal ? (
                   <div className="flex gap-2">
-                    <select
+                    <ProductoSelect
+                      className="flex-1"
+                      opciones={[
+                        { id: '', label: 'Sin cliente' },
+                        ...clientesVenta.map((c) => ({
+                          id: c.id,
+                          label: c.nombre,
+                          sublabel: c.telefono ?? undefined,
+                        })),
+                      ]}
                       value={clienteId}
-                      onChange={(e) => setClienteId(e.target.value)}
-                      className="flex-1 px-3 py-2 rounded-lg border border-[var(--color-border)] text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
-                    >
-                      <option value="">Sin cliente</option>
-                      {clientesVenta.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.nombre}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(id) => setClienteId(id)}
+                      placeholder="Buscar cliente..."
+                    />
                     <button
                       type="button"
                       onClick={() => setShowClienteFormModal(true)}
@@ -1119,17 +1183,25 @@ export default function DashboardPage() {
                     const brutoLinea = linea.precio_venta * linea.cantidad
                     const descuentoLinea = Math.round(brutoLinea * ((linea.descuento ?? 0) / 100))
                     const netoLinea = brutoLinea - descuentoLinea
+                    const variantesLinea = variantesVenta.get(linea.producto_id) ?? []
                     return (
                       <div key={i} className="bg-[var(--color-background)] rounded-xl p-3 space-y-2">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           <div className="sm:col-span-1">
                             <label className="block text-xs text-[var(--color-text-soft)] mb-1">Producto</label>
                             <ProductoSelect
-                              opciones={productosVenta.map((p) => ({
-                                id: p.id,
-                                label: p.nombre,
-                                sublabel: `Stock: ${p.stock_actual} uds · ${formatCOP(p.precio_venta)}`,
-                              }))}
+                              opciones={productosVenta.map((p) => {
+                                const vars = variantesVenta.get(p.id) ?? []
+                                const stockVars = vars.reduce((s, v) => s + v.stock_actual, 0)
+                                return {
+                                  id: p.id,
+                                  label: p.nombre,
+                                  sublabel:
+                                    vars.length > 0
+                                      ? `Variantes · ${stockVars} uds · ${formatCOP(p.precio_venta)} base`
+                                      : `Stock: ${p.stock_actual} uds · ${formatCOP(p.precio_venta)}`,
+                                }
+                              })}
                               value={linea.producto_id}
                               onChange={(id) => {
                                 const prod = productosVenta.find((p) => p.id === id)
@@ -1137,6 +1209,7 @@ export default function DashboardPage() {
                                 nuevas[i] = {
                                   ...nuevas[i],
                                   producto_id: id,
+                                  variante_id: undefined,
                                   precio_venta: prod?.precio_venta ?? 0,
                                   precio_original: prod?.precio_venta ?? 0,
                                 }
@@ -1144,6 +1217,30 @@ export default function DashboardPage() {
                               }}
                               placeholder="Buscar producto..."
                             />
+                            {variantesLinea.length > 0 && (
+                              <select
+                                value={linea.variante_id ?? ''}
+                                onChange={(e) => {
+                                  const variante = variantesLinea.find((v) => v.id === e.target.value)
+                                  const nuevas = [...lineas]
+                                  nuevas[i] = {
+                                    ...nuevas[i],
+                                    variante_id: e.target.value || undefined,
+                                    precio_venta: variante?.precio_venta ?? nuevas[i].precio_venta,
+                                    precio_original: variante?.precio_venta ?? nuevas[i].precio_original,
+                                  }
+                                  setLineas(nuevas)
+                                }}
+                                className="w-full mt-1 px-3 py-2 rounded-lg border border-[var(--color-border)] text-sm bg-white text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
+                              >
+                                <option value="">Selecciona una variante</option>
+                                {variantesLinea.map((v) => (
+                                  <option key={v.id} value={v.id}>
+                                    {v.nombre} — Stock: {v.stock_actual}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
                           </div>
                           <div>
                             <label className="block text-xs text-[var(--color-text-soft)] mb-1">Cantidad</label>

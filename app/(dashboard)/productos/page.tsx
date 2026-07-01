@@ -4,7 +4,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useTienda } from '@/lib/hooks/useTienda'
-import { crearProducto, editarProducto, eliminarProducto } from './actions'
+import { crearProducto, editarProducto, eliminarProducto, ajustarStockProducto, registrarDefectuoso } from './actions'
 import type { Producto } from '@/lib/types'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import CalculadoraPrecios from '@/components/ui/CalculadoraPrecios'
@@ -313,7 +313,7 @@ function AgregarVarianteInline({
 
 export default function ProductosPage() {
   const router = useRouter()
-  const { tienda, loading: tiendaLoading, canEdit, canDelete } = useTienda()
+  const { tienda, loading: tiendaLoading, canEdit, canDelete, canViewFinanzas } = useTienda()
   const searchParams = useSearchParams()
   const [productos, setProductos] = useState<ProductoConStock[]>([])
   const [loading, setLoading] = useState(true)
@@ -337,7 +337,36 @@ export default function ProductosPage() {
   const [idsSinMovimiento, setIdsSinMovimiento] = useState<Set<string>>(new Set())
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set())
   const [ignorarFiltroQuery, setIgnorarFiltroQuery] = useState(false)
+  const [defectuosoProd, setDefectuosoProd] = useState<ProductoConStock | null>(null)
+  const [defectuosoCantidad, setDefectuosoCantidad] = useState(1)
+  const [defectuosoVarianteId, setDefectuosoVarianteId] = useState('')
+  const [defectuosoError, setDefectuosoError] = useState<string | null>(null)
+  const [defectuosoSubmitting, setDefectuosoSubmitting] = useState(false)
   const { toasts, showToast, removeToast } = useToast()
+
+  async function submitDefectuoso() {
+    if (!defectuosoProd || !tienda) return
+    const tieneVars = defectuosoProd.variantes.length > 0
+    if (tieneVars && !defectuosoVarianteId) {
+      setDefectuosoError('Selecciona una variante')
+      return
+    }
+    setDefectuosoSubmitting(true)
+    setDefectuosoError(null)
+    const res = await registrarDefectuoso(
+      defectuosoProd.id,
+      defectuosoCantidad,
+      tieneVars ? defectuosoVarianteId : undefined,
+    )
+    setDefectuosoSubmitting(false)
+    if (res?.error) {
+      setDefectuosoError(res.error)
+      return
+    }
+    setDefectuosoProd(null)
+    showToast('Defectuoso registrado')
+    await fetchProductos(tienda.id)
+  }
 
   function toggleExpandido(id: string) {
     setExpandidos((prev) => {
@@ -1265,17 +1294,49 @@ export default function ProductosPage() {
                   </td>
                   <td className="px-5 py-4 text-right text-[#1A1510]/80">{formatCOP(p.precio_venta)}</td>
                   <td className="px-5 py-4 text-right">
-                    <span
-                      className={`font-semibold ${
-                        p.stockEfectivo < 0 || p.stockEfectivo === 0
-                          ? 'text-[#C44040]'
-                          : p.stockBajo
-                            ? 'text-[#D4A853]'
-                            : 'text-[#1E3A2F]'
-                      }`}
-                    >
-                      {p.stockEfectivo}
-                    </span>
+                    {canViewFinanzas && p.variantes.length === 0 ? (
+                      <input
+                        type="number"
+                        min={0}
+                        defaultValue={p.stockEfectivo}
+                        title="Ajustar stock (owner/admin)"
+                        onBlur={async (e) => {
+                          if (!tienda) return
+                          const nuevo = Number(e.target.value)
+                          if (!Number.isFinite(nuevo) || nuevo === p.stockEfectivo) {
+                            e.target.value = String(p.stockEfectivo)
+                            return
+                          }
+                          const res = await ajustarStockProducto(p.id, nuevo)
+                          if (res?.error) {
+                            showToast(res.error, 'error')
+                            e.target.value = String(p.stockEfectivo)
+                          } else {
+                            showToast('Stock actualizado')
+                            await fetchProductos(tienda.id)
+                          }
+                        }}
+                        className="w-16 px-2 py-1 rounded border text-sm text-right font-semibold"
+                        style={{
+                          borderColor: 'var(--color-border)',
+                          background: 'var(--color-surface)',
+                          color:
+                            p.stockEfectivo <= 0 ? '#C44040' : p.stockBajo ? '#D4A853' : 'var(--color-text)',
+                        }}
+                      />
+                    ) : (
+                      <span
+                        className={`font-semibold ${
+                          p.stockEfectivo < 0 || p.stockEfectivo === 0
+                            ? 'text-[#C44040]'
+                            : p.stockBajo
+                              ? 'text-[#D4A853]'
+                              : 'text-[#1E3A2F]'
+                        }`}
+                      >
+                        {p.stockEfectivo}
+                      </span>
+                    )}
                   </td>
                   <td className="px-5 py-4 text-right text-[#1A1510]/50">{p.stock_minimo}</td>
                   <td className="px-5 py-3.5 text-sm text-center">
@@ -1331,6 +1392,22 @@ export default function ProductosPage() {
                           className="text-xs text-[#C4622D] hover:underline font-medium"
                         >
                           Editar
+                        </button>
+                      )}
+                      {canEdit && p.estado !== 'archivado' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDefectuosoProd(p)
+                            setDefectuosoCantidad(1)
+                            setDefectuosoVarianteId('')
+                            setDefectuosoError(null)
+                          }}
+                          className="text-xs font-medium hover:underline"
+                          style={{ color: '#8A7D72' }}
+                          title="Restar del inventario una unidad dañada antes de venderla"
+                        >
+                          Defectuoso
                         </button>
                       )}
                       {canDelete && (
@@ -1703,6 +1780,107 @@ export default function ProductosPage() {
             pagina={paginaProductos}
             onChange={setPaginaProductos}
           />
+        </div>
+      )}
+      {defectuosoProd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div
+            className="w-full max-w-md rounded-2xl shadow-2xl"
+            style={{ background: 'var(--color-surface)' }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b"
+              style={{ borderColor: 'var(--color-border)' }}
+            >
+              <p className="font-semibold" style={{ color: 'var(--color-text)' }}>
+                Registrar defectuoso
+              </p>
+              <button
+                type="button"
+                onClick={() => setDefectuosoProd(null)}
+                className="text-xl"
+                style={{ color: 'var(--color-text-soft)' }}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm" style={{ color: 'var(--color-text-soft)' }}>
+                Resta unidades dañadas del inventario de{' '}
+                <span className="font-semibold" style={{ color: 'var(--color-text)' }}>
+                  {defectuosoProd.nombre}
+                </span>{' '}
+                sin registrar una venta.
+              </p>
+              {defectuosoProd.variantes.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-soft)' }}>
+                    Variante
+                  </label>
+                  <select
+                    value={defectuosoVarianteId}
+                    onChange={(e) => setDefectuosoVarianteId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border text-sm"
+                    style={{
+                      borderColor: 'var(--color-border)',
+                      background: 'var(--color-surface)',
+                      color: 'var(--color-text)',
+                    }}
+                  >
+                    <option value="">Selecciona una variante</option>
+                    {defectuosoProd.variantes.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.nombre} — Stock: {v.stock_actual}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-soft)' }}>
+                  Cantidad
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={defectuosoCantidad === 0 ? '' : defectuosoCantidad}
+                  onChange={(e) =>
+                    setDefectuosoCantidad(e.target.value === '' ? 0 : Number(e.target.value))
+                  }
+                  className="w-full px-3 py-2 rounded-lg border text-sm"
+                  style={{
+                    borderColor: 'var(--color-border)',
+                    background: 'var(--color-surface)',
+                    color: 'var(--color-text)',
+                  }}
+                />
+              </div>
+              {defectuosoError && (
+                <p className="text-sm text-red-600 bg-red-50 px-4 py-2.5 rounded-lg">{defectuosoError}</p>
+              )}
+            </div>
+            <div
+              className="px-6 py-4 border-t flex gap-3 justify-end"
+              style={{ borderColor: 'var(--color-border)' }}
+            >
+              <button
+                type="button"
+                onClick={() => setDefectuosoProd(null)}
+                className="text-sm px-4 py-2 rounded-lg border transition"
+                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-soft)' }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={defectuosoSubmitting || defectuosoCantidad < 1}
+                onClick={() => void submitDefectuoso()}
+                className="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
+              >
+                {defectuosoSubmitting ? 'Guardando...' : 'Registrar'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
       <Toast toasts={toasts} onRemove={removeToast} />

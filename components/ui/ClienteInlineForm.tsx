@@ -19,6 +19,7 @@ export default function ClienteInlineForm({ tiendaId, onCreado, onCancelar }: Pr
   const [telefono, setTelefono] = useState('')
   const [ciudad, setCiudad] = useState('')
   const [correo, setCorreo] = useState('')
+  const [direccion, setDireccion] = useState('')
 
   async function handleSubmit() {
     if (creado) return
@@ -49,6 +50,7 @@ export default function ClienteInlineForm({ tiendaId, onCreado, onCancelar }: Pr
     formData.set('telefono', telefono.trim())
     formData.set('ciudad', ciudad.trim())
     formData.set('correo', correo.trim())
+    formData.set('direccion', direccion.trim())
     const result = await crearCliente(formData)
 
     if (result?.error) {
@@ -108,6 +110,16 @@ export default function ClienteInlineForm({ tiendaId, onCreado, onCancelar }: Pr
             value={ciudad}
             onChange={(e) => setCiudad(e.target.value)}
             placeholder="Cali"
+            className={inputClass}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label className={labelClass}>Dirección (opcional)</label>
+          <input
+            type="text"
+            value={direccion}
+            onChange={(e) => setDireccion(e.target.value)}
+            placeholder="Calle 10 # 5-23, Cali"
             className={inputClass}
           />
         </div>

@@ -702,18 +702,20 @@ export default function VentasPage() {
               <label className={labelClass}>Cliente (opcional)</label>
               {!showClienteForm ? (
                 <div className="flex gap-2">
-                  <select
+                  <ProductoSelect
+                    className="flex-1"
+                    opciones={[
+                      { id: '', label: 'Sin cliente' },
+                      ...clientes.map((c) => ({
+                        id: c.id,
+                        label: c.nombre,
+                        sublabel: c.telefono ?? undefined,
+                      })),
+                    ]}
                     value={clienteId}
-                    onChange={(e) => setClienteId(e.target.value)}
-                    className={inputClass}
-                  >
-                    <option value="">Sin cliente</option>
-                    {clientes.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.nombre}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(id) => setClienteId(id)}
+                    placeholder="Buscar cliente..."
+                  />
                   <button
                     type="button"
                     onClick={() => setShowClienteForm(true)}

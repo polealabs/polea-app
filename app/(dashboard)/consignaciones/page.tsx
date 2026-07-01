@@ -8,6 +8,7 @@ import type {
   Consignacion,
   ConsignacionMovimiento,
   Producto,
+  ProductoVariante,
   TiendaConsignataria,
 } from '@/lib/types'
 import {
@@ -69,6 +70,9 @@ export default function ConsignacionesPage() {
   const [consignaciones, setConsignaciones] = useState<ConsignacionRow[]>([])
   const [movimientos, setMovimientos] = useState<MovimientoConDetalles[]>([])
   const [productos, setProductos] = useState<Producto[]>([])
+  const [variantesPorProducto, setVariantesPorProducto] = useState<Map<string, ProductoVariante[]>>(
+    () => new Map(),
+  )
   const [salidas, setSalidas] = useState<SalidaReciente[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'tiendas' | 'inventario' | 'remisiones' | 'devoluciones' | 'liquidaciones'>('tiendas')
@@ -89,12 +93,14 @@ export default function ConsignacionesPage() {
   const [salidaItems, setSalidaItems] = useState<
     {
       producto_id: string
+      variante_id?: string
       cantidad: number
       precio_unitario: number
     }[]
   >([{ producto_id: '', cantidad: 1, precio_unitario: 0 }])
   const [salidaSubmitting, setSalidaSubmitting] = useState(false)
   const [salidaError, setSalidaError] = useState<string | null>(null)
+  const [salidaCreadaId, setSalidaCreadaId] = useState<string | null>(null)
 
   const [devMultiConsignatariaId, setDevMultiConsignatariaId] = useState('')
   const [devMultiFecha, setDevMultiFecha] = useState(() => toLocalISODateString())
@@ -135,7 +141,7 @@ export default function ConsignacionesPage() {
     if (!tienda) return
     setLoading(true)
     const supabase = createClient()
-    const [tRes, cRes, mRes, pRes, sRes] = await Promise.all([
+    const [tRes, cRes, mRes, pRes, sRes, vRes] = await Promise.all([
       supabase.from('tiendas_consignatarias').select('*').eq('tienda_id', tienda.id).order('nombre'),
       supabase
         .from('consignaciones')
@@ -147,12 +153,13 @@ export default function ConsignacionesPage() {
         .select('*, consignaciones(producto_id, consignataria_id, precio_unitario, productos(nombre), tiendas_consignatarias(nombre, id))')
         .eq('tienda_id', tienda.id)
         .order('fecha', { ascending: false }),
+      // Sin filtro .gt('stock_actual', 0): productos con variantes tienen stock 0 en el
+      // padre; se filtran los vendibles más abajo usando el stock de las variantes.
       supabase
         .from('productos')
         .select('id, nombre, precio_venta, stock_actual')
         .eq('tienda_id', tienda.id)
         .neq('estado', 'archivado')
-        .gt('stock_actual', 0)
         .order('nombre'),
       supabase
         .from('consignacion_salidas')
@@ -160,6 +167,11 @@ export default function ConsignacionesPage() {
         .eq('tienda_id', tienda.id)
         .order('fecha', { ascending: false })
         ,
+      supabase
+        .from('producto_variantes')
+        .select('*')
+        .eq('tienda_id', tienda.id)
+        .eq('activa', true),
     ])
 
     if (tRes.error) showToast(tRes.error.message, 'error')
@@ -167,9 +179,23 @@ export default function ConsignacionesPage() {
     if (mRes.error) showToast(mRes.error.message, 'error')
     if (pRes.error) showToast(pRes.error.message, 'error')
     if (sRes.error) showToast(sRes.error.message, 'error')
+    if (vRes.error) showToast(vRes.error.message, 'error')
+
+    const mapVar = new Map<string, ProductoVariante[]>()
+    ;(vRes.data ?? []).forEach((v) => {
+      const row = v as ProductoVariante
+      const arr = mapVar.get(row.producto_id) ?? []
+      arr.push(row)
+      mapVar.set(row.producto_id, arr)
+    })
+    setVariantesPorProducto(mapVar)
 
     setConsignatarias((tRes.data ?? []) as TiendaConsignataria[])
-    setProductos((pRes.data ?? []) as Producto[])
+    setProductos(
+      ((pRes.data ?? []) as Producto[]).filter(
+        (p) => p.stock_actual > 0 || (mapVar.get(p.id) ?? []).some((v) => v.stock_actual > 0),
+      ),
+    )
     setSalidas((sRes.data ?? []) as SalidaReciente[])
 
     const movs: MovimientoConDetalles[] = (mRes.data ?? []).map((r: Record<string, unknown>) => {
@@ -397,7 +423,15 @@ export default function ConsignacionesPage() {
       nuevas[i] = { ...nuevas[i], [campo]: valor }
       if (campo === 'producto_id') {
         const prod = productos.find((p) => p.id === valor)
+        // Al cambiar de producto se limpia la variante elegida.
+        nuevas[i].variante_id = undefined
         if (prod) nuevas[i].precio_unitario = prod.precio_venta
+      }
+      if (campo === 'variante_id') {
+        const variante = (variantesPorProducto.get(nuevas[i].producto_id) ?? []).find(
+          (v) => v.id === valor,
+        )
+        if (variante?.precio_venta) nuevas[i].precio_unitario = variante.precio_venta
       }
       return nuevas
     })
@@ -1226,6 +1260,10 @@ export default function ConsignacionesPage() {
                 <div className="space-y-3">
                   {salidaItems.map((item, i) => {
                     const prod = productos.find((p) => p.id === item.producto_id)
+                    const variantesItem = variantesPorProducto.get(item.producto_id) ?? []
+                    const stockDisponible = item.variante_id
+                      ? (variantesItem.find((v) => v.id === item.variante_id)?.stock_actual ?? 0)
+                      : (prod?.stock_actual ?? 0)
                     return (
                       <div
                         key={i}
@@ -1237,15 +1275,41 @@ export default function ConsignacionesPage() {
                       >
                         <div className="grid grid-cols-1 gap-2">
                           <ProductoSelect
-                            opciones={productos.map((p) => ({
-                              id: p.id,
-                              label: p.nombre,
-                              sublabel: `Stock: ${p.stock_actual} uds  ${formatCOP(p.precio_venta)}`,
-                            }))}
+                            opciones={productos.map((p) => {
+                              const vars = variantesPorProducto.get(p.id) ?? []
+                              const stockVars = vars.reduce((s, v) => s + v.stock_actual, 0)
+                              return {
+                                id: p.id,
+                                label: p.nombre,
+                                sublabel:
+                                  vars.length > 0
+                                    ? `Variantes · ${stockVars} uds · ${formatCOP(p.precio_venta)} base`
+                                    : `Stock: ${p.stock_actual} uds  ${formatCOP(p.precio_venta)}`,
+                              }
+                            })}
                             value={item.producto_id}
                             onChange={(id) => actualizarLineaSalida(i, 'producto_id', id)}
                             placeholder="Buscar producto..."
                           />
+                          {variantesItem.length > 0 && (
+                            <select
+                              value={item.variante_id ?? ''}
+                              onChange={(e) => actualizarLineaSalida(i, 'variante_id', e.target.value)}
+                              className="w-full px-3 py-2 rounded-lg border text-sm"
+                              style={{
+                                borderColor: 'var(--color-border)',
+                                background: 'var(--color-surface)',
+                                color: 'var(--color-text)',
+                              }}
+                            >
+                              <option value="">Selecciona una variante</option>
+                              {variantesItem.map((v) => (
+                                <option key={v.id} value={v.id}>
+                                  {v.nombre} — Stock: {v.stock_actual}
+                                </option>
+                              ))}
+                            </select>
+                          )}
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
@@ -1255,7 +1319,7 @@ export default function ConsignacionesPage() {
                             <input
                               type="number"
                               min="1"
-                              max={prod?.stock_actual ?? 999}
+                              max={stockDisponible || 999}
                               value={item.cantidad === 0 ? '' : item.cantidad}
                               onChange={(e) =>
                                 actualizarLineaSalida(
@@ -1273,7 +1337,7 @@ export default function ConsignacionesPage() {
                             />
                             {prod && (
                               <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-soft)' }}>
-                                Máx: {prod.stock_actual}
+                                Máx: {stockDisponible}
                               </p>
                             )}
                           </div>
@@ -1364,11 +1428,26 @@ export default function ConsignacionesPage() {
                   setSalidaSubmitting(true)
                   setSalidaError(null)
                   const itemsValidos = salidaItems.filter((i) => i.producto_id && i.cantidad > 0)
+                  // Si el producto tiene variantes, exige elegir una.
+                  const faltaVariante = itemsValidos.find(
+                    (i) => (variantesPorProducto.get(i.producto_id) ?? []).length > 0 && !i.variante_id,
+                  )
+                  if (faltaVariante) {
+                    const p = productos.find((pp) => pp.id === faltaVariante.producto_id)
+                    setSalidaError(`Selecciona una variante para «${p?.nombre ?? 'el producto'}»`)
+                    setSalidaSubmitting(false)
+                    return
+                  }
                   const result = await registrarSalidaMultiple({
                     consignataria_id: salidaConsignatariaId,
                     fecha: salidaFecha,
                     notas: salidaNotas || undefined,
-                    items: itemsValidos,
+                    items: itemsValidos.map((i) => ({
+                      producto_id: i.producto_id,
+                      variante_id: i.variante_id || undefined,
+                      cantidad: i.cantidad,
+                      precio_unitario: i.precio_unitario,
+                    })),
                   })
                   if (result?.error) {
                     setSalidaError(result.error)
@@ -1378,6 +1457,9 @@ export default function ConsignacionesPage() {
                     setSalidaConsignatariaId('')
                     setSalidaNotas('')
                     showToast('Salida registrada', 'success')
+                    if (result && 'salida_id' in result && result.salida_id) {
+                      setSalidaCreadaId(result.salida_id as string)
+                    }
                     await loadData()
                   }
                   setSalidaSubmitting(false)
@@ -1387,6 +1469,50 @@ export default function ConsignacionesPage() {
               >
                 {salidaSubmitting ? 'Guardando...' : 'Registrar salida'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {salidaCreadaId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md"
+            style={{ background: 'var(--color-surface)' }}
+          >
+            <div className="p-6 text-center space-y-4">
+              <div
+                className="mx-auto w-12 h-12 rounded-full flex items-center justify-center text-2xl"
+                style={{ background: '#E8F5EE', color: '#3A7D5A' }}
+              >
+                ✓
+              </div>
+              <div>
+                <p className="font-semibold text-lg" style={{ color: 'var(--color-text)' }}>
+                  Salida registrada
+                </p>
+                <p className="text-sm mt-1" style={{ color: 'var(--color-text-soft)' }}>
+                  Puedes generar la remisión para compartirla con la tienda aliada.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Link
+                  href={`/consignaciones/salida/${salidaCreadaId}/pdf`}
+                  target="_blank"
+                  className="btn-primary px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+                  onClick={() => setSalidaCreadaId(null)}
+                >
+                  <span>📄</span> Ver / compartir remisión
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setSalidaCreadaId(null)}
+                  className="text-sm px-4 py-2 rounded-lg border transition"
+                  style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-soft)' }}
+                >
+                  Cerrar
+                </button>
+              </div>
             </div>
           </div>
         </div>

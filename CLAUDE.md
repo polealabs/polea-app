@@ -173,6 +173,7 @@ Migración `20260618130000_iva.sql`. Constante `TASA_IVA = 0.19` en `lib/utils.t
   - Aliadas: `iva` en `consignacion_movimientos` (liquidación por remisión) y `liquidaciones` (masiva). Solo se calcula en liquidaciones, sobre el total vendido.
 - La comisión del medio de pago se calcula sobre la base **sin** IVA (simplificación deliberada).
 - **Gap conocido:** las liquidaciones importadas por CSV (`actions-import-historial.ts`) quedan con `iva = 0` (no pasan por `registrarMovimiento`/`registrarLiquidacion`). El IVA solo se calcula en liquidaciones hechas desde la UI.
+- **Fuente única de liquidaciones (evita doble conteo):** el import CSV escribe cada liquidación **solo** en `consignacion_movimientos` (tipo `liquidacion`), **no** en `liquidaciones`. Antes escribía en ambas y el reporte de aliadas sumaba las dos → doble conteo. Las liquidaciones masivas desde la UI (`registrarLiquidacion`) sí van a `liquidaciones`, y las por remisión (`registrarMovimiento`) a `consignacion_movimientos`; no se solapan. (Los duplicados históricos ya se limpiaron manualmente en `liquidaciones`.)
 
 ### Migraciones manuales en Supabase
 
@@ -379,7 +380,15 @@ Al cerrar un evento, exporta: `evento_ventas` → `ventas_cabecera` + `venta_ite
 ### Tiendas aliadas — pestañas Inventario vs Remisiones
 - **Inventario › Por tienda:** consolidado por producto (suma todas las remisiones de la consignataria), **solo lectura**, solo productos con stock disponible. Inventario › Global ya estaba consolidado.
 - **Remisiones:** cada salida por fecha de envío, con las acciones **Liquidar / Devolver** (`abrirMovimiento`, operan a nivel de remisión individual). Filtrable por tienda.
-- **Reportes:** sección "Ventas por tienda aliada" (`DatosReporte.ventasTiendasAliadas`) agrega liquidaciones del mes (`consignacion_movimientos` tipo liquidación + `liquidaciones` masivas). NO entran en las ventas netas del P&L (flujo aparte).
+- **Reportes:** sección "Ventas por tienda aliada" (`DatosReporte.ventasTiendasAliadas`) agrega liquidaciones del mes (`consignacion_movimientos` tipo liquidación + `liquidaciones` masivas). NO entran en las ventas netas del P&L (flujo aparte). El CSV escribe solo en `consignacion_movimientos` para no duplicar (ver §5).
+- **Salida con variantes + remisión:** el modal "Nueva salida" permite elegir variante (descuenta el stock de la variante vía `ajustar_stock_variante`). Al registrarla se ofrece un botón "Ver / compartir remisión" → `/consignaciones/salida/[id]/pdf`.
+
+### Inventario — ajustes manuales (`productos/actions.ts`)
+- `ajustarStockProducto(producto_id, nuevoStock)` — `requireFinanzas` (owner/admin). Corrige el `stock_actual` de un producto **simple** (rechaza si tiene variantes; esas se editan inline por variante). Input inline en la celda de stock de `productos/page.tsx`, visible solo con `canViewFinanzas`.
+- `registrarDefectuoso(producto_id, cantidad, variante_id?)` — `requireEdit`. Resta stock e incrementa `unidades_defectuosas` **antes** de vender (RPC `registrar_defectuoso_producto`; para variantes, `ajustar_stock_variante(-cant)` + defecto en el padre). Mini-modal por fila. Complementa el flujo de defectuoso vía devolución post-venta.
+
+### Dashboard — Destacados del mes (`dashboard/page.tsx`)
+"Destacados del mes" muestra **Top 3 canales** y **Top 3 clientes** del mes por **monto vendido** (`total_neto`), filtrando por `fecha` de la venta (con límite superior del mes). El "Producto estrella" se calcula por unidades uniendo `venta_items` → `ventas_cabecera` por `fecha` (antes usaba `created_at` y no reflejaba el mes). El selector de cliente (aquí y en `ventas/page.tsx`) es `ProductoSelect` buscable; el modal de venta rápida soporta variantes.
 
 ### Soporte widget (`components/ui/SoporteWidget.tsx`)
 Botón flotante en todas las páginas del dashboard. Posición dinámica: en `/dashboard` sube a `bottom: 5.5rem` para no tapar el botón de nueva venta; resto: `bottom: 1.5rem`.
